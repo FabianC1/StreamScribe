@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { CheckCircle, ArrowRight } from 'lucide-react'
 import Link from 'next/link'
+import Header from '@/components/Header'
 
 export default function SuccessPage() {
   const [sessionId, setSessionId] = useState<string | null>(null)
@@ -15,8 +16,9 @@ export default function SuccessPage() {
   }, [])
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center transition-colors duration-200">
-      <div className="max-w-md mx-auto text-center p-8">
+    <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 dark:from-gray-900 dark:to-gray-800 transition-colors duration-200">
+      <Header />
+      <div className="max-w-md mx-auto text-center p-8 pt-20 hero-animate">
         <div className="w-20 h-20 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-6">
           <CheckCircle className="w-10 h-10 text-green-600 dark:text-green-400" />
         </div>

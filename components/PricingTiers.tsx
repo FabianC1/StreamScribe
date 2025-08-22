@@ -92,7 +92,7 @@ export default function PricingTiers() {
       {tiers.map((tier) => (
         <div
           key={tier.id}
-          className={`relative card transition-all duration-300 hover:shadow-xl ${
+          className={`relative card pricing-card transition-all duration-300 hover:shadow-xl ${
             tier.popular ? 'ring-2 ring-primary-500 scale-105' : ''
           }`}
         >
@@ -106,7 +106,7 @@ export default function PricingTiers() {
 
           <div className="text-center mb-6">
             <div className="w-16 h-16 bg-primary-100 dark:bg-primary-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
-              <div className="text-primary-600 dark:text-primary-400">
+              <div className="text-primary-600 dark:text-primary-500">
                 {tier.icon}
               </div>
             </div>

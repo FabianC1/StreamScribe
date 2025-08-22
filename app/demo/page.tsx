@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { Youtube, Play, Download, Copy, Check } from 'lucide-react'
+import Header from '@/components/Header'
 
 export default function DemoPage() {
   const [youtubeUrl, setYoutubeUrl] = useState('')
@@ -64,10 +65,11 @@ This is just a demonstration of the user interface and workflow.`)
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 py-12 transition-colors duration-200">
-      <div className="container mx-auto px-4">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 transition-colors duration-200">
+      <Header />
+      <div className="container mx-auto px-4 py-12">
         <div className="max-w-4xl mx-auto">
-          <div className="text-center mb-12">
+          <div className="text-center mb-12 hero-animate">
             <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4 transition-colors duration-200">
               StreamScribe Demo
             </h1>
@@ -76,7 +78,7 @@ This is just a demonstration of the user interface and workflow.`)
             </p>
           </div>
 
-          <div className="card">
+          <div className="card form-animate">
             <div className="text-center mb-8">
               <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2 transition-colors duration-200">
                 Demo Transcription
@@ -175,7 +177,7 @@ This is just a demonstration of the user interface and workflow.`)
             )}
           </div>
 
-          <div className="mt-12 text-center">
+          <div className="mt-12 text-center section-animate">
             <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-4 transition-colors duration-200">
               Ready to get started?
             </h3>

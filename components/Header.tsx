@@ -21,13 +21,13 @@ export default function Header() {
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center gap-6">
-            <a href="#features" className="text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
+            <a href="#features" className="nav-link text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-500">
               Features
             </a>
-            <a href="#pricing" className="text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
+            <a href="#pricing" className="nav-link text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-500">
               Pricing
             </a>
-            <a href="/demo" className="text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
+            <a href="/demo" className="nav-link text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-500">
               Demo
             </a>
             <ThemeToggle />
@@ -56,13 +56,13 @@ export default function Header() {
         {isMenuOpen && (
           <div className="md:hidden py-4 border-t border-gray-100 dark:border-gray-800">
             <nav className="flex flex-col gap-4">
-              <a href="#features" className="text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
+              <a href="#features" className="nav-link text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-500">
                 Features
               </a>
-              <a href="#pricing" className="text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
+              <a href="#pricing" className="nav-link text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-500">
                 Pricing
               </a>
-              <a href="/demo" className="text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
+              <a href="/demo" className="nav-link text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-500">
                 Demo
               </a>
               <button className="btn-primary w-full">
