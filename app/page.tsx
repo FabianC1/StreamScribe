@@ -29,7 +29,7 @@ export default function Home() {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 transition-colors duration-200">
       <Header />
       
-      <main className="container mx-auto px-4 py-12">
+      <main className="container mx-auto px-4 py-12 pt-28">
         {/* Hero Section */}
         <div className="text-center mb-16 hero-animate">
           <h1 className="text-5xl font-bold text-gray-900 dark:text-white mb-6 transition-colors duration-200">

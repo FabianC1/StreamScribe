@@ -67,7 +67,7 @@ This is just a demonstration of the user interface and workflow.`)
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 transition-colors duration-200">
       <Header />
-      <div className="container mx-auto px-4 py-12">
+      <div className="container mx-auto px-4 py-12 pt-28">
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-12 hero-animate">
             <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4 transition-colors duration-200">

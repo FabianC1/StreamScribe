@@ -82,6 +82,11 @@
     @apply w-full;
   }
 
+  .header-scrolled {
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+
   .card-animate-1 {
     animation: fadeInUp 0.6s ease-out 0.1s both;
   }
