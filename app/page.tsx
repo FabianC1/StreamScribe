@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Youtube, Play, Download, CheckCircle, Zap, Crown } from 'lucide-react'
 import TranscriptionForm from '@/components/TranscriptionForm'
 import PricingTiers from '@/components/PricingTiers'
@@ -10,6 +10,24 @@ import Footer from '@/components/Footer'
 export default function Home() {
   const [transcription, setTranscription] = useState<string>('')
   const [isLoading, setIsLoading] = useState(false)
+
+  useEffect(() => {
+    // Handle hash navigation when page loads
+    if (typeof window !== 'undefined') {
+      const hash = window.location.hash
+      if (hash) {
+        // Remove the # symbol
+        const sectionId = hash.substring(1)
+        const element = document.getElementById(sectionId)
+        if (element) {
+          // Small delay to ensure the page is fully rendered
+          setTimeout(() => {
+            element.scrollIntoView({ behavior: 'smooth' })
+          }, 100)
+        }
+      }
+    }
+  }, [])
 
   const handleTranscription = async (youtubeUrl: string) => {
     setIsLoading(true)
