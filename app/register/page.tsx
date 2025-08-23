@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Header from '../../components/Header'
-import { Mail, Lock, Eye, EyeOff, AlertCircle, User, CheckCircle } from 'lucide-react'
+import { Mail, Lock, Eye, EyeOff, AlertCircle, User, CheckCircle, Chrome } from 'lucide-react'
 import Link from 'next/link'
 
 export default function RegisterPage() {
@@ -300,6 +300,35 @@ export default function RegisterPage() {
                 ) : (
                   'Create Account'
                 )}
+              </button>
+
+              {/* Divider */}
+              <div className={`relative my-6 transition-all duration-500 delay-950 ${
+                isVisible ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'
+              }`}>
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-gray-300 dark:border-gray-600"></div>
+                </div>
+                <div className="relative flex justify-center text-sm">
+                  <span className="px-2 bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400">
+                    Or continue with
+                  </span>
+                </div>
+              </div>
+
+              {/* Google Sign-In Button */}
+              <button
+                type="button"
+                className={`w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 py-3 px-4 rounded-lg flex items-center justify-center gap-3 transition-all duration-500 delay-1000 hover:bg-gray-50 dark:hover:bg-gray-700 hover:border-gray-400 dark:hover:border-gray-500 active:scale-95 ${
+                  isVisible ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'
+                }`}
+                onClick={() => {
+                  // TODO: Implement Google OAuth
+                  console.log('Google sign-in clicked')
+                }}
+              >
+                <Chrome className="w-5 h-5" />
+                <span className="font-medium">Sign up with Google</span>
               </button>
             </form>
 

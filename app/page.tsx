@@ -84,22 +84,22 @@ export default function HomePage() {
               </p>
               
               {/* Hero Stats */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-4xl mx-auto mb-8">
-                <div className="text-center">
-                  <div className="text-3xl font-bold text-primary-600 dark:text-primary-400 mb-2">99.5%</div>
-                  <div className="text-sm text-gray-600 dark:text-gray-400">Accuracy Rate</div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 max-w-4xl mx-auto mb-8">
+                <div className="text-center p-3 md:p-0">
+                  <div className="text-2xl md:text-3xl font-bold text-primary-600 dark:text-primary-400 mb-1 md:mb-2">99.5%</div>
+                  <div className="text-xs md:text-sm text-gray-600 dark:text-gray-400">Accuracy Rate</div>
                 </div>
-                <div className="text-center">
-                  <div className="text-3xl font-bold text-primary-600 dark:text-primary-400 mb-2">50+</div>
-                  <div className="text-sm text-gray-600 dark:text-gray-400">Languages</div>
+                <div className="text-center p-3 md:p-0">
+                  <div className="text-2xl md:text-3xl font-bold text-primary-600 dark:text-primary-400 mb-1 md:mb-2">50+</div>
+                  <div className="text-xs md:text-sm text-gray-600 dark:text-gray-400">Languages</div>
                 </div>
-                <div className="text-center">
-                  <div className="text-3xl font-bold text-primary-600 dark:text-primary-400 mb-2">24/7</div>
-                  <div className="text-sm text-gray-600 dark:text-gray-400">Processing</div>
+                <div className="text-center p-3 md:p-0">
+                  <div className="text-2xl md:text-3xl font-bold text-primary-600 dark:text-primary-400 mb-1 md:mb-2">24/7</div>
+                  <div className="text-xs md:text-sm text-gray-600 dark:text-gray-400">Processing</div>
                 </div>
-                <div className="text-center">
-                  <div className="text-3xl font-bold text-primary-600 dark:text-primary-400 mb-2">10k+</div>
-                  <div className="text-sm text-gray-600 dark:text-gray-400">Happy Users</div>
+                <div className="text-center p-3 md:p-0">
+                  <div className="text-2xl md:text-3xl font-bold text-primary-600 dark:text-primary-400 mb-1 md:mb-2">10k+</div>
+                  <div className="text-xs md:text-sm text-gray-600 dark:text-gray-400">Happy Users</div>
                 </div>
               </div>
 
@@ -130,11 +130,7 @@ export default function HomePage() {
                />
              </div>
              
-             <div className="text-center mt-12">
-               <p className="text-sm text-gray-500 dark:text-gray-400">
-                 Try it free • No credit card required • Instant results
-               </p>
-             </div>
+             
            </div>
          </section>
 
@@ -150,7 +146,7 @@ export default function HomePage() {
               </p>
             </div>
 
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
               {/* Feature 1 */}
               <div className={`card p-6 text-center card-animate-1 transition-all duration-500 hover:scale-105 group ${
                 isVisible ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'

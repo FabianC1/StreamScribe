@@ -65,7 +65,10 @@ export default function Header() {
             }`}>
               <Link href="/" className="flex items-center gap-2">
                 <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center">
-                  <Youtube className="w-5 h-5 text-white" />
+                  <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M2.5 17a24.12 24.12 0 0 1 0-10 2 2 0 0 1 1.4-1.4 49.56 49.56 0 0 1 16.2 0A2 2 0 0 1 21.5 7a24.12 24.12 0 0 1 0 10 2 2 0 0 1-1.4 1.4 49.55 49.55 0 0 1-16.2 0A2 2 0 0 1 2.5 17" fill="white"/>
+                    <path d="m10 15 5-3-5-3z" fill="#2563EB"/>
+                  </svg>
                 </div>
                 <span className="text-xl font-bold text-gray-900 dark:text-white">StreamScribe</span>
               </Link>
@@ -151,10 +154,11 @@ export default function Header() {
                 <ThemeToggle />
               </div>
               <button
-                className={`p-2 transition-all duration-300 ${
+                className={`p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-300 ${
                   isScrolled ? 'scale-95' : 'scale-100'
                 }`}
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
+                aria-label="Toggle mobile menu"
               >
                 {isMenuOpen ? (
                   <X className="w-6 h-6 text-gray-600 dark:text-gray-300" />
@@ -165,23 +169,25 @@ export default function Header() {
             </div>
           </div>
 
-          {/* Mobile Navigation */}
+                    {/* Mobile Navigation */}
           {isMenuOpen && (
-            <div className="md:hidden py-4 border-t border-gray-100 dark:border-gray-800">
-              <nav className="flex flex-col gap-4">
+            <div className="md:hidden py-6 border-t border-gray-100 dark:border-gray-800 bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm">
+              <nav className="flex flex-col gap-4 px-4">
                 <button 
-                  onClick={() => handleAnchorClick('features')}
-                  className={`nav-link text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-500 transition-all duration-300 text-left ${
-                    isScrolled ? 'scale-95 opacity-0' : 'scale-100 opacity-100'
-                  }`}
+                  onClick={() => {
+                    handleAnchorClick('features')
+                    setIsMenuOpen(false)
+                  }}
+                  className="nav-link text-left py-3 px-4 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-300 text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-500"
                 >
                   Features
                 </button>
                 <button 
-                  onClick={() => handleAnchorClick('pricing')}
-                  className={`nav-link text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-500 transition-all duration-300 text-left ${
-                    isScrolled ? 'scale-95 opacity-90' : 'scale-100 opacity-100'
-                  }`}
+                  onClick={() => {
+                    handleAnchorClick('pricing')
+                    setIsMenuOpen(false)
+                  }}
+                  className="nav-link text-left py-3 px-4 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-300 text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-500"
                 >
                   Pricing
                 </button>
@@ -190,17 +196,17 @@ export default function Header() {
                   <>
                     <Link 
                       href="/subscriptions" 
-                      className={`nav-link text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-500 transition-all duration-300 ${
-                        isScrolled ? 'scale-95 opacity-90' : 'scale-100 opacity-100'
-                      }`}
+                      onClick={() => setIsMenuOpen(false)}
+                      className="nav-link py-3 px-4 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-300 text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-500"
                     >
                       Subscriptions
                     </Link>
                     <button
-                      onClick={handleLogout}
-                      className={`nav-link text-gray-600 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400 transition-all duration-300 flex items-center gap-2 ${
-                        isScrolled ? 'scale-95 opacity-90' : 'scale-100 opacity-100'
-                      }`}
+                      onClick={() => {
+                        handleLogout()
+                        setIsMenuOpen(false)
+                      }}
+                      className="nav-link py-3 px-4 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-300 flex items-center gap-2 text-gray-600 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400"
                     >
                       <LogOut className="w-4 h-4" />
                       Logout
@@ -210,18 +216,15 @@ export default function Header() {
                   <>
                     <button
                       onClick={handleSubscriptionsClick}
-                      className={`nav-link text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-500 transition-all duration-300 flex items-center gap-2 text-left ${
-                        isScrolled ? 'scale-95 opacity-90' : 'scale-100 opacity-100'
-                      }`}
+                      className="nav-link py-3 px-4 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-300 flex items-center gap-2 text-left text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-500"
                     >
                       <Shield className="w-4 h-4" />
                       Subscriptions
                     </button>
                     <Link 
                       href="/register" 
-                      className={`btn-primary transition-all duration-300 ${
-                        isScrolled ? 'scale-95 shadow-md' : 'scale-100'
-                      }`}
+                      onClick={() => setIsMenuOpen(false)}
+                      className="btn-primary w-full text-center py-3 px-4 transition-all duration-300 hover:scale-105 active:scale-95"
                     >
                       Sign Up
                     </Link>
