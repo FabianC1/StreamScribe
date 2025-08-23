@@ -93,7 +93,7 @@ export default function RegisterPage() {
   return (
     <>
       <Header />
-      <main className="pt-28 min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center py-8">
+      <main className="pt-28 min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-700 transition-colors duration-200 flex items-center justify-center py-8">
         <div className={`w-full max-w-md transition-all duration-1000 transform ${
           isVisible ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'
         }`}>
@@ -309,7 +309,7 @@ export default function RegisterPage() {
               <p className="text-gray-600 dark:text-gray-300">
                 Already have an account?{' '}
                 <Link href="/login" className="text-primary-600 hover:text-primary-500 dark:text-primary-400 dark:hover:text-primary-300 font-medium transition-colors duration-200 hover:underline">
-                  Sign in
+                  Log in
                 </Link>
               </p>
             </div>

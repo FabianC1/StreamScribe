@@ -51,7 +51,7 @@ export default function SubscriptionsPage() {
     return (
       <>
         <Header />
-        <main className="pt-28 min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+        <main className="pt-28 min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-700 transition-colors duration-200 flex items-center justify-center">
           <div className="text-center max-w-md mx-auto px-4">
             <div className="mb-8">
               <div className="w-16 h-16 bg-primary-100 dark:bg-primary-900/20 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -82,7 +82,7 @@ export default function SubscriptionsPage() {
   return (
     <>
       <Header />
-      <main className="pt-28 min-h-screen bg-gray-50 dark:bg-gray-900">
+      <main className="pt-28 min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-700 transition-colors duration-200">
         <div className="container mx-auto px-4 py-8">
           {/* Page Header */}
           <div className="text-center mb-8">
