@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { CheckCircle, ArrowRight } from 'lucide-react'
 import Link from 'next/link'
-import Header from '@/components/Header'
+import Header from '../../components/Header'
 
 export default function SuccessPage() {
   const [sessionId, setSessionId] = useState<string | null>(null)
