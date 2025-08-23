@@ -56,11 +56,6 @@ export default function TranscriptionResultsPage() {
     { id: '3', sectionId: 'video', text: 'Third video note to ensure the scrollbar appears.', timestamp: '10:32 AM' },
     { id: '4', sectionId: 'video', text: 'Fourth video note to fill the space.', timestamp: '10:33 AM' },
     { id: '5', sectionId: 'video', text: 'Fifth video note to trigger overflow.', timestamp: '10:34 AM' },
-    { id: '6', sectionId: 'insights', text: 'Sample insights note to show scrollbar.', timestamp: '10:35 AM' },
-    { id: '7', sectionId: 'insights', text: 'Another insights note for demonstration.', timestamp: '10:36 AM' },
-    { id: '8', sectionId: 'insights', text: 'Third insights note to fill space.', timestamp: '10:37 AM' },
-    { id: '9', sectionId: 'insights', text: 'Fourth insights note for overflow.', timestamp: '10:38 AM' },
-    { id: '10', sectionId: 'insights', text: 'Fifth insights note to ensure scrolling.', timestamp: '10:39 AM' },
   ])
   const [showNotes, setShowNotes] = useState(true)
 
@@ -158,12 +153,12 @@ export default function TranscriptionResultsPage() {
     <>
       <TranscriptionHeader />
       
-      <main className="pt-28 min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-700 transition-colors duration-200">
+             <main className="pt-20 min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-700 transition-colors duration-200">
         <div className="w-full h-full">
           {/* Full-Width 3-Column Layout */}
-          <div className="flex flex-col lg:flex-row h-[calc(100vh-112px)]">
-            {/* Left Section - Video Player */}
-            <div className="w-full lg:w-1/3 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 overflow-hidden">
+                     <div className="flex flex-col lg:flex-row h-[calc(100vh-80px)]">
+                         {/* Left Section - Video Player */}
+             <div className="w-full lg:w-1/3 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
               <div className="p-4">
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
                   <Play className="w-5 h-5 text-primary-600" />
@@ -386,138 +381,80 @@ export default function TranscriptionResultsPage() {
               </div>
             </div>
 
-            {/* Right Section - Insights & Actions */}
-            <div className="w-full lg:w-1/3 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
-              <div className="p-4 h-full flex flex-col">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-                  <MessageSquare className="w-5 h-5 text-primary-600" />
-                  Insights & Actions
-                </h3>
+                         {/* Right Section - Insights & Actions */}
+             <div className="w-full lg:w-1/3 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+               <div className="p-4 h-full flex flex-col">
+                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                   <MessageSquare className="w-5 h-5 text-primary-600" />
+                   Insights & Actions
+                 </h3>
 
-                {/* Key Highlights */}
-                <div className="mb-6">
-                  <h4 className="font-medium text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-                    <MessageSquare className="w-4 h-4 text-primary-600" />
-                    Key Highlights
-                  </h4>
-                  <div className="space-y-2">
-                    {[
-                      'Introduction to AI and ML concepts',
-                      'Fundamentals of machine learning',
-                      'Neural networks and deep learning',
-                      'Pattern recognition in data',
-                      'Traditional vs. ML programming approaches'
-                    ].map((highlight, index) => (
-                      <div key={index} className="p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
-                        <p className="text-sm text-green-800 dark:text-green-200">{highlight}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Key Quotes */}
-                <div className="mb-6">
-                  <h4 className="font-medium text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-                    <MessageSquare className="w-4 h-4 text-primary-600" />
-                    Key Quotes
-                  </h4>
-                  <div className="space-y-3">
-                    {[
-                      '"Machine learning enables computers to learn patterns from data without explicit programming."',
-                      '"From neural networks to deep learning algorithms, we will cover everything you need to know."',
-                      '"Let us begin with the basics of machine learning and how it differs from traditional programming."'
-                    ].map((quote, index) => (
-                      <div key={index} className="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-                        <p className="text-sm text-blue-800 dark:text-blue-200 italic">{quote}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Action Items */}
-                <div className="mb-6">
-                  <h4 className="font-medium text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-                    <MessageSquare className="w-4 h-4 text-primary-600" />
-                    Action Items
-                  </h4>
-                  <div className="space-y-2">
-                    {[
-                      'Review fundamental ML concepts',
-                      'Practice with neural network examples',
-                      'Compare traditional vs. ML approaches',
-                      'Explore pattern recognition techniques'
-                    ].map((action, index) => (
-                      <div key={index} className="p-3 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg">
-                        <p className="text-sm text-purple-800 dark:text-purple-200">{action}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                                 {/* Notes Section */}
-                 {showNotes && (
-                   <div className="mt-auto pt-4 border-t border-gray-200 dark:border-gray-700 flex-1 overflow-y-auto">
-                     <div className="flex items-center justify-between mb-3">
-                       <h4 className="font-medium text-gray-900 dark:text-white flex items-center gap-2">
-                         <MessageSquare className="w-4 h-4 text-primary-600" />
-                         Insights Notes
-                       </h4>
-                       <button
-                         onClick={() => handleAddNote('insights')}
-                         className="text-sm text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 transition-colors"
-                       >
-                         + Add Note
-                       </button>
-                     </div>
-                     
-                     {editingNoteId === 'insights' && (
-                       <div className="mb-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                         <textarea
-                           value={noteInput}
-                           onChange={(e) => setNoteInput(e.target.value)}
-                           placeholder="Add insights or observations..."
-                           className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm resize-none"
-                           rows={3}
-                         />
-                         <div className="flex gap-2 mt-2">
-                           <button
-                             onClick={handleSaveNote}
-                             className="px-3 py-1 bg-primary-600 text-white text-xs rounded-lg hover:bg-primary-700 transition-colors flex items-center gap-1"
-                           >
-                             <Save className="w-3 h-3" />
-                             Save
-                           </button>
-                           <button
-                             onClick={() => setEditingNoteId(null)}
-                             className="px-3 py-1 bg-gray-500 text-white text-xs rounded-lg hover:bg-gray-600 transition-colors flex items-center gap-1"
-                           >
-                             <X className="w-3 h-3" />
-                             Cancel
-                           </button>
+                 {/* Scrollable Content Area */}
+                 <div className="flex-1 overflow-y-auto">
+                   {/* Key Highlights */}
+                   <div className="mb-4">
+                     <h4 className="font-medium text-gray-900 dark:text-white mb-2 flex items-center gap-2">
+                       <MessageSquare className="w-4 h-4 text-primary-600" />
+                       Key Highlights
+                     </h4>
+                     <div className="space-y-1">
+                       {[
+                         'Introduction to AI and ML concepts',
+                         'Fundamentals of machine learning',
+                         'Neural networks and deep learning',
+                         'Pattern recognition in data',
+                         'Traditional vs. ML programming approaches'
+                       ].map((highlight, index) => (
+                         <div key={index} className="p-2 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+                           <p className="text-sm text-green-800 dark:text-green-200">{highlight}</p>
                          </div>
-                       </div>
-                     )}
-                     
-                                           <div className="space-y-2 overflow-y-auto max-h-48 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 scrollbar-track-transparent hover:scrollbar-thumb-gray-400 dark:hover:scrollbar-thumb-gray-500">
-                        {getSectionNotes('insights').map(note => (
-                          <div key={note.id} className="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                            <div className="flex items-start justify-between gap-2">
-                              <p className="text-sm text-gray-700 dark:text-gray-300 flex-1">{note.text}</p>
-                              <button
-                                onClick={() => handleDeleteNote(note.id)}
-                                className="text-red-500 hover:text-red-700 transition-colors p-1"
-                              >
-                                <Trash2 className="w-3 h-3" />
-                              </button>
-                            </div>
-                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{note.timestamp}</p>
-                          </div>
-                        ))}
-                      </div>
+                       ))}
+                     </div>
                    </div>
-                 )}
-              </div>
-            </div>
+
+                   {/* Key Quotes */}
+                   <div className="mb-4">
+                     <h4 className="font-medium text-gray-900 dark:text-white mb-2 flex items-center gap-2">
+                       <MessageSquare className="w-4 h-4 text-primary-600" />
+                       Key Quotes
+                     </h4>
+                     <div className="space-y-2">
+                       {[
+                         '"Machine learning enables computers to learn patterns from data without explicit programming."',
+                         '"From neural networks to deep learning algorithms, we will cover everything you need to know."',
+                         '"Let us begin with the basics of machine learning and how it differs from traditional programming."'
+                       ].map((quote, index) => (
+                         <div key={index} className="p-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                           <p className="text-sm text-blue-800 dark:text-blue-200 italic">{quote}</p>
+                         </div>
+                       ))}
+                     </div>
+                   </div>
+
+                   {/* Action Items */}
+                   <div className="mb-4">
+                     <h4 className="font-medium text-gray-900 dark:text-white mb-2 flex items-center gap-2">
+                       <MessageSquare className="w-4 h-4 text-primary-600" />
+                       Action Items
+                     </h4>
+                     <div className="space-y-1">
+                       {[
+                         'Review fundamental ML concepts',
+                         'Practice with neural network examples',
+                         'Compare traditional vs. ML approaches',
+                         'Explore pattern recognition techniques'
+                       ].map((action, index) => (
+                         <div key={index} className="p-2 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg">
+                           <p className="text-sm text-purple-800 dark:text-purple-200">{action}</p>
+                         </div>
+                       ))}
+                     </div>
+                   </div>
+
+                   
+                 </div>
+               </div>
+             </div>
           </div>
 
           {/* Mobile Layout Instructions */}
