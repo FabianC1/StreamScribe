@@ -311,19 +311,12 @@ export default function TranscriptionResultsPage() {
                       </span>
                     )}
                   </div>
-                  <div className="space-y-2 text-xs sm:text-sm text-gray-600 dark:text-gray-400">
-                    <div className="flex items-center gap-2">
+                  <div className="flex items-center justify-between text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+                    <div className="flex items-center gap-2 flex-1 min-w-0">
                       <Youtube className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
-                      <span className="break-all">{youtubeUrl || 'YouTube Video Title'}</span>
+                      <span className="break-all truncate">{youtubeUrl || 'YouTube Video Title'}</span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Clock className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
-                      <span>Duration: {formatTime(transcriptionData.audio_duration)}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span>Confidence: {(transcriptionData.confidence * 100).toFixed(1)}%</span>
-                    </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-shrink-0 ml-2">
                       <span>Language: {transcriptionData.language_code.toUpperCase()}</span>
                     </div>
                   </div>
