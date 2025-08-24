@@ -148,11 +148,11 @@ export default function HomePage() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
               {/* Feature 1 */}
-              <div className={`card p-6 text-center card-animate-1 transition-all duration-500 hover:scale-105 group ${
+              <div className={`card p-6 text-center transition-all duration-200 hover:scale-105 group ${
                 isVisible ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'
               }`}>
-                <div className="w-16 h-16 bg-primary-100 dark:bg-primary-900/20 rounded-full flex items-center justify-center mx-auto mb-4 transition-all duration-300 group-hover:bg-primary-200 dark:group-hover:bg-primary-800/30 group-hover:scale-110">
-                  <Zap className="w-8 h-8 text-primary-600 dark:text-primary-500 transition-all duration-300 group-hover:scale-110" />
+                <div className="w-16 h-16 bg-primary-100 dark:bg-primary-900/20 rounded-full flex items-center justify-center mx-auto mb-4 transition-all duration-200 group-hover:bg-primary-200 dark:group-hover:bg-primary-800/30 group-hover:scale-110">
+                  <Zap className="w-8 h-8 text-primary-600 dark:text-primary-500 transition-all duration-200 group-hover:scale-110" />
                 </div>
                 <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">Lightning Fast</h3>
                 <p className="text-gray-600 dark:text-gray-300">
@@ -161,11 +161,11 @@ export default function HomePage() {
               </div>
 
               {/* Feature 2 */}
-              <div className={`card p-6 text-center card-animate-2 transition-all duration-500 delay-200 hover:scale-105 group ${
+              <div className={`card p-6 text-center transition-all duration-200 hover:scale-105 group ${
                 isVisible ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'
               }`}>
-                <div className="w-16 h-16 bg-primary-100 dark:bg-primary-900/20 rounded-full flex items-center justify-center mx-auto mb-4 transition-all duration-300 group-hover:bg-primary-200 dark:group-hover:bg-primary-800/30 group-hover:scale-110">
-                  <Target className="w-8 h-8 text-primary-600 dark:text-primary-500 transition-all duration-300 group-hover:scale-110" />
+                <div className="w-16 h-16 bg-primary-100 dark:bg-primary-900/20 rounded-full flex items-center justify-center mx-auto mb-4 transition-all duration-200 group-hover:bg-primary-200 dark:group-hover:bg-primary-800/30 group-hover:scale-110">
+                  <Target className="w-8 h-8 text-primary-600 dark:text-primary-500 transition-all duration-200 group-hover:scale-110" />
                 </div>
                 <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">99.5% Accuracy</h3>
                 <p className="text-gray-600 dark:text-gray-300">
@@ -174,11 +174,11 @@ export default function HomePage() {
               </div>
 
               {/* Feature 3 */}
-              <div className={`card p-6 text-center card-animate-3 transition-all duration-500 delay-400 hover:scale-105 group ${
+              <div className={`card p-6 text-center transition-all duration-200 hover:scale-105 group ${
                 isVisible ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'
               }`}>
-                <div className="w-16 h-16 bg-primary-100 dark:bg-primary-900/20 rounded-full flex items-center justify-center mx-auto mb-4 transition-all duration-300 group-hover:bg-primary-200 dark:group-hover:bg-primary-800/30 group-hover:scale-110">
-                  <Globe className="w-8 h-8 text-primary-600 dark:text-primary-500 transition-all duration-300 group-hover:scale-110" />
+                <div className="w-16 h-16 bg-primary-100 dark:bg-primary-900/20 rounded-full flex items-center justify-center mx-auto mb-4 transition-all duration-200 group-hover:bg-primary-200 dark:group-hover:bg-primary-800/30 group-hover:scale-110">
+                  <Globe className="w-8 h-8 text-primary-600 dark:text-primary-500 transition-all duration-200 group-hover:scale-110" />
                 </div>
                 <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">50+ Languages</h3>
                 <p className="text-gray-600 dark:text-gray-300">
@@ -187,11 +187,11 @@ export default function HomePage() {
               </div>
 
               {/* Feature 4 */}
-              <div className={`card p-6 text-center card-animate-1 transition-all duration-500 delay-600 hover:scale-105 group ${
+              <div className={`card p-6 text-center transition-all duration-200 hover:scale-105 group ${
                 isVisible ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'
               }`}>
-                <div className="w-16 h-16 bg-primary-100 dark:bg-primary-900/20 rounded-full flex items-center justify-center mx-auto mb-4 transition-all duration-300 group-hover:bg-primary-200 dark:group-hover:bg-primary-800/30 group-hover:scale-110">
-                  <Clock className="w-8 h-8 text-primary-600 dark:text-primary-500 transition-all duration-300 group-hover:scale-110" />
+                <div className="w-16 h-16 bg-primary-100 dark:bg-primary-900/20 rounded-full flex items-center justify-center mx-auto mb-4 transition-all duration-200 group-hover:bg-primary-200 dark:group-hover:bg-primary-800/30 group-hover:scale-110">
+                  <Clock className="w-8 h-8 text-primary-600 dark:text-primary-500 transition-all duration-200 group-hover:scale-110" />
                 </div>
                 <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">Timestamps</h3>
                 <p className="text-gray-600 dark:text-gray-300">
@@ -200,11 +200,11 @@ export default function HomePage() {
               </div>
 
               {/* Feature 5 */}
-              <div className={`card p-6 text-center card-animate-2 transition-all duration-500 delay-800 hover:scale-105 group ${
+              <div className={`card p-6 text-center transition-all duration-200 hover:scale-105 group ${
                 isVisible ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'
               }`}>
-                <div className="w-16 h-16 bg-primary-100 dark:bg-primary-900/20 rounded-full flex items-center justify-center mx-auto mb-4 transition-all duration-300 group-hover:bg-primary-200 dark:group-hover:bg-primary-800/30 group-hover:scale-110">
-                  <Download className="w-8 h-8 text-primary-600 dark:text-primary-500 transition-all duration-300 group-hover:scale-110" />
+                <div className="w-16 h-16 bg-primary-100 dark:bg-primary-900/20 rounded-full flex items-center justify-center mx-auto mb-4 transition-all duration-200 group-hover:bg-primary-200 dark:group-hover:bg-primary-800/30 group-hover:scale-110">
+                  <Download className="w-8 h-8 text-primary-600 dark:text-primary-500 transition-all duration-200 group-hover:scale-110" />
                 </div>
                 <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">Multiple Formats</h3>
                 <p className="text-gray-600 dark:text-gray-300">
@@ -213,11 +213,11 @@ export default function HomePage() {
               </div>
 
               {/* Feature 6 */}
-              <div className={`card p-6 text-center card-animate-3 transition-all duration-500 delay-1000 hover:scale-105 group ${
+              <div className={`card p-6 text-center transition-all duration-200 hover:scale-105 group ${
                 isVisible ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'
               }`}>
-                <div className="w-16 h-16 bg-primary-100 dark:bg-primary-900/20 rounded-full flex items-center justify-center mx-auto mb-4 transition-all duration-300 group-hover:bg-primary-200 dark:group-hover:bg-primary-800/30 group-hover:scale-110">
-                  <Shield className="w-8 h-8 text-primary-600 dark:text-primary-500 transition-all duration-300 group-hover:scale-110" />
+                <div className="w-16 h-16 bg-primary-100 dark:bg-primary-900/20 rounded-full flex items-center justify-center mx-auto mb-4 transition-all duration-200 group-hover:bg-primary-200 dark:group-hover:bg-primary-800/30 group-hover:scale-110">
+                  <Shield className="w-8 h-8 text-primary-600 dark:text-primary-500 transition-all duration-200 group-hover:scale-110" />
                 </div>
                 <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">Enterprise Security</h3>
                 <p className="text-gray-600 dark:text-gray-300">
@@ -241,11 +241,11 @@ export default function HomePage() {
             </div>
 
             <div className="grid md:grid-cols-3 gap-8">
-              <div className={`text-center transition-all duration-500 delay-200 hover:scale-105 group ${
+              <div className={`text-center transition-all duration-200 hover:scale-105 group ${
                 isVisible ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'
               }`}>
-                <div className="w-20 h-20 bg-primary-100 dark:bg-primary-900/20 rounded-full flex items-center justify-center mx-auto mb-6 transition-all duration-300 group-hover:bg-primary-200 dark:group-hover:bg-primary-800/30 group-hover:scale-110">
-                  <span className="text-2xl font-bold text-primary-600 dark:text-primary-500 transition-all duration-300 group-hover:scale-110">1</span>
+                <div className="w-20 h-20 bg-primary-100 dark:bg-primary-900/20 rounded-full flex items-center justify-center mx-auto mb-6 transition-all duration-200 group-hover:bg-primary-200 dark:group-hover:bg-primary-800/30 group-hover:scale-110">
+                  <span className="text-2xl font-bold text-primary-600 dark:text-primary-500 transition-all duration-200 group-hover:scale-110">1</span>
                 </div>
                 <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">Paste URL</h3>
                 <p className="text-gray-600 dark:text-gray-300">
@@ -253,11 +253,11 @@ export default function HomePage() {
                 </p>
               </div>
 
-              <div className={`text-center transition-all duration-500 delay-400 hover:scale-105 group ${
+              <div className={`text-center transition-all duration-200 hover:scale-105 group ${
                 isVisible ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'
               }`}>
-                <div className="w-20 h-20 bg-primary-100 dark:bg-primary-900/20 rounded-full flex items-center justify-center mx-auto mb-6 transition-all duration-300 group-hover:bg-primary-200 dark:group-hover:bg-primary-800/30 group-hover:scale-110">
-                  <span className="text-2xl font-bold text-primary-600 dark:text-primary-500 transition-all duration-300 group-hover:scale-110">2</span>
+                <div className="w-20 h-20 bg-primary-100 dark:bg-primary-900/20 rounded-full flex items-center justify-center mx-auto mb-6 transition-all duration-200 group-hover:bg-primary-200 dark:group-hover:bg-primary-800/30 group-hover:scale-110">
+                  <span className="text-2xl font-bold text-primary-600 dark:text-primary-500 transition-all duration-200 group-hover:scale-110">2</span>
                 </div>
                 <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">AI Processing</h3>
                 <p className="text-gray-600 dark:text-gray-300">
@@ -265,11 +265,11 @@ export default function HomePage() {
                 </p>
               </div>
 
-              <div className={`text-center transition-all duration-500 delay-600 hover:scale-105 group ${
+              <div className={`text-center transition-all duration-200 hover:scale-105 group ${
                 isVisible ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'
               }`}>
-                <div className="w-20 h-20 bg-primary-100 dark:bg-primary-900/20 rounded-full flex items-center justify-center mx-auto mb-6 transition-all duration-300 group-hover:bg-primary-200 dark:group-hover:bg-primary-800/30 group-hover:scale-110">
-                  <span className="text-2xl font-bold text-primary-600 dark:text-primary-500 transition-all duration-300 group-hover:scale-110">3</span>
+                <div className="w-20 h-20 bg-primary-100 dark:bg-primary-900/20 rounded-full flex items-center justify-center mx-auto mb-6 transition-all duration-200 group-hover:bg-primary-200 dark:group-hover:bg-primary-800/30 group-hover:scale-110">
+                  <span className="text-2xl font-bold text-primary-600 dark:text-primary-500 transition-all duration-200 group-hover:scale-110">3</span>
                 </div>
                 <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">Download</h3>
                 <p className="text-gray-600 dark:text-gray-300">
@@ -293,11 +293,11 @@ export default function HomePage() {
             </div>
 
             <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <div className={`card p-6 text-center transition-all duration-500 delay-200 hover:scale-105 group ${
+              <div className={`card p-6 text-center transition-all duration-200 hover:scale-105 group ${
                 isVisible ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'
               }`}>
-                <div className="w-16 h-16 bg-primary-100 dark:bg-primary-900/20 rounded-full flex items-center justify-center mx-auto mb-4 transition-all duration-300 group-hover:bg-primary-200 dark:group-hover:bg-primary-800/30 group-hover:scale-110">
-                  <Monitor className="w-8 h-8 text-primary-600 dark:text-primary-500 transition-all duration-300 group-hover:scale-110" />
+                <div className="w-16 h-16 bg-primary-100 dark:bg-primary-900/20 rounded-full flex items-center justify-center mx-auto mb-4 transition-all duration-200 group-hover:bg-primary-200 dark:group-hover:bg-primary-800/30 group-hover:scale-110">
+                  <Monitor className="w-8 h-8 text-primary-600 dark:text-primary-500 transition-all duration-200 group-hover:scale-110" />
                 </div>
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Content Creators</h3>
                 <p className="text-sm text-gray-600 dark:text-gray-300">
@@ -305,11 +305,11 @@ export default function HomePage() {
                 </p>
               </div>
 
-              <div className={`card p-6 text-center transition-all duration-500 delay-400 hover:scale-105 group ${
+              <div className={`card p-6 text-center transition-all duration-200 hover:scale-105 group ${
                 isVisible ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'
               }`}>
-                <div className="w-16 h-16 bg-primary-100 dark:bg-primary-900/20 rounded-full flex items-center justify-center mx-auto mb-4 transition-all duration-300 group-hover:bg-primary-200 dark:group-hover:bg-primary-800/30 group-hover:scale-110">
-                  <BarChart3 className="w-8 h-8 text-primary-600 dark:text-primary-500 transition-all duration-300 group-hover:scale-110" />
+                <div className="w-16 h-16 bg-primary-100 dark:bg-primary-900/20 rounded-full flex items-center justify-center mx-auto mb-4 transition-all duration-200 group-hover:bg-primary-200 dark:group-hover:bg-primary-800/30 group-hover:scale-110">
+                  <BarChart3 className="w-8 h-8 text-primary-600 dark:text-primary-500 transition-all duration-200 group-hover:scale-110" />
                 </div>
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Researchers</h3>
                 <p className="text-sm text-gray-600 dark:text-gray-300">
@@ -317,11 +317,11 @@ export default function HomePage() {
                 </p>
               </div>
 
-              <div className={`card p-6 text-center transition-all duration-500 delay-600 hover:scale-105 group ${
+              <div className={`card p-6 text-center transition-all duration-200 hover:scale-105 group ${
                 isVisible ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'
               }`}>
-                <div className="w-16 h-16 bg-primary-100 dark:bg-primary-900/20 rounded-full flex items-center justify-center mx-auto mb-4 transition-all duration-300 group-hover:bg-primary-200 dark:group-hover:bg-primary-800/30 group-hover:scale-110">
-                  <Users className="w-8 h-8 text-primary-600 dark:text-primary-500 transition-all duration-300 group-hover:scale-110" />
+                <div className="w-16 h-16 bg-primary-100 dark:bg-primary-900/20 rounded-full flex items-center justify-center mx-auto mb-4 transition-all duration-200 group-hover:bg-primary-200 dark:group-hover:bg-primary-800/30 group-hover:scale-110">
+                  <Users className="w-8 h-8 text-primary-600 dark:text-primary-500 transition-all duration-200 group-hover:scale-110" />
                 </div>
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Business Teams</h3>
                 <p className="text-sm text-gray-600 dark:text-gray-300">
@@ -329,11 +329,11 @@ export default function HomePage() {
                 </p>
               </div>
 
-              <div className={`card p-6 text-center transition-all duration-500 delay-800 hover:scale-105 group ${
+              <div className={`card p-6 text-center transition-all duration-200 hover:scale-105 group ${
                 isVisible ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'
               }`}>
-                <div className="w-16 h-16 bg-primary-100 dark:bg-primary-900/20 rounded-full flex items-center justify-center mx-auto mb-4 transition-all duration-300 group-hover:bg-primary-200 dark:group-hover:bg-primary-800/30 group-hover:scale-110">
-                  <Headphones className="w-8 h-8 text-primary-600 dark:text-primary-500 transition-all duration-300 group-hover:scale-110" />
+                <div className="w-16 h-16 bg-primary-100 dark:bg-primary-900/20 rounded-full flex items-center justify-center mx-auto mb-4 transition-all duration-200 group-hover:bg-primary-200 dark:group-hover:bg-primary-800/30 group-hover:scale-110">
+                  <Headphones className="w-8 h-8 text-primary-600 dark:text-primary-500 transition-all duration-200 group-hover:scale-110" />
                 </div>
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Accessibility</h3>
                 <p className="text-sm text-gray-600 dark:text-gray-300">
@@ -374,7 +374,7 @@ export default function HomePage() {
              </div>
 
              <div className="grid md:grid-cols-3 gap-8">
-               <div className={`card p-6 transition-all duration-500 delay-200 hover:scale-105 ${
+               <div className={`card p-6 transition-all duration-200 hover:scale-105 ${
                  isVisible ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'
                }`}>
                  <div className="flex items-center gap-1 mb-4">
@@ -396,7 +396,7 @@ export default function HomePage() {
                  </div>
                </div>
 
-               <div className={`card p-6 transition-all duration-500 delay-400 hover:scale-105 ${
+               <div className={`card p-6 transition-all duration-200 hover:scale-105 ${
                  isVisible ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'
                }`}>
                  <div className="flex items-center gap-1 mb-4">
@@ -418,7 +418,7 @@ export default function HomePage() {
                  </div>
                </div>
 
-               <div className={`card p-6 transition-all duration-500 delay-600 hover:scale-105 ${
+               <div className={`card p-6 transition-all duration-200 hover:scale-105 ${
                  isVisible ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'
                }`}>
                  <div className="flex items-center gap-1 mb-4">
