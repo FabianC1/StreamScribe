@@ -674,45 +674,63 @@ export default function TranscriptionResultsPage() {
                   {/* Key Highlights */}
                   <div className="mb-4">
                     <h4 className="font-medium text-gray-900 dark:text-white mb-2 flex items-center gap-2 text-sm sm:text-base">
-                      <MessageSquare className="w-3 h-3 sm:w-4 sm:h-4 text-primary-600" />
+                      <MessageSquare className="w-3 h-3 sm:w-4 sm:w-4 text-primary-600" />
                       Key Highlights
                     </h4>
                     <div className="space-y-1">
-                      {transcriptionData.highlights.map((highlight, index) => (
-                        <div key={index} className="p-2 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
-                          <p className="text-xs sm:text-sm text-green-800 dark:text-green-200">{highlight.text}</p>
+                      {transcriptionData.highlights && transcriptionData.highlights.length > 0 ? (
+                        transcriptionData.highlights.map((highlight, index) => (
+                          <div key={index} className="p-2 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+                            <p className="text-xs sm:text-sm text-green-800 dark:text-green-200">{highlight.text}</p>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="p-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">
+                          <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 italic">No highlights available</p>
                         </div>
-                      ))}
+                      )}
                     </div>
                   </div>
 
                   {/* Key Quotes */}
                   <div className="mb-4">
                     <h4 className="font-medium text-gray-900 dark:text-white mb-2 flex items-center gap-2 text-sm sm:text-base">
-                      <MessageSquare className="w-3 h-3 sm:w-4 sm:h-4 text-primary-600" />
+                      <MessageSquare className="w-3 h-3 sm:w-4 sm:w-4 text-primary-600" />
                       Key Quotes
                     </h4>
                     <div className="space-y-2">
-                      {transcriptionData.sentiment.slice(0, 3).map((sentiment, index) => (
-                        <div key={index} className="p-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-                          <p className="text-xs sm:text-sm text-blue-800 dark:text-blue-200 italic">"{sentiment.text}"</p>
+                      {transcriptionData.sentiment && transcriptionData.sentiment.length > 0 ? (
+                        transcriptionData.sentiment.slice(0, 3).map((sentiment, index) => (
+                          <div key={index} className="p-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                            <p className="text-xs sm:text-sm text-blue-800 dark:text-blue-200 italic">"{sentiment.text}"</p>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="p-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">
+                          <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 italic">No quotes available</p>
                         </div>
-                      ))}
+                      )}
                     </div>
                   </div>
 
                   {/* Action Items */}
                   <div className="mb-4">
                     <h4 className="font-medium text-gray-900 dark:text-white mb-2 flex items-center gap-2 text-sm sm:text-base">
-                      <MessageSquare className="w-3 h-3 sm:w-4 sm:h-4 text-primary-600" />
+                      <MessageSquare className="w-3 h-3 sm:w-4 sm:w-4 text-primary-600" />
                       Action Items
                     </h4>
                     <div className="space-y-1">
-                      {transcriptionData.chapters.map((chapter, index) => (
-                        <div key={index} className="p-2 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg">
-                          <p className="text-xs sm:text-sm text-purple-800 dark:text-purple-200">{chapter.headline}</p>
+                      {transcriptionData.chapters && transcriptionData.chapters.length > 0 ? (
+                        transcriptionData.chapters.map((chapter, index) => (
+                          <div key={index} className="p-2 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg">
+                            <p className="text-xs sm:text-sm text-purple-800 dark:text-purple-200">{chapter.headline}</p>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="p-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">
+                          <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 italic">No action items available</p>
                         </div>
-                      ))}
+                      )}
                     </div>
                   </div>
                 </div>
