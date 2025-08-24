@@ -26,6 +26,24 @@ export default function TranscriptionHeader() {
     setIsAuthenticated(false)
   }, [])
 
+  // Close mobile menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Element
+      if (showMobileMenu && !target.closest('.mobile-menu-container')) {
+        setShowMobileMenu(false)
+      }
+    }
+
+    if (showMobileMenu) {
+      document.addEventListener('mousedown', handleClickOutside)
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [showMobileMenu])
+
   const handleSubscriptionsClick = () => {
     if (isAuthenticated) {
       router.push('/subscriptions')
@@ -59,13 +77,13 @@ export default function TranscriptionHeader() {
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
-            {/* Logo */}
+            {/* Logo and Back Button */}
             <div className="flex items-center">
               <button
                 onClick={handleBackClick}
-                className="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors mr-4"
+                className="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-all duration-300 transform hover:scale-105 hover:-translate-x-1 active:scale-95 mr-4 group"
               >
-                <ArrowLeft className="w-5 h-5" />
+                <ArrowLeft className="w-5 h-5 transition-transform duration-300 group-hover:-translate-x-1" />
                 <span className="font-semibold">Back</span>
               </button>
               
@@ -82,12 +100,12 @@ export default function TranscriptionHeader() {
               </div>
             </div>
 
-            {/* Navigation */}
-            <div className="flex items-center gap-4">
+            {/* Desktop Navigation */}
+            <div className="hidden md:flex items-center gap-4">
               {/* History Button */}
               <button
                 onClick={handleHistoryClick}
-                className="hidden md:flex items-center gap-2 px-4 py-2 text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
+                className="flex items-center gap-2 px-4 py-2 text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
               >
                 <History className="w-4 h-4" />
                 History
@@ -104,11 +122,14 @@ export default function TranscriptionHeader() {
 
               {/* Theme Toggle */}
               <ThemeToggle />
+            </div>
 
-              {/* Mobile Menu Button */}
+            {/* Mobile Menu Button */}
+            <div className="md:hidden flex items-center gap-3 mobile-menu-container">
+              <ThemeToggle />
               <button
                 onClick={() => setShowMobileMenu(!showMobileMenu)}
-                className="md:hidden p-2 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                className="p-2 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 transition-all duration-300 transform hover:scale-105 active:scale-95"
                 aria-label="Toggle mobile menu"
               >
                 {showMobileMenu ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
@@ -118,11 +139,11 @@ export default function TranscriptionHeader() {
 
           {/* Mobile Menu Dropdown */}
           {showMobileMenu && (
-            <div className="md:hidden border-t border-gray-200 dark:border-gray-700 py-4">
+            <div className="md:hidden border-t border-gray-200 dark:border-gray-700 py-4 animate-in slide-in-from-top-2 duration-200 mobile-menu-container">
               <div className="flex flex-col gap-3">
                 <button
                   onClick={handleHistoryClick}
-                  className="flex items-center gap-3 px-4 py-3 text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                  className="flex items-center gap-3 px-4 py-3 text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98]"
                 >
                   <History className="w-5 h-5" />
                   History
@@ -130,7 +151,7 @@ export default function TranscriptionHeader() {
                 
                 <button
                   onClick={handleSubscriptionsClick}
-                  className="flex items-center gap-3 px-4 py-3 text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                  className="flex items-center gap-3 px-4 py-3 text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98]"
                 >
                   <Shield className="w-5 h-5" />
                   Subscriptions
@@ -143,12 +164,12 @@ export default function TranscriptionHeader() {
 
       {/* Authentication Required Modal */}
       {showAuthModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
+        <div className="fixed inset-0 z-50 flex items-center justify-center animate-in fade-in duration-200">
           <div 
             className="absolute inset-0 bg-black bg-opacity-70 backdrop-blur-sm"
             onClick={() => setShowAuthModal(false)}
           ></div>
-          <div className="relative bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4 shadow-2xl border border-gray-200 dark:border-gray-700">
+          <div className="relative bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4 shadow-2xl border border-gray-200 dark:border-gray-700 animate-in zoom-in-95 duration-200">
             <div className="text-center">
               <Shield className="w-12 h-12 text-primary-600 dark:text-primary-400 mx-auto mb-4" />
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
@@ -184,8 +205,8 @@ export default function TranscriptionHeader() {
 
       {/* History Modal */}
       {showHistoryModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-hidden">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-hidden animate-in zoom-in-95 duration-200">
             <div className="p-6 border-b border-gray-200 dark:border-gray-700">
               <div className="flex items-center justify-between">
                 <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
@@ -240,7 +261,7 @@ export default function TranscriptionHeader() {
                 ].map((item) => (
                   <div
                     key={item.id}
-                    className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:border-primary-300 dark:hover:border-primary-600 transition-all duration-300 cursor-pointer hover:shadow-md"
+                    className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:border-primary-300 dark:hover:border-primary-600 transition-all duration-300 cursor-pointer hover:shadow-md transform hover:scale-[1.02] active:scale-[0.98]"
                     onClick={() => {
                       setShowHistoryModal(false)
                       // Navigate to transcription results with the saved data

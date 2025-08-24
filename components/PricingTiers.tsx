@@ -92,7 +92,7 @@ export default function PricingTiers() {
       {tiers.map((tier) => (
         <div
           key={tier.id}
-          className={`relative card pricing-card transition-all duration-300 hover:shadow-xl ${
+          className={`relative card pricing-card transition-all duration-200 hover:shadow-xl ${
             tier.popular ? 'ring-2 ring-primary-500 scale-105' : ''
           }`}
         >

@@ -164,9 +164,9 @@ export default function TranscriptionResultsPage() {
       <main className="pt-20 min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-700 transition-colors duration-200">
         <div className="w-full h-full">
           {/* Mobile-First Responsive Layout */}
-          <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 p-4 h-[calc(100vh-80px)]">
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 p-4 xl:h-[calc(100vh-80px)]">
             {/* Left Section - Video Player */}
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden flex flex-col">
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden flex flex-col min-h-[500px] xl:min-h-0">
               <div className="p-4 flex-1 flex flex-col">
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
                   <Play className="w-5 h-5 text-primary-600" />
@@ -221,7 +221,7 @@ export default function TranscriptionResultsPage() {
 
                 {/* Notes Section */}
                 {showNotes && (
-                  <div className="mt-auto pt-4 border-t border-gray-200 dark:border-gray-700">
+                  <div className="mt-auto pt-4 border-t border-gray-200 dark:border-gray-700 flex-1">
                     <div className="flex items-center justify-between mb-3">
                       <h4 className="font-medium text-gray-900 dark:text-white text-sm sm:text-base flex items-center gap-2">
                         <MessageSquare className="w-3 h-3 sm:w-4 sm:h-4 text-primary-600" />
@@ -242,7 +242,7 @@ export default function TranscriptionResultsPage() {
                           onChange={(e) => setNoteInput(e.target.value)}
                           placeholder="Add a note about this video..."
                           className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-xs sm:text-sm resize-none"
-                          rows={2}
+                          rows={3}
                         />
                         <div className="flex gap-2 mt-2">
                           <button
@@ -263,7 +263,7 @@ export default function TranscriptionResultsPage() {
                       </div>
                     )}
                     
-                    <div className="space-y-2 overflow-y-auto max-h-32 sm:max-h-48 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 scrollbar-track-transparent hover:scrollbar-thumb-gray-400 dark:hover:scrollbar-thumb-gray-500">
+                    <div className="space-y-2 overflow-y-auto max-h-48 sm:max-h-64 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 scrollbar-track-transparent hover:scrollbar-thumb-gray-400 dark:hover:scrollbar-thumb-gray-500">
                       {getSectionNotes('video').map(note => (
                         <div key={note.id} className="p-2 sm:p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
                           <div className="flex items-start justify-between gap-2">
@@ -285,7 +285,7 @@ export default function TranscriptionResultsPage() {
             </div>
 
             {/* Middle Section - Transcript */}
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden flex flex-col">
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden flex flex-col min-h-[600px] xl:min-h-0">
               <div className="p-4 h-full flex flex-col">
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
                   <MessageSquare className="w-5 h-5 text-primary-600" />
@@ -338,7 +338,7 @@ export default function TranscriptionResultsPage() {
                             onChange={(e) => setNoteInput(e.target.value)}
                             placeholder="Add a note about this section..."
                             className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-xs sm:text-sm resize-none"
-                            rows={2}
+                            rows={3}
                           />
                           <div className="flex gap-2 mt-2">
                             <button
@@ -397,7 +397,7 @@ export default function TranscriptionResultsPage() {
             </div>
 
             {/* Right Section - Insights & Actions */}
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden flex flex-col">
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden flex flex-col min-h-[500px] xl:min-h-0">
               <div className="p-4 h-full flex flex-col">
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
                   <MessageSquare className="w-5 h-5 text-primary-600" />
@@ -467,6 +467,16 @@ export default function TranscriptionResultsPage() {
                   </div>
                 </div>
               </div>
+            </div>
+          </div>
+
+          {/* Mobile Layout Instructions */}
+          <div className="mt-8 text-center xl:hidden">
+            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+              <h3 className="font-medium text-blue-900 dark:text-blue-100 mb-2">Mobile View</h3>
+              <p className="text-sm text-blue-800 dark:text-blue-200">
+                Sections are stacked vertically on mobile for better viewing experience. Each section is now tall enough to see content and add notes comfortably.
+              </p>
             </div>
           </div>
         </div>

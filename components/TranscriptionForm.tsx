@@ -48,11 +48,11 @@ export default function TranscriptionForm({ onTranscribe, isLoading, transcripti
   return (
     <div className="relative group">
       {/* Animated gradient border background */}
-      <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-primary-400 via-secondary-500 to-primary-600 animate-gradient-border opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity duration-300 p-[2px]">
+      <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-primary-400 via-secondary-500 to-primary-600 animate-gradient-border opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity duration-200 p-[2px]">
         <div className="w-full h-full rounded-2xl bg-white dark:bg-gray-800"></div>
       </div>
       {/* Main card */}
-      <div className="card p-8 shadow-2xl border-2 border-transparent transition-all duration-300 relative z-10">
+      <div className="card p-8 shadow-2xl border-2 border-transparent transition-all duration-200 relative z-10">
       <div className="text-center mb-10">
         <div className="w-20 h-20 bg-primary-100 dark:bg-primary-900/20 rounded-full flex items-center justify-center mx-auto mb-6">
                           <svg className="w-10 h-10 text-primary-600 dark:text-primary-500" fill="currentColor" viewBox="0 0 24 24">

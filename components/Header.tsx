@@ -24,6 +24,24 @@ export default function Header() {
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
 
+  // Close mobile menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Element
+      if (isMenuOpen && !target.closest('.mobile-menu-container')) {
+        setIsMenuOpen(false)
+      }
+    }
+
+    if (isMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside)
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [isMenuOpen])
+
   const handleSubscriptionsClick = (e: React.MouseEvent) => {
     if (!isAuthenticated) {
       e.preventDefault()
@@ -52,7 +70,7 @@ export default function Header() {
 
   return (
     <>
-      <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
+      <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-200 ${
         isScrolled 
           ? 'bg-white/85 dark:bg-gray-900/85 backdrop-blur-md shadow-lg rounded-b-2xl' 
           : 'bg-white dark:bg-gray-900 shadow-sm rounded-b-2xl'
@@ -60,7 +78,7 @@ export default function Header() {
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
-            <div className={`flex items-center gap-2 transition-all duration-300 ${
+            <div className={`flex items-center gap-2 transition-all duration-200 ${
               isScrolled ? 'scale-95' : 'scale-100'
             }`}>
               <Link href="/" className="flex items-center gap-2">
@@ -75,12 +93,12 @@ export default function Header() {
             </div>
 
             {/* Desktop Navigation */}
-            <nav className={`hidden md:flex items-center gap-6 transition-all duration-300 ${
+            <nav className={`hidden md:flex items-center gap-6 transition-all duration-200 ${
               isScrolled ? 'gap-5' : 'gap-6'
             }`}>
               <button 
                 onClick={() => handleAnchorClick('features')}
-                className={`nav-link text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-500 transition-all duration-300 ${
+                className={`nav-link text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-500 transition-all duration-200 ${
                   isScrolled ? 'scale-95 opacity-90' : 'scale-100 opacity-100'
                 }`}
               >
@@ -88,18 +106,18 @@ export default function Header() {
               </button>
               <button 
                 onClick={() => handleAnchorClick('pricing')}
-                className={`nav-link text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-500 transition-all duration-300 ${
+                className={`nav-link text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-500 transition-all duration-200 ${
                   isScrolled ? 'scale-95 opacity-90' : 'scale-100 opacity-100'
                 }`}
               >
                 Pricing
               </button>
-              
+               
               {isAuthenticated ? (
                 <>
                   <Link 
                     href="/subscriptions" 
-                    className={`nav-link text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-500 transition-all duration-300 ${
+                    className={`nav-link text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-500 transition-all duration-200 ${
                       isScrolled ? 'scale-95 opacity-90' : 'scale-100 opacity-100'
                     }`}
                   >
@@ -107,7 +125,7 @@ export default function Header() {
                   </Link>
                   <button
                     onClick={handleLogout}
-                    className={`nav-link text-gray-600 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400 transition-all duration-300 flex items-center gap-2 ${
+                    className={`nav-link text-gray-600 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400 transition-all duration-200 flex items-center gap-2 ${
                       isScrolled ? 'scale-95 opacity-90' : 'scale-100 opacity-100'
                     }`}
                   >
@@ -119,7 +137,7 @@ export default function Header() {
                 <>
                   <button
                     onClick={handleSubscriptionsClick}
-                    className={`nav-link text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-500 transition-all duration-300 flex items-center gap-2 ${
+                    className={`nav-link text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-500 transition-all duration-200 flex items-center gap-2 ${
                       isScrolled ? 'scale-95 opacity-90' : 'scale-100 opacity-100'
                     }`}
                   >
@@ -128,7 +146,7 @@ export default function Header() {
                   </button>
                   <Link 
                     href="/register" 
-                    className={`btn-primary transition-all duration-300 ${
+                    className={`btn-primary transition-all duration-200 ${
                       isScrolled ? 'scale-95 shadow-md' : 'scale-100'
                     }`}
                   >
@@ -137,48 +155,36 @@ export default function Header() {
                 </>
               )}
 
-              <div className={`transition-all duration-300 ${
+              <div className={`transition-all duration-200 ${
                 isScrolled ? 'scale-95' : 'scale-100'
               }`}>
                 <ThemeToggle />
               </div>
             </nav>
 
-            {/* Mobile Menu Button */}
-            <div className={`md:hidden flex items-center gap-2 transition-all duration-300 ${
-              isScrolled ? 'gap-1.5' : 'gap-2'
-            }`}>
-              <div className={`transition-all duration-300 ${
-                isScrolled ? 'scale-95' : 'scale-100'
-              }`}>
-                <ThemeToggle />
-              </div>
+            {/* Mobile Menu Button and Theme Toggle */}
+            <div className="md:hidden flex items-center gap-3">
+              <ThemeToggle />
               <button
-                className={`p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-300 ${
-                  isScrolled ? 'scale-95' : 'scale-100'
-                }`}
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
+                className="p-2 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 transition-all duration-200 mobile-menu-container"
                 aria-label="Toggle mobile menu"
               >
-                {isMenuOpen ? (
-                  <X className="w-6 h-6 text-gray-600 dark:text-gray-300" />
-                ) : (
-                  <Menu className="w-6 h-6 text-gray-600 dark:text-gray-300" />
-                )}
+                {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
               </button>
             </div>
           </div>
 
-                    {/* Mobile Navigation */}
+          {/* Mobile Menu */}
           {isMenuOpen && (
-            <div className="md:hidden py-6 border-t border-gray-100 dark:border-gray-800 bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm">
-              <nav className="flex flex-col gap-4 px-4">
+            <div className="md:hidden border-t border-gray-200 dark:border-gray-700 mobile-menu-container">
+              <nav className="py-4 px-4 space-y-3">
                 <button 
                   onClick={() => {
                     handleAnchorClick('features')
                     setIsMenuOpen(false)
                   }}
-                  className="nav-link text-left py-3 px-4 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-300 text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-500"
+                  className="w-full text-left py-3 px-4 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-200 text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-500"
                 >
                   Features
                 </button>
@@ -187,17 +193,17 @@ export default function Header() {
                     handleAnchorClick('pricing')
                     setIsMenuOpen(false)
                   }}
-                  className="nav-link text-left py-3 px-4 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-300 text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-500"
+                  className="w-full text-left py-3 px-4 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-200 text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-500"
                 >
                   Pricing
                 </button>
-                
+                 
                 {isAuthenticated ? (
                   <>
                     <Link 
                       href="/subscriptions" 
                       onClick={() => setIsMenuOpen(false)}
-                      className="nav-link py-3 px-4 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-300 text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-500"
+                      className="block w-full text-left py-3 px-4 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-200 text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-500"
                     >
                       Subscriptions
                     </Link>
@@ -206,7 +212,7 @@ export default function Header() {
                         handleLogout()
                         setIsMenuOpen(false)
                       }}
-                      className="nav-link py-3 px-4 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-300 flex items-center gap-2 text-gray-600 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400"
+                      className="w-full text-left py-3 px-4 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-200 flex items-center gap-2 text-gray-600 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400"
                     >
                       <LogOut className="w-4 h-4" />
                       Logout
@@ -216,7 +222,7 @@ export default function Header() {
                   <>
                     <button
                       onClick={handleSubscriptionsClick}
-                      className="nav-link py-3 px-4 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-300 flex items-center gap-2 text-left text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-500"
+                      className="w-full text-left py-3 px-4 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-200 flex items-center gap-2 text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-500"
                     >
                       <Shield className="w-4 h-4" />
                       Subscriptions
@@ -224,7 +230,7 @@ export default function Header() {
                     <Link 
                       href="/register" 
                       onClick={() => setIsMenuOpen(false)}
-                      className="btn-primary w-full text-center py-3 px-4 transition-all duration-300 hover:scale-105 active:scale-95"
+                      className="block w-full text-center py-3 px-4 btn-primary transition-all duration-200 hover:scale-105 active:scale-95"
                     >
                       Sign Up
                     </Link>
