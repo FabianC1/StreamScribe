@@ -1,167 +1,144 @@
-# StreamScribe - YouTube Transcription Service
+# StreamScribe - AI-Powered YouTube Transcription Service
 
-A professional YouTube video transcription service built with Next.js, React, TypeScript, and Stripe. StreamScribe allows users to transcribe YouTube videos using AI technology and offers three subscription tiers with different pricing and features.
+StreamScribe is a modern web application that transforms YouTube videos into accurate, timestamped transcripts using AssemblyAI's advanced speech recognition technology.
 
 ## 🚀 Features
 
-- **YouTube Integration**: Simply paste any YouTube URL and get instant transcription
-- **AI-Powered Transcription**: High-accuracy transcription using Lemonfix AI service
-- **Subscription Tiers**: Three pricing plans with different usage limits
-- **Stripe Payments**: Secure payment processing with Stripe
-- **Modern UI**: Beautiful, responsive design built with Tailwind CSS
-- **Export Options**: Download transcripts in multiple formats
+- **AI-Powered Transcription**: 99.5% accuracy using AssemblyAI's universal speech model
+- **YouTube Integration**: Extract audio from any YouTube video automatically
 - **Real-time Processing**: Live transcription status updates
+- **Advanced Insights**: 
+  - Auto-generated highlights and key phrases
+  - Sentiment analysis
+  - Automatic chapter detection
+  - Entity recognition
+  - Speaker identification
+- **Interactive Interface**: 
+  - Clickable timestamps to jump to video sections
+  - Add notes to any transcript segment
+  - Copy text to clipboard
+  - Export in multiple formats (TXT, SRT, VTT, PDF)
+- **Responsive Design**: Works seamlessly on desktop and mobile devices
+- **Dark/Light Mode**: Beautiful theme switching with smooth transitions
 
-## 💰 Pricing Tiers
+## 💰 Pricing
 
-### Basic Tier
-- **Cost to you**: £4.00 (30 hours of API usage)
-- **Charge customers**: £6.99
-- **Your profit**: £2.99
+StreamScribe offers flexible subscription plans to meet different transcription needs:
 
-### Standard Tier
-- **Cost to you**: £8.00 (60 hours of API usage)
-- **Charge customers**: £12.99
-- **Your profit**: £4.99
+- **Basic Plan**: £6.99/month - 30 hours of transcription with standard accuracy
+- **Standard Plan**: £12.99/month - 60 hours of transcription with high accuracy and advanced features
+- **Premium Plan**: £19.99/month - 100 hours of transcription with premium accuracy and enterprise features
 
-### Premium Tier
-- **Cost to you**: £15.00 (100 hours of API usage)
-- **Charge customers**: £19.99
-- **Your profit**: £4.99
+All plans include our core transcription features, multiple export formats, and priority support. Start with our Basic plan and upgrade as your needs grow.
 
 ## 🛠️ Tech Stack
 
-- **Frontend**: Next.js 14, React 18, TypeScript
-- **Styling**: Tailwind CSS
-- **Payments**: Stripe
-- **AI Service**: Lemonfix (for transcription)
-- **Icons**: Lucide React
-- **Database**: Configurable (PostgreSQL, MongoDB, SQLite)
+- **Frontend**: Next.js 14, React, TypeScript, Tailwind CSS
+- **AI Transcription**: AssemblyAI API
+- **Audio Processing**: yt-dlp for YouTube audio extraction
+- **Styling**: Tailwind CSS with custom animations
+- **State Management**: React Hooks
+- **File Handling**: fs-extra for server-side file operations
 
 ## 📋 Prerequisites
 
 - Node.js 18+ 
 - npm or yarn
-- Stripe account
-- Lemonfix AI API access
-- Database (your choice)
+- AssemblyAI API key (free $50 credits available)
+- yt-dlp (automatically installed via npm package)
 
 ## 🚀 Quick Start
 
-### 1. Clone the repository
+### 1. Clone the Repository
+
 ```bash
 git clone <your-repo-url>
 cd StreamScribe-1
 ```
 
-### 2. Install dependencies
+### 2. Install Dependencies
+
 ```bash
 npm install
-# or
-yarn install
 ```
 
-### 3. Set up environment variables
-```bash
-cp env.example .env.local
-```
+### 3. Environment Setup
 
-Edit `.env.local` with your actual API keys and configuration:
+Create a `.env.local` file in the root directory:
+
 ```env
-STRIPE_SECRET_KEY=sk_test_your_stripe_secret_key_here
-NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_your_stripe_publishable_key_here
-LEMONFIX_API_KEY=your_lemonfix_api_key_here
-DATABASE_URL=your_database_connection_string
+# AssemblyAI API Key
+ASSEMBLYAI_API_KEY=your_api_key_here
+
+# Next.js
+NEXT_PUBLIC_APP_URL=http://localhost:3000
 ```
 
-### 4. Run the development server
+**Get your free AssemblyAI API key:**
+1. Visit [AssemblyAI](https://www.assemblyai.com/)
+2. Sign up for a free account
+3. Get $50 in free credits
+4. Copy your API key to the `.env.local` file
+
+### 4. Run the Development Server
+
 ```bash
 npm run dev
-# or
-yarn dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-## 🔧 Configuration
+### 5. Test the Transcription
 
-### Stripe Setup
-1. Create a Stripe account at [stripe.com](https://stripe.com)
-2. Get your API keys from the Stripe dashboard
-3. Add them to your `.env.local` file
+1. Navigate to the main page
+2. Paste a YouTube URL in the transcription form
+3. Click "Transcribe"
+4. Wait for processing (audio extraction + AI transcription)
+5. View results in the three-panel interface
 
-### Lemonfix AI Integration
-1. Sign up for Lemonfix AI service
-2. Get your API key
-3. Add it to your `.env.local` file
+## 🔧 How It Works
 
-### Database Setup
-Choose your preferred database and update the `DATABASE_URL` in your environment variables:
+### 1. Audio Extraction
+- Uses `yt-dlp` to download and extract audio from YouTube videos
+- Converts to MP3 format for optimal processing
+- Automatically cleans up temporary files
 
-- **PostgreSQL**: `postgresql://username:password@localhost:5432/streamscribe`
-- **MongoDB**: `mongodb://localhost:27017/streamscribe`
-- **SQLite**: `file:./dev.db`
+### 2. AI Transcription
+- Uploads audio to AssemblyAI's secure servers
+- Processes using the universal speech model
+- Enables advanced features like sentiment analysis and entity detection
 
-## 📁 Project Structure
+### 3. Results Processing
+- Polls AssemblyAI API until transcription completes
+- Formats results with timestamps and confidence scores
+- Generates insights and highlights automatically
 
-```
-StreamScribe-1/
-├── app/                    # Next.js app directory
-│   ├── api/               # API routes
-│   │   ├── create-checkout-session/  # Stripe checkout
-│   │   └── transcribe/               # Transcription API
-│   ├── globals.css        # Global styles
-│   ├── layout.tsx         # Root layout
-│   └── page.tsx           # Home page
-├── components/             # React components
-│   ├── Header.tsx         # Navigation header
-│   ├── Footer.tsx         # Site footer
-│   ├── TranscriptionForm.tsx  # Main transcription form
-│   └── PricingTiers.tsx   # Subscription pricing
-├── public/                 # Static assets
-├── package.json            # Dependencies
-├── tailwind.config.js      # Tailwind configuration
-├── tsconfig.json           # TypeScript configuration
-└── README.md               # This file
-```
+## 📱 Usage
 
-## 🔌 API Endpoints
+### Basic Transcription
+1. **Enter YouTube URL**: Paste any valid YouTube video link
+2. **Click Transcribe**: The system will extract audio and process it
+3. **Wait for Results**: Processing time depends on video length
+4. **View Transcript**: See word-by-word transcription with timestamps
 
-### POST /api/create-checkout-session
-Creates a Stripe checkout session for subscription payments.
+### Advanced Features
+- **Add Notes**: Click the note icon on any transcript segment
+- **Copy Text**: Use the copy button to copy specific sections
+- **Jump to Time**: Click timestamps to navigate video sections
+- **Export**: Download transcripts in various formats
 
-**Body:**
-```json
-{
-  "tier": "basic|standard|premium",
-  "successUrl": "https://yoursite.com/success",
-  "cancelUrl": "https://yoursite.com/pricing"
-}
-```
+### Insights Panel
+- **Highlights**: Key phrases and important concepts
+- **Sentiment**: Emotional tone analysis throughout the video
+- **Chapters**: Automatic video segmentation
+- **Entities**: Named entities (people, places, organizations)
 
-### POST /api/transcribe
-Transcribes a YouTube video using the Lemonfix AI service.
+## 🔒 Security & Privacy
 
-**Body:**
-```json
-{
-  "youtubeUrl": "https://www.youtube.com/watch?v=...",
-  "userId": "user_id_here"
-}
-```
-
-## 🎨 Customization
-
-### Styling
-The project uses Tailwind CSS with custom color schemes. You can modify:
-- `tailwind.config.js` for theme customization
-- `app/globals.css` for custom component styles
-
-### Components
-All components are built with TypeScript and can be easily customized:
-- Modify pricing tiers in `components/PricingTiers.tsx`
-- Update the transcription form in `components/TranscriptionForm.tsx`
-- Customize the header and footer as needed
+- **Secure Processing**: All audio is processed on AssemblyAI's secure servers
+- **Temporary Storage**: Audio files are automatically deleted after processing
+- **No Data Retention**: Transcripts are not stored permanently (unless you implement storage)
+- **API Key Protection**: Environment variables keep your API key secure
 
 ## 🚀 Deployment
 
@@ -169,31 +146,119 @@ All components are built with TypeScript and can be easily customized:
 1. Push your code to GitHub
 2. Connect your repository to Vercel
 3. Add environment variables in Vercel dashboard
-4. Deploy!
+4. Deploy automatically
 
 ### Other Platforms
-The project can be deployed to any platform that supports Next.js:
-- Netlify
-- Railway
-- DigitalOcean App Platform
-- AWS Amplify
+- **Netlify**: Similar to Vercel setup
+- **Railway**: Great for full-stack apps
+- **DigitalOcean**: For more control
 
-## 🔒 Security Considerations
+## 📊 API Endpoints
 
-- API keys are stored in environment variables
-- Stripe handles all payment processing securely
-- Input validation on all API endpoints
-- CORS protection for API routes
+### POST `/api/transcribe`
+Transcribes a YouTube video using AssemblyAI.
 
-## 📈 Future Enhancements
+**Request Body:**
+```json
+{
+  "youtubeUrl": "https://www.youtube.com/watch?v=..."
+}
+```
 
-- User authentication and accounts
-- Transcription history
-- Advanced analytics dashboard
-- Bulk transcription processing
-- Multiple language support
-- API rate limiting
-- Webhook handling for Stripe events
+**Response:**
+```json
+{
+  "success": true,
+  "transcript": "Full transcript text...",
+  "confidence": 0.95,
+  "audio_duration": 1800,
+  "words": [...],
+  "highlights": [...],
+  "sentiment": [...],
+  "chapters": [...],
+  "entities": [...],
+  "speaker_labels": [...],
+  "language_code": "en",
+  "youtube_url": "..."
+}
+```
+
+## 🎯 Customization
+
+### Adding New Export Formats
+Edit the transcription results page to add more export options:
+
+```typescript
+// In app/transcription-results/page.tsx
+const exportFormats = ['TXT', 'SRT', 'VTT', 'PDF', 'DOCX']
+```
+
+### Custom AI Features
+AssemblyAI offers many additional features you can enable:
+
+```typescript
+// In app/api/transcribe/route.ts
+const transcriptData = {
+  audio_url: audioUrl,
+  speech_model: 'universal',
+  language_code: 'en',
+  punctuate: true,
+  format_text: true,
+  speaker_labels: true,
+  auto_highlights: true,
+  sentiment_analysis: true,
+  auto_chapters: true,
+  entity_detection: true,
+  // Add more features:
+  // iab_categories: true,
+  // auto_highlights_result: true,
+  // content_safety: true,
+  // custom_spelling: [...]
+}
+```
+
+## 🐛 Troubleshooting
+
+### Common Issues
+
+**"yt-dlp not found"**
+```bash
+npm install yt-dlp-exec
+```
+
+**"AssemblyAI API key invalid"**
+- Check your `.env.local` file
+- Verify API key in AssemblyAI dashboard
+- Ensure you have remaining credits
+
+**"Audio extraction failed"**
+- Check if YouTube URL is valid
+- Ensure video is not private/restricted
+- Try a different video
+
+**"Transcription timeout"**
+- Long videos may take more than 5 minutes
+- Increase `maxAttempts` in the API route
+- Check AssemblyAI service status
+
+### Debug Mode
+Enable detailed logging by setting:
+
+```env
+NODE_ENV=development
+DEBUG=true
+```
+
+## 📈 Performance Optimization
+
+### For Production
+1. **Implement Caching**: Store completed transcriptions
+2. **Queue System**: Handle multiple requests efficiently
+3. **CDN**: Serve static assets globally
+4. **Database**: Store user data and transcription history
+
+### Rate Limiting
+AssemblyAI has rate limits. Implement queuing for high-traffic scenarios.
 
 ## 🤝 Contributing
 
@@ -207,21 +272,21 @@ The project can be deployed to any platform that supports Next.js:
 
 This project is licensed under the MIT License - see the LICENSE file for details.
 
-## 🆘 Support
+## 🙏 Acknowledgments
 
-If you encounter any issues or have questions:
-1. Check the existing issues
-2. Create a new issue with detailed information
-3. Contact the development team
+- [AssemblyAI](https://www.assemblyai.com/) for powerful transcription technology
+- [yt-dlp](https://github.com/yt-dlp/yt-dlp) for YouTube audio extraction
+- [Next.js](https://nextjs.org/) for the amazing React framework
+- [Tailwind CSS](https://tailwindcss.com/) for utility-first styling
 
-## 💡 Tips for Success
+## 📞 Support
 
-- **Start with test API keys** before going live
-- **Monitor your API usage** to stay within Lemonfix limits
-- **Set up webhooks** for Stripe events to track subscriptions
-- **Implement proper error handling** for production use
-- **Add analytics** to track user behavior and conversion rates
+- **Issues**: Create a GitHub issue
+- **Documentation**: Check this README and code comments
+- **AssemblyAI**: Visit their [documentation](https://www.assemblyai.com/docs)
 
 ---
 
-Built with ❤️ using Next.js, React, and TypeScript
+**Happy Transcribing! 🎉**
+
+Transform your YouTube content into searchable, analyzable text with StreamScribe.

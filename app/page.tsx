@@ -47,11 +47,8 @@ export default function HomePage() {
   const handleTranscription = async (youtubeUrl: string) => {
     setIsLoading(true)
     try {
-      // This would integrate with your AI transcription service
-      // For now, we'll simulate the process
-      await new Promise(resolve => setTimeout(resolve, 3000))
-      
-      // Redirect to transcription results page with the URL
+      // The transcription is now handled by the API route
+      // We just need to redirect to the results page
       const encodedUrl = encodeURIComponent(youtubeUrl)
       window.location.href = `/transcription-results?url=${encodedUrl}`
     } catch (error) {

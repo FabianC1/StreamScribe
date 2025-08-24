@@ -66,11 +66,11 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 The application is configured with three subscription tiers:
 
-| Tier | Your Cost | Customer Price | Your Profit | Hours |
-|------|-----------|----------------|-------------|-------|
-| Basic | £4.00 | £6.99 | £2.99 | 30 |
-| Standard | £8.00 | £12.99 | £4.99 | 60 |
-| Premium | £15.00 | £19.99 | £4.99 | 100 |
+| Tier | Customer Price | Hours | Features |
+|------|----------------|-------|----------|
+| Basic | £6.99 | 30 | Standard accuracy, Text export, Email support, Basic analytics |
+| Standard | £12.99 | 60 | High accuracy, Multiple export formats, Priority support, Advanced analytics, Bulk processing |
+| Premium | £19.99 | 100 | Premium accuracy, All export formats, 24/7 support, Full analytics dashboard, API access, Custom integrations, White-label options |
 
 ## 🗄️ Database Setup
 

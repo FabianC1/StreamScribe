@@ -8,9 +8,7 @@ interface PricingTier {
   id: string
   name: string
   price: number
-  cost: number
   hours: number
-  revenue: number
   features: string[]
   popular?: boolean
   icon: React.ReactNode
@@ -24,9 +22,7 @@ export default function PricingTiers() {
       id: 'basic',
       name: 'Basic',
       price: 6.99,
-      cost: 4.00,
       hours: 30,
-      revenue: 2.99,
       features: [
         '30 hours of transcription',
         'Standard accuracy',
@@ -40,9 +36,7 @@ export default function PricingTiers() {
       id: 'standard',
       name: 'Standard',
       price: 12.99,
-      cost: 8.00,
       hours: 60,
-      revenue: 4.99,
       features: [
         '60 hours of transcription',
         'High accuracy',
@@ -58,9 +52,7 @@ export default function PricingTiers() {
       id: 'premium',
       name: 'Premium',
       price: 19.99,
-      cost: 15.00,
       hours: 100,
-      revenue: 4.99,
       features: [
         '100 hours of transcription',
         'Premium accuracy',
@@ -116,25 +108,6 @@ export default function PricingTiers() {
               <span className="text-gray-500 dark:text-gray-400 transition-colors duration-200">/month</span>
             </div>
             <p className="text-gray-600 dark:text-gray-300 mb-4 transition-colors duration-200">{tier.hours} hours of transcription</p>
-          </div>
-
-          {/* Revenue Breakdown */}
-          <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 mb-6 transition-colors duration-200">
-            <h4 className="font-semibold text-gray-900 dark:text-white mb-2 transition-colors duration-200">Revenue Breakdown</h4>
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span className="text-gray-600 dark:text-gray-300">Your cost:</span>
-                <span className="text-red-600 dark:text-red-400">£{tier.cost.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600 dark:text-gray-300">Customer pays:</span>
-                <span className="text-gray-900 dark:text-white">£{tier.price}</span>
-              </div>
-              <div className="flex justify-between border-t border-gray-200 dark:border-gray-600 pt-2">
-                <span className="font-semibold text-gray-900 dark:text-white">Your profit:</span>
-                <span className="font-semibold text-green-600 dark:text-green-400">£{tier.revenue.toFixed(2)}</span>
-              </div>
-            </div>
           </div>
 
           {/* Features */}
