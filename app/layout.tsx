@@ -1,4 +1,4 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
 import { ThemeProvider } from '@/lib/theme'
@@ -52,6 +52,11 @@ export const metadata: Metadata = {
   manifest: '/manifest.json',
   viewport: 'width=device-width, initial-scale=1',
   themeColor: '#2563EB',
+}
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
   colorScheme: 'light dark',
 }
 
