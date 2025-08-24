@@ -193,7 +193,7 @@ export default function TranscriptionForm({ onTranscribe, isLoading, transcripti
         {isProcessing && (
           <div className="text-center py-8">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
-            <p className="text-gray-600 dark:text-gray-300 transition-colors duration-200">Processing your video... This may take a few minutes.</p>
+            <p className="text-gray-600 dark:text-gray-300 transition-colors duration-200">Preparing transcription...</p>
           </div>
         )}
       </div>

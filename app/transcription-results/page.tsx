@@ -151,7 +151,28 @@ export default function TranscriptionResultsPage() {
       setIsLoading(true)
       setError(null)
       
-      // First, check if we have a cached version
+      // First, check if we have a stored result from the main page
+      const storedResult = localStorage.getItem('transcriptionResult')
+      if (storedResult) {
+        try {
+          const parsedResult = JSON.parse(storedResult)
+          // Check if this stored result is for the current URL
+          if (parsedResult.youtube_url === url) {
+            console.log('📚 Using stored transcription result for:', url)
+            setTranscriptionData(parsedResult)
+            // Cache it for future use
+            cacheTranscription(url, parsedResult)
+            // Clear the stored result to avoid confusion
+            localStorage.removeItem('transcriptionResult')
+            setIsLoading(false)
+            return
+          }
+        } catch (parseError) {
+          console.error('Error parsing stored result:', parseError)
+        }
+      }
+      
+      // Second, check if we have a cached version
       const cachedData = getCachedTranscription(url)
       if (cachedData) {
         console.log('📚 Using cached transcription for:', url)
@@ -160,7 +181,7 @@ export default function TranscriptionResultsPage() {
         return
       }
       
-      // If no cache, call the API
+      // If no stored or cached result, call the API
       console.log('🔄 Fetching new transcription for:', url)
       const response = await fetch('/api/transcribe', {
         method: 'POST',

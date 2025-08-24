@@ -47,10 +47,9 @@ export default function HomePage() {
   const handleTranscription = async (youtubeUrl: string) => {
     setIsLoading(true)
     try {
-      // The transcription is now handled by the API route
-      // We just need to redirect to the results page
+      // Redirect to loading page with the YouTube URL
       const encodedUrl = encodeURIComponent(youtubeUrl)
-      window.location.href = `/transcription-results?url=${encodedUrl}`
+      window.location.href = `/loading?url=${encodedUrl}`
     } catch (error) {
       console.error('Transcription failed:', error)
       setIsLoading(false)

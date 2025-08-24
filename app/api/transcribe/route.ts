@@ -4,6 +4,7 @@ import fs from 'fs-extra'
 import path from 'path'
 import { exec } from 'child_process'
 import { promisify } from 'util'
+import { updateProgress, setCompleted } from './progress/route'
 
 const execAsync = promisify(exec)
 
@@ -96,27 +97,9 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    // Process transcription directly without complex request tracking
-    console.log('🚀 Starting new transcription for:', youtubeUrl)
-    const result = await processTranscription(youtubeUrl, cacheKey)
-    return result
-    
-  } catch (error) {
-    console.error('Transcription error:', error)
-    return NextResponse.json(
-      {
-        error: 'Transcription failed',
-        details: error instanceof Error ? error.message : 'Unknown error'
-      },
-      { status: 500 }
-    )
-  }
-}
-
-async function processTranscription(youtubeUrl: string, cacheKey: string) {
-  try {
     // Real AssemblyAI processing for actual YouTube URLs
-    console.log('🚀 Processing real YouTube URL:', youtubeUrl)
+    console.log('🚀 Starting transcription for:', youtubeUrl)
+    updateProgress('🚀 Starting transcription...')
 
     // Create temp directory
     const tempDir = path.join(process.cwd(), 'temp')
@@ -127,6 +110,7 @@ async function processTranscription(youtubeUrl: string, cacheKey: string) {
     try {
       // Extract audio using yt-dlp
       console.log('📥 Extracting audio...')
+      updateProgress('📥 Extracting audio...')
       await execAsync(`yt-dlp -f "bestaudio[ext=m4a]/bestaudio[ext=mp3]/bestaudio" --audio-format mp3 --audio-quality 0 -o "${audioFile}" "${youtubeUrl}"`)
       
       // Read the audio file
@@ -134,11 +118,13 @@ async function processTranscription(youtubeUrl: string, cacheKey: string) {
       
       // Upload to AssemblyAI
       console.log('☁️ Uploading to AssemblyAI...')
+      updateProgress('☁️ Uploading to AssemblyAI...')
       const uploadResponse = await axios.post(`${baseUrl}/v2/upload`, audioData, { headers })
       const audioUrl = uploadResponse.data.upload_url
       
       // Request transcription
       console.log('🎯 Requesting transcription...')
+      updateProgress('🎯 Requesting transcription...')
       const transcriptData = {
         audio_url: audioUrl,
         speech_model: 'universal',
@@ -157,6 +143,7 @@ async function processTranscription(youtubeUrl: string, cacheKey: string) {
       
       // Poll for completion
       console.log('⏳ Polling for completion...')
+      updateProgress('⏳ Polling for completion...')
       let maxAttempts = 60 // 5 minutes max
       let attempts = 0
       
@@ -166,15 +153,15 @@ async function processTranscription(youtubeUrl: string, cacheKey: string) {
         
         if (transcriptionResult.status === 'completed') {
           console.log('✅ Transcription completed!')
-          console.log('📊 Response structure:', Object.keys(transcriptionResult))
-          console.log('📝 Text field:', transcriptionResult.text)
+          updateProgress('✅ Transcription completed!')
+          setCompleted()
           
           // Clean up temp file
           await fs.remove(audioFile)
           
           // Cache the result
           const resultData = {
-            transcript: transcriptionResult.text || 'No transcript text found',
+            transcript: transcriptionResult.text,
             confidence: transcriptionResult.confidence || 0.95,
             audio_duration: transcriptionResult.audio_duration || 0,
             words: transcriptionResult.words || [],
@@ -189,22 +176,9 @@ async function processTranscription(youtubeUrl: string, cacheKey: string) {
           
           transcriptionCache.set(cacheKey, { data: resultData, timestamp: Date.now() })
           
-          console.log('📤 Sending response to frontend...')
-          console.log('📊 Final transcript length:', resultData.transcript.length, 'characters')
-          
-          // Create a clean response object
-          const responseData = {
+          return NextResponse.json({
             success: true,
             ...resultData
-          }
-          
-          // Return with explicit headers to prevent stream issues
-          return new NextResponse(JSON.stringify(responseData), {
-            status: 200,
-            headers: {
-              'Content-Type': 'application/json',
-              'Cache-Control': 'no-cache',
-            },
           })
         } else if (transcriptionResult.status === 'error') {
           throw new Error(`Transcription failed: ${transcriptionResult.error}`)
@@ -223,8 +197,15 @@ async function processTranscription(youtubeUrl: string, cacheKey: string) {
         await fs.remove(audioFile)
       }
     }
+    
   } catch (error) {
-    console.error('❌ Error in processTranscription:', error)
-    throw error
+    console.error('Transcription error:', error)
+    return NextResponse.json(
+      {
+        error: 'Transcription failed',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      },
+      { status: 500 }
+    )
   }
 }
