@@ -153,29 +153,30 @@ export default function TranscriptionResultsPage() {
     <>
       <TranscriptionHeader />
       
-             <main className="pt-20 min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-700 transition-colors duration-200">
-        <div className="w-full h-full">
-          {/* Full-Width 3-Column Layout */}
-                     <div className="flex flex-col lg:flex-row h-[calc(100vh-80px)]">
-                         {/* Left Section - Video Player */}
-             <div className="w-full lg:w-1/3 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
-              <div className="p-4">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+      <main className="pt-20 min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-700 transition-colors duration-200">
+        <div className="container mx-auto px-4 py-6">
+          {/* Mobile-First Responsive Layout */}
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 lg:gap-6 min-h-[calc(100vh-120px)]">
+            
+            {/* Video Player Section */}
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden order-1">
+              <div className="p-4 md:p-6">
+                <h3 className="text-lg md:text-xl font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
                   <Play className="w-5 h-5 text-primary-600" />
                   Video Player
                 </h3>
                 
-                {/* Mock Video Player */}
-                <div className="aspect-video bg-gray-900 rounded-lg flex items-center justify-center relative group">
+                {/* Responsive Video Player */}
+                <div className="aspect-video bg-gray-900 rounded-lg flex items-center justify-center relative group mb-4">
                   <div className="absolute inset-0 bg-gradient-to-br from-primary-600 to-secondary-600 opacity-20 rounded-lg"></div>
                   <div className="relative z-10 text-center">
-                    <div className="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4 backdrop-blur-sm">
-                      <Play className="w-10 h-10 text-white" />
+                    <div className="w-16 h-16 md:w-20 md:h-20 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-3 md:mb-4 backdrop-blur-sm">
+                      <Play className="w-8 h-8 md:w-10 md:h-10 text-white" />
                     </div>
-                    <p className="text-white font-medium">Video Player</p>
-                    <p className="text-white/70 text-sm mt-1">Click to play</p>
+                    <p className="text-white font-medium text-sm md:text-base">Video Player</p>
+                    <p className="text-white/70 text-xs md:text-sm mt-1">Click to play</p>
                   </div>
-                  <div className="absolute bottom-4 left-4 right-4">
+                  <div className="absolute bottom-3 md:bottom-4 left-3 md:left-4 right-3 md:right-4">
                     <div className="bg-black/50 rounded-full h-1">
                       <div 
                         className="bg-primary-500 h-1 rounded-full transition-all duration-300"
@@ -189,13 +190,13 @@ export default function TranscriptionResultsPage() {
                   </div>
                 </div>
 
-                {/* Video Info */}
-                <div className="mt-4">
-                  <h4 className="font-medium text-gray-900 dark:text-white mb-2">Video Information</h4>
-                  <div className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
-                    <div className="flex items-center gap-2">
-                      <Youtube className="w-4 h-4" />
-                      <span className="break-all">{youtubeUrl ? youtubeUrl : 'YouTube Video Title'}</span>
+                {/* Video Info - Mobile Optimized */}
+                <div className="mb-4">
+                  <h4 className="font-medium text-gray-900 dark:text-white mb-2 text-sm md:text-base">Video Information</h4>
+                  <div className="space-y-2 text-xs md:text-sm text-gray-600 dark:text-gray-400">
+                    <div className="flex items-start gap-2">
+                      <Youtube className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                      <span className="break-words leading-relaxed">{youtubeUrl ? youtubeUrl : 'YouTube Video Title'}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Clock className="w-4 h-4" />
@@ -204,94 +205,94 @@ export default function TranscriptionResultsPage() {
                   </div>
                 </div>
 
-                                 {/* Notes Section */}
-                 {showNotes && (
-                   <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700 flex-1 overflow-y-auto">
-                     <div className="flex items-center justify-between mb-3">
-                       <h4 className="font-medium text-gray-900 dark:text-white flex items-center gap-2">
-                         <MessageSquare className="w-4 h-4 text-primary-600" />
-                         Video Notes
-                       </h4>
-                       <button
-                         onClick={() => handleAddNote('video')}
-                         className="text-sm text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 transition-colors"
-                       >
-                         + Add Note
-                       </button>
-                     </div>
-                     
-                     {editingNoteId === 'video' && (
-                       <div className="mb-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                         <textarea
-                           value={noteInput}
-                           onChange={(e) => setNoteInput(e.target.value)}
-                           placeholder="Add a note about this video..."
-                           className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm resize-none"
-                           rows={3}
-                         />
-                         <div className="flex gap-2 mt-2">
-                           <button
-                             onClick={handleSaveNote}
-                             className="px-3 py-1 bg-primary-600 text-white text-xs rounded-lg hover:bg-primary-700 transition-colors flex items-center gap-1"
-                           >
-                             <Save className="w-3 h-3" />
-                             Save
-                           </button>
-                           <button
-                             onClick={() => setEditingNoteId(null)}
-                             className="px-3 py-1 bg-gray-500 text-white text-xs rounded-lg hover:bg-gray-600 transition-colors flex items-center gap-1"
-                           >
-                             <X className="w-3 h-3" />
-                             Cancel
-                           </button>
-                         </div>
-                       </div>
-                     )}
-                     
-                                           <div className="space-y-2 overflow-y-auto max-h-48 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 scrollbar-track-transparent hover:scrollbar-thumb-gray-400 dark:hover:scrollbar-thumb-gray-500">
-                        {getSectionNotes('video').map(note => (
-                          <div key={note.id} className="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                            <div className="flex items-start justify-between gap-2">
-                              <p className="text-sm text-gray-700 dark:text-gray-300 flex-1">{note.text}</p>
-                              <button
-                                onClick={() => handleDeleteNote(note.id)}
-                                className="text-red-500 hover:text-red-700 transition-colors p-1"
-                              >
-                                <Trash2 className="w-3 h-3" />
-                              </button>
-                            </div>
-                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{note.timestamp}</p>
-                          </div>
-                        ))}
+                {/* Notes Section - Mobile Optimized */}
+                {showNotes && (
+                  <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="font-medium text-gray-900 dark:text-white flex items-center gap-2 text-sm md:text-base">
+                        <MessageSquare className="w-4 h-4 text-primary-600" />
+                        Video Notes
+                      </h4>
+                      <button
+                        onClick={() => handleAddNote('video')}
+                        className="text-xs md:text-sm text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 transition-colors px-2 py-1 rounded-md hover:bg-primary-50 dark:hover:bg-primary-900/20"
+                      >
+                        + Add Note
+                      </button>
+                    </div>
+                    
+                    {editingNoteId === 'video' && (
+                      <div className="mb-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                        <textarea
+                          value={noteInput}
+                          onChange={(e) => setNoteInput(e.target.value)}
+                          placeholder="Add a note about this video..."
+                          className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm resize-none"
+                          rows={3}
+                        />
+                        <div className="flex gap-2 mt-2">
+                          <button
+                            onClick={handleSaveNote}
+                            className="px-3 py-1.5 bg-primary-600 text-white text-xs rounded-lg hover:bg-primary-700 transition-colors flex items-center gap-1"
+                          >
+                            <Save className="w-3 h-3" />
+                            Save
+                          </button>
+                          <button
+                            onClick={() => setEditingNoteId(null)}
+                            className="px-3 py-1.5 bg-gray-500 text-white text-xs rounded-lg hover:bg-gray-600 transition-colors flex items-center gap-1"
+                          >
+                            <X className="w-3 h-3" />
+                            Cancel
+                          </button>
+                        </div>
                       </div>
-                   </div>
-                 )}
+                    )}
+                    
+                    <div className="space-y-2 max-h-32 md:max-h-48 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 scrollbar-track-transparent hover:scrollbar-thumb-gray-400 dark:hover:scrollbar-thumb-gray-500">
+                      {getSectionNotes('video').map(note => (
+                        <div key={note.id} className="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                          <div className="flex items-start justify-between gap-2">
+                            <p className="text-xs md:text-sm text-gray-700 dark:text-gray-300 flex-1 leading-relaxed">{note.text}</p>
+                            <button
+                              onClick={() => handleDeleteNote(note.id)}
+                              className="text-red-500 hover:text-red-700 transition-colors p-1 flex-shrink-0"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </button>
+                          </div>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{note.timestamp}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
-            {/* Middle Section - Transcript */}
-            <div className="w-full lg:w-1/3 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
-              <div className="p-4 h-full flex flex-col">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+            {/* Transcript Section */}
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden order-2">
+              <div className="p-4 md:p-6 h-full flex flex-col">
+                <h3 className="text-lg md:text-xl font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
                   <MessageSquare className="w-5 h-5 text-primary-600" />
                   Transcript
                 </h3>
 
-                                 {/* Transcript Content */}
-                 <div className="flex-1 space-y-4 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 scrollbar-track-transparent hover:scrollbar-thumb-gray-400 dark:hover:scrollbar-thumb-gray-500">
+                {/* Transcript Content - Mobile Optimized */}
+                <div className="flex-1 space-y-3 md:space-y-4 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 scrollbar-track-transparent hover:scrollbar-thumb-gray-400 dark:hover:scrollbar-thumb-gray-500">
                   {transcriptSections.map((section) => (
-                    <div key={section.id} className="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                      <div className="flex items-start justify-between gap-3 mb-2">
+                    <div key={section.id} className="p-3 md:p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                      <div className="flex items-start justify-between gap-2 md:gap-3 mb-2">
                         <button
                           onClick={() => handleJumpToTime(section.startTime)}
-                          className="text-sm font-medium text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 transition-colors hover:underline"
+                          className="text-xs md:text-sm font-medium text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 transition-colors hover:underline flex-shrink-0"
                         >
                           {section.timestamp}
                         </button>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1 md:gap-2">
                           <button
                             onClick={() => handleCopyToClipboard(section.text, section.id)}
-                            className={`p-2 rounded-lg transition-all duration-300 ${
+                            className={`p-1.5 md:p-2 rounded-lg transition-all duration-300 ${
                               copiedSectionId === section.id
                                 ? 'bg-green-100 dark:bg-green-900/20 text-green-600 dark:text-green-400 scale-110'
                                 : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600 hover:scale-105'
@@ -306,14 +307,14 @@ export default function TranscriptionResultsPage() {
                           </button>
                           <button
                             onClick={() => handleAddNote(section.id)}
-                            className="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600 hover:scale-105 transition-all duration-300"
+                            className="p-1.5 md:p-2 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600 hover:scale-105 transition-all duration-300"
                             title="Add note"
                           >
                             <Edit3 className="w-4 h-4" />
                           </button>
                         </div>
                       </div>
-                      <p className="text-gray-700 dark:text-gray-300 text-sm leading-relaxed">{section.text}</p>
+                      <p className="text-xs md:text-sm text-gray-700 dark:text-gray-300 leading-relaxed mb-3">{section.text}</p>
                       
                       {/* Note Input for this section */}
                       {editingNoteId === section.id && (
@@ -328,14 +329,14 @@ export default function TranscriptionResultsPage() {
                           <div className="flex gap-2 mt-2">
                             <button
                               onClick={handleSaveNote}
-                              className="px-3 py-1 bg-primary-600 text-white text-xs rounded-lg hover:bg-primary-700 transition-colors flex items-center gap-1"
+                              className="px-3 py-1.5 bg-primary-600 text-white text-xs rounded-lg hover:bg-primary-700 transition-colors flex items-center gap-1"
                             >
                               <Save className="w-3 h-3" />
                               Save
                             </button>
                             <button
                               onClick={() => setEditingNoteId(null)}
-                              className="px-3 py-1 bg-gray-500 text-white text-xs rounded-lg hover:bg-gray-600 transition-colors flex items-center gap-1"
+                              className="px-3 py-1.5 bg-gray-500 text-white text-xs rounded-lg hover:bg-gray-600 transition-colors flex items-center gap-1"
                             >
                               <X className="w-3 h-3" />
                               Cancel
@@ -348,10 +349,10 @@ export default function TranscriptionResultsPage() {
                       {getSectionNotes(section.id).map(note => (
                         <div key={note.id} className="mt-3 p-3 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-600">
                           <div className="flex items-start justify-between gap-2">
-                            <p className="text-sm text-gray-700 dark:text-gray-300 flex-1">{note.text}</p>
+                            <p className="text-xs md:text-sm text-gray-700 dark:text-gray-300 flex-1 leading-relaxed">{note.text}</p>
                             <button
                               onClick={() => handleDeleteNote(note.id)}
-                              className="text-red-500 hover:text-red-700 transition-colors p-1"
+                              className="text-red-500 hover:text-red-700 transition-colors p-1 flex-shrink-0"
                             >
                               <Trash2 className="w-3 h-3" />
                             </button>
@@ -363,16 +364,16 @@ export default function TranscriptionResultsPage() {
                   ))}
                 </div>
 
-                {/* Export Options */}
-                <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
-                  <h4 className="font-medium text-gray-900 dark:text-white mb-3">Export Options</h4>
-                  <div className="flex flex-wrap gap-2">
+                {/* Export Options - Mobile Optimized */}
+                <div className="mt-4 md:mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
+                  <h4 className="font-medium text-gray-900 dark:text-white mb-3 text-sm md:text-base">Export Options</h4>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                     {['TXT', 'SRT', 'VTT', 'PDF'].map((format) => (
                       <button
                         key={format}
-                        className="px-3 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors flex items-center gap-2"
+                        className="px-2 md:px-3 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors flex items-center justify-center gap-1 md:gap-2 text-xs md:text-sm"
                       >
-                        <Download className="w-4 h-4" />
+                        <Download className="w-3 h-3 md:w-4 md:h-4" />
                         {format}
                       </button>
                     ))}
@@ -381,88 +382,86 @@ export default function TranscriptionResultsPage() {
               </div>
             </div>
 
-                         {/* Right Section - Insights & Actions */}
-             <div className="w-full lg:w-1/3 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
-               <div className="p-4 h-full flex flex-col">
-                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-                   <MessageSquare className="w-5 h-5 text-primary-600" />
-                   Insights & Actions
-                 </h3>
+            {/* Insights & Actions Section */}
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden order-3">
+              <div className="p-4 md:p-6 h-full flex flex-col">
+                <h3 className="text-lg md:text-xl font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                  <MessageSquare className="w-5 h-5 text-primary-600" />
+                  Insights & Actions
+                </h3>
 
-                 {/* Scrollable Content Area */}
-                 <div className="flex-1 overflow-y-auto">
-                   {/* Key Highlights */}
-                   <div className="mb-4">
-                     <h4 className="font-medium text-gray-900 dark:text-white mb-2 flex items-center gap-2">
-                       <MessageSquare className="w-4 h-4 text-primary-600" />
-                       Key Highlights
-                     </h4>
-                     <div className="space-y-1">
-                       {[
-                         'Introduction to AI and ML concepts',
-                         'Fundamentals of machine learning',
-                         'Neural networks and deep learning',
-                         'Pattern recognition in data',
-                         'Traditional vs. ML programming approaches'
-                       ].map((highlight, index) => (
-                         <div key={index} className="p-2 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
-                           <p className="text-sm text-green-800 dark:text-green-200">{highlight}</p>
-                         </div>
-                       ))}
-                     </div>
-                   </div>
+                {/* Scrollable Content Area - Mobile Optimized */}
+                <div className="flex-1 overflow-y-auto space-y-4 md:space-y-6">
+                  {/* Key Highlights */}
+                  <div>
+                    <h4 className="font-medium text-gray-900 dark:text-white mb-2 flex items-center gap-2 text-sm md:text-base">
+                      <MessageSquare className="w-4 h-4 text-primary-600" />
+                      Key Highlights
+                    </h4>
+                    <div className="space-y-1.5">
+                      {[
+                        'Introduction to AI and ML concepts',
+                        'Fundamentals of machine learning',
+                        'Neural networks and deep learning',
+                        'Pattern recognition in data',
+                        'Traditional vs. ML programming approaches'
+                      ].map((highlight, index) => (
+                        <div key={index} className="p-2 md:p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+                          <p className="text-xs md:text-sm text-green-800 dark:text-green-200 leading-relaxed">{highlight}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
 
-                   {/* Key Quotes */}
-                   <div className="mb-4">
-                     <h4 className="font-medium text-gray-900 dark:text-white mb-2 flex items-center gap-2">
-                       <MessageSquare className="w-4 h-4 text-primary-600" />
-                       Key Quotes
-                     </h4>
-                     <div className="space-y-2">
-                       {[
-                         '"Machine learning enables computers to learn patterns from data without explicit programming."',
-                         '"From neural networks to deep learning algorithms, we will cover everything you need to know."',
-                         '"Let us begin with the basics of machine learning and how it differs from traditional programming."'
-                       ].map((quote, index) => (
-                         <div key={index} className="p-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-                           <p className="text-sm text-blue-800 dark:text-blue-200 italic">{quote}</p>
-                         </div>
-                       ))}
-                     </div>
-                   </div>
+                  {/* Key Quotes */}
+                  <div>
+                    <h4 className="font-medium text-gray-900 dark:text-white mb-2 flex items-center gap-2 text-sm md:text-base">
+                      <MessageSquare className="w-4 h-4 text-primary-600" />
+                      Key Quotes
+                    </h4>
+                    <div className="space-y-2">
+                      {[
+                        '"Machine learning enables computers to learn patterns from data without explicit programming."',
+                        '"From neural networks to deep learning algorithms, we will cover everything you need to know."',
+                        '"Let us begin with the basics of machine learning and how it differs from traditional programming."'
+                      ].map((quote, index) => (
+                        <div key={index} className="p-2 md:p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                          <p className="text-xs md:text-sm text-blue-800 dark:text-blue-200 italic leading-relaxed">{quote}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
 
-                   {/* Action Items */}
-                   <div className="mb-4">
-                     <h4 className="font-medium text-gray-900 dark:text-white mb-2 flex items-center gap-2">
-                       <MessageSquare className="w-4 h-4 text-primary-600" />
-                       Action Items
-                     </h4>
-                     <div className="space-y-1">
-                       {[
-                         'Review fundamental ML concepts',
-                         'Practice with neural network examples',
-                         'Compare traditional vs. ML approaches',
-                         'Explore pattern recognition techniques'
-                       ].map((action, index) => (
-                         <div key={index} className="p-2 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg">
-                           <p className="text-sm text-purple-800 dark:text-purple-200">{action}</p>
-                         </div>
-                       ))}
-                     </div>
-                   </div>
-
-                   
-                 </div>
-               </div>
-             </div>
+                  {/* Action Items */}
+                  <div>
+                    <h4 className="font-medium text-gray-900 dark:text-white mb-2 flex items-center gap-2 text-sm md:text-base">
+                      <MessageSquare className="w-4 h-4 text-primary-600" />
+                      Action Items
+                    </h4>
+                    <div className="space-y-1.5">
+                      {[
+                        'Review fundamental ML concepts',
+                        'Practice with neural network examples',
+                        'Compare traditional vs. ML approaches',
+                        'Explore pattern recognition techniques'
+                      ].map((action, index) => (
+                        <div key={index} className="p-2 md:p-3 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg">
+                          <p className="text-xs md:text-sm text-purple-800 dark:text-purple-200 leading-relaxed">{action}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
 
-          {/* Mobile Layout Instructions */}
-          <div className="mt-8 text-center lg:hidden">
+          {/* Mobile Layout Instructions - Only show on very small screens */}
+          <div className="mt-6 text-center xl:hidden">
             <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-              <h3 className="font-medium text-blue-900 dark:text-blue-100 mb-2">Mobile View</h3>
-              <p className="text-sm text-blue-800 dark:text-blue-200">
-                Sections are stacked vertically on mobile for better viewing experience.
+              <h3 className="font-medium text-blue-900 dark:text-blue-100 mb-2 text-sm">Mobile View</h3>
+              <p className="text-xs text-blue-800 dark:text-blue-200">
+                Sections are stacked vertically on mobile for optimal viewing. Each section is fully responsive and easy to navigate.
               </p>
             </div>
           </div>
