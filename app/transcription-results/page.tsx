@@ -192,8 +192,11 @@ export default function TranscriptionResultsPage() {
   }
 
   const formatTime = (seconds: number): string => {
-    const mins = Math.floor(seconds / 60)
-    const secs = Math.floor(seconds % 60)
+    // Convert milliseconds to seconds if needed (AssemblyAI sometimes returns milliseconds)
+    const timeInSeconds = seconds > 1000 ? seconds / 1000 : seconds
+    
+    const mins = Math.floor(timeInSeconds / 60)
+    const secs = Math.floor(timeInSeconds % 60)
     return `${mins}:${secs.toString().padStart(2, '0')}`
   }
 
@@ -280,7 +283,10 @@ export default function TranscriptionResultsPage() {
   }
 
   const jumpToTime = (startTime: number) => {
-    setCurrentVideoTime(startTime)
+    // Convert milliseconds to seconds if needed
+    const timeInSeconds = startTime > 1000 ? startTime / 1000 : startTime
+    
+    setCurrentVideoTime(timeInSeconds)
     
     // Send message to YouTube iframe to seek to specific time
     const iframe = document.querySelector('iframe[src*="youtube.com"]') as HTMLIFrameElement
@@ -288,12 +294,12 @@ export default function TranscriptionResultsPage() {
       const message = JSON.stringify({
         event: 'command',
         func: 'seekTo',
-        args: [startTime, true]
+        args: [timeInSeconds, true]
       })
       iframe.contentWindow.postMessage(message, '*')
     }
     
-    console.log(`Jumping to ${startTime} seconds`)
+    console.log(`Jumping to ${timeInSeconds} seconds`)
   }
 
   const getSectionNotes = (sectionId: string) => {
@@ -455,33 +461,8 @@ export default function TranscriptionResultsPage() {
                       </div>
                     </div>
                   </div>
-                  
-                  {/* Cache Management */}
-                  <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
-                    <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
-                      <span>Cache Status: {transcriptionData.isCached ? 'Cached' : 'Not Cached'}</span>
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => {
-                            const cached = getAllCachedTranscriptions()
-                            console.log('📚 Cached transcriptions:', cached)
-                            alert(`Found ${cached.length} cached transcriptions. Check console for details.`)
-                          }}
-                          className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 text-xs underline"
-                        >
-                          View History
-                        </button>
-                        <button
-                          onClick={clearCache}
-                          className="text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 text-xs underline"
-                        >
-                          Clear Cache
-                        </button>
-                      </div>
-                    </div>
-                  </div>
                 </div>
-
+                
                 {/* Notes Section */}
                 {showNotes && (
                   <div className="mt-auto pt-4 border-t border-gray-200 dark:border-gray-700 flex-1">

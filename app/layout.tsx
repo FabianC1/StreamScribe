@@ -13,6 +13,7 @@ export const metadata: Metadata = {
   creator: 'StreamScribe',
   publisher: 'StreamScribe',
   robots: 'index, follow',
+  metadataBase: new URL('https://streamscribe1.netlify.app'),
   openGraph: {
     type: 'website',
     locale: 'en_US',
