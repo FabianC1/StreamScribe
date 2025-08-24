@@ -13,11 +13,72 @@ export default function TranscriptionForm({ onTranscribe, isLoading, transcripti
   const [youtubeUrl, setYoutubeUrl] = useState('')
   const [isProcessing, setIsProcessing] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [isCached, setIsCached] = useState(false)
+
+  // YouTube URL validation function
+  const isValidYouTubeUrl = (url: string): boolean => {
+    if (!url.trim()) return false
+    
+    try {
+      const urlObj = new URL(url)
+      const hostname = urlObj.hostname.toLowerCase()
+      
+      // Check if it's a YouTube domain
+      if (!hostname.includes('youtube.com') && !hostname.includes('youtu.be')) {
+        return false
+      }
+      
+      // Check if it has a video ID
+      if (hostname.includes('youtube.com')) {
+        return urlObj.searchParams.has('v')
+      } else if (hostname.includes('youtu.be')) {
+        return urlObj.pathname.length > 1
+      }
+      
+      return false
+    } catch {
+      return false
+    }
+  }
+
+  // Check if video is already transcribed (cached)
+  const checkIfCached = (url: string) => {
+    if (!url.trim()) {
+      setIsCached(false)
+      return
+    }
+    
+    try {
+      const cachedData = localStorage.getItem(`transcription_${url}`)
+      if (cachedData) {
+        const data = JSON.parse(cachedData)
+        const cacheAge = Date.now() - data.cachedAt
+        const maxAge = 24 * 60 * 60 * 1000 // 24 hours
+        
+        if (cacheAge < maxAge) {
+          setIsCached(true)
+          return
+        } else {
+          // Remove expired cache
+          localStorage.removeItem(`transcription_${url}`)
+        }
+      }
+      setIsCached(false)
+    } catch (error) {
+      setIsCached(false)
+    }
+  }
+
+  const handleUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const url = e.target.value
+    setYoutubeUrl(url)
+    checkIfCached(url)
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    if (!youtubeUrl.trim()) return
+    if (!youtubeUrl.trim() || !isValidYouTubeUrl(youtubeUrl)) return
     
     setIsProcessing(true)
     setError(null)
@@ -69,15 +130,19 @@ export default function TranscriptionForm({ onTranscribe, isLoading, transcripti
               <input
                 type="url"
                 value={youtubeUrl}
-                onChange={(e) => setYoutubeUrl(e.target.value)}
+                onChange={handleUrlChange}
                 placeholder="https://www.youtube.com/watch?v=..."
-                className="w-full pl-12 pr-4 py-4 text-lg border-2 rounded-xl focus:ring-4 focus:ring-primary-500/20 focus:border-primary-500 transition-all duration-200 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 border-gray-300 dark:border-gray-600 hover:border-primary-300 dark:hover:border-primary-500"
+                className={`w-full pl-12 pr-4 py-4 text-lg border-2 rounded-xl focus:ring-4 focus:ring-primary-500/20 focus:border-primary-500 transition-all duration-200 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 ${
+                  youtubeUrl.trim() && !isValidYouTubeUrl(youtubeUrl)
+                    ? 'border-red-500 dark:border-red-400 focus:ring-red-500/20 focus:border-red-500'
+                    : 'border-gray-300 dark:border-gray-600 hover:border-primary-300 dark:hover:border-primary-500'
+                }`}
                 disabled={isProcessing || isLoading}
               />
             </div>
             <button
               type="submit"
-              disabled={!youtubeUrl.trim() || isLoading || isProcessing}
+              disabled={!isValidYouTubeUrl(youtubeUrl) || isLoading || isProcessing}
               className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3 px-8 py-4 text-lg font-semibold hover:scale-105 transition-all duration-200 whitespace-nowrap"
             >
               {isProcessing ? (
@@ -99,6 +164,23 @@ export default function TranscriptionForm({ onTranscribe, isLoading, transcripti
             </button>
           </div>
           
+          {/* Error and cache messages below the input/button row - absolute positioned */}
+          <div className="relative mt-2 min-h-[2rem]">
+            {youtubeUrl.trim() && !isValidYouTubeUrl(youtubeUrl) && (
+              <div className="absolute top-0 left-0 text-sm text-red-600 dark:text-red-400 flex items-center gap-2">
+                <AlertCircle className="h-4 w-4" />
+                Please enter a valid YouTube URL
+              </div>
+            )}
+            {isCached && (
+              <div className="absolute top-0 left-0 text-sm text-green-600 dark:text-green-400 flex items-center gap-2">
+                <CheckCircle className="h-4 w-4" />
+                Video already transcribed! No additional credits will be used.
+              </div>
+            )}
+          </div>
+          
+          {/* Form submission errors */}
           {error && (
             <div className="flex items-center gap-3 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl mt-4">
               <AlertCircle className="h-6 w-6 text-red-500" />

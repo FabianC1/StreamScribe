@@ -61,6 +61,9 @@ const mockTranscriptionData = {
 const transcriptionCache = new Map<string, { data: any; timestamp: number }>()
 const CACHE_DURATION = 24 * 60 * 60 * 1000 // 24 hours
 
+// Track ongoing requests to prevent duplicates
+const ongoingRequests = new Map<string, Promise<any>>()
+
 export async function POST(request: NextRequest) {
   try {
     const { youtubeUrl } = await request.json()
@@ -96,8 +99,39 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    // Real AssemblyAI processing for actual YouTube URLs
-    console.log('🚀 Processing real YouTube URL:', youtubeUrl)
+    // Check if there's already an ongoing request for this URL
+    if (ongoingRequests.has(cacheKey)) {
+      console.log('⏳ Request already in progress for:', youtubeUrl)
+      return ongoingRequests.get(cacheKey)
+    }
+
+    // Create the transcription promise and store it
+    const transcriptionPromise = processTranscription(youtubeUrl, cacheKey)
+    ongoingRequests.set(cacheKey, transcriptionPromise)
+    
+    try {
+      const result = await transcriptionPromise
+      return result
+    } finally {
+      // Clean up the ongoing request
+      ongoingRequests.delete(cacheKey)
+    }
+    
+  } catch (error) {
+    console.error('Transcription error:', error)
+    return NextResponse.json(
+      {
+        error: 'Transcription failed',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      },
+      { status: 500 }
+    )
+  }
+}
+
+async function processTranscription(youtubeUrl: string, cacheKey: string) {
+  // Real AssemblyAI processing for actual YouTube URLs
+  console.log('🚀 Processing real YouTube URL:', youtubeUrl)
 
     // Create temp directory
     const tempDir = path.join(process.cwd(), 'temp')
@@ -189,15 +223,4 @@ export async function POST(request: NextRequest) {
         await fs.remove(audioFile)
       }
     }
-    
-  } catch (error) {
-    console.error('Transcription error:', error)
-    return NextResponse.json(
-      {
-        error: 'Transcription failed',
-        details: error instanceof Error ? error.message : 'Unknown error'
-      },
-      { status: 500 }
-    )
-  }
 }
