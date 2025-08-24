@@ -98,17 +98,8 @@ export default function LoadingPage() {
         {/* Main Loading Content */}
         <div className="mb-12">
           {/* Animated Circle */}
-          <div className="relative w-32 h-32 mx-auto mb-8">
-            {/* Outer rotating circle */}
-            <div className="absolute inset-0 border-4 border-primary-200 dark:border-primary-800 rounded-full animate-spin"></div>
-            
-            {/* Inner pulsing circle */}
-            <div className="absolute inset-4 border-4 border-primary-500 dark:border-primary-400 rounded-full animate-pulse"></div>
-            
-            {/* Center icon */}
-            <div className="absolute inset-8 bg-primary-600 dark:bg-primary-500 rounded-full flex items-center justify-center">
-              <Loader2 className="w-12 h-12 text-white animate-spin" />
-            </div>
+          <div className="w-32 h-32 mx-auto mb-8">
+            <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary-600 dark:border-primary-400"></div>
           </div>
 
           {/* Title */}
