@@ -14,51 +14,98 @@ const headers = {
   authorization: ASSEMBLYAI_API_KEY,
 }
 
+// Mock data for testing without using AssemblyAI credits
+const mockTranscriptionData = {
+  transcript: "Hello everyone, welcome to this amazing video about artificial intelligence and machine learning. Today we're going to explore the fascinating world of AI and how it's transforming our daily lives. From virtual assistants to autonomous vehicles, AI is everywhere around us. Let me share some incredible insights about the future of technology and how it will shape our world in the coming years.",
+  confidence: 0.95,
+  audio_duration: 1800,
+  words: [
+    { text: "Hello", start: 0, end: 0.5, confidence: 0.98, speaker: "A" },
+    { text: "everyone", start: 0.5, end: 1.2, confidence: 0.96, speaker: "A" },
+    { text: "welcome", start: 1.2, end: 1.8, confidence: 0.97, speaker: "A" },
+    { text: "to", start: 1.8, end: 2.0, confidence: 0.99, speaker: "A" },
+    { text: "this", start: 2.0, end: 2.3, confidence: 0.95, speaker: "A" },
+    { text: "amazing", start: 2.3, end: 3.0, confidence: 0.94, speaker: "A" },
+    { text: "video", start: 3.0, end: 3.5, confidence: 0.97, speaker: "A" },
+    { text: "about", start: 3.5, end: 3.8, confidence: 0.98, speaker: "A" },
+    { text: "artificial", start: 3.8, end: 4.5, confidence: 0.93, speaker: "A" },
+    { text: "intelligence", start: 4.5, end: 5.2, confidence: 0.92, speaker: "A" }
+  ],
+  highlights: [
+    { count: 3, rank: 1, text: "artificial intelligence", timestamps: [{ start: 3.8, end: 5.2 }] },
+    { count: 2, rank: 2, text: "machine learning", timestamps: [{ start: 5.5, end: 6.8 }] },
+    { count: 2, rank: 3, text: "technology", timestamps: [{ start: 12.3, end: 13.1 }] }
+  ],
+  sentiment: [
+    { text: "Hello everyone, welcome to this amazing video", start: 0, end: 3.5, sentiment: "positive", confidence: 0.89 },
+    { text: "Today we're going to explore the fascinating world", start: 5.5, end: 8.2, sentiment: "positive", confidence: 0.91 }
+  ],
+  chapters: [
+    { summary: "Introduction to AI and ML", headline: "Welcome & Overview", start: 0, end: 300 },
+    { summary: "AI in daily life", headline: "AI Applications", start: 300, end: 600 },
+    { summary: "Future of technology", headline: "Looking Forward", start: 600, end: 900 }
+  ],
+  entities: [
+    { text: "artificial intelligence", entity_type: "technology", start: 3.8, end: 5.2 },
+    { text: "machine learning", entity_type: "technology", start: 5.5, end: 6.8 },
+    { text: "virtual assistants", entity_type: "technology", start: 8.5, end: 9.8 }
+  ],
+  speaker_labels: [
+    { speaker: "A", start: 0, end: 1800 }
+  ],
+  language_code: "en",
+  youtube_url: ""
+}
+
 export async function POST(request: NextRequest) {
   try {
     const { youtubeUrl } = await request.json()
-
-    if (!youtubeUrl) {
-      return NextResponse.json({ error: 'YouTube URL is required' }, { status: 400 })
+    
+    // Check if it's a test URL (for development/testing)
+    const isTestUrl = youtubeUrl.includes('test') || youtubeUrl.includes('example') || youtubeUrl.includes('demo')
+    
+    if (isTestUrl) {
+      // Return mock data for testing
+      console.log('🧪 Test mode: Returning mock data for:', youtubeUrl)
+      
+      // Simulate processing delay
+      await new Promise(resolve => setTimeout(resolve, 2000))
+      
+      return NextResponse.json({
+        success: true,
+        ...mockTranscriptionData,
+        youtube_url: youtubeUrl
+      })
     }
 
-    // Create temp directory for audio files
+    // Real AssemblyAI processing for actual YouTube URLs
+    console.log('🚀 Processing real YouTube URL:', youtubeUrl)
+
+    // Create temp directory
     const tempDir = path.join(process.cwd(), 'temp')
     await fs.ensureDir(tempDir)
     
-    // Generate unique filename
-    const timestamp = Date.now()
-    const audioPath = path.join(tempDir, `audio_${timestamp}.mp3`)
-
+    const audioFile = path.join(tempDir, `audio_${Date.now()}.mp3`)
+    
     try {
       // Extract audio using yt-dlp
-      console.log('Extracting audio from YouTube video...')
-      const ytDlpCommand = `yt-dlp -f "bestaudio[ext=m4a]/bestaudio[ext=mp3]/bestaudio" -o "${audioPath}" --extract-audio --audio-format mp3 "${youtubeUrl}"`
+      console.log('📥 Extracting audio...')
+      await execAsync(`yt-dlp -f "bestaudio[ext=m4a]/bestaudio[ext=mp3]/bestaudio" --audio-format mp3 --audio-quality 0 -o "${audioFile}" "${youtubeUrl}"`)
       
-      await execAsync(ytDlpCommand)
-      
-      // Check if audio file was created
-      if (!await fs.pathExists(audioPath)) {
-        throw new Error('Failed to extract audio from YouTube video')
-      }
-
-      // Read audio file
-      const audioData = await fs.readFile(audioPath)
+      // Read the audio file
+      const audioData = await fs.readFile(audioFile)
       
       // Upload to AssemblyAI
-      console.log('Uploading audio to AssemblyAI...')
-      const uploadResponse = await axios.post(`${baseUrl}/v2/upload`, audioData, {
-        headers,
-      })
-      
+      console.log('☁️ Uploading to AssemblyAI...')
+      const uploadResponse = await axios.post(`${baseUrl}/v2/upload`, audioData, { headers })
       const audioUrl = uploadResponse.data.upload_url
-
+      
       // Request transcription
-      console.log('Requesting transcription...')
+      console.log('🎯 Requesting transcription...')
       const transcriptData = {
         audio_url: audioUrl,
         speech_model: 'universal',
-        language_code: 'en', // You can make this configurable
+        language_code: 'en',
         punctuate: true,
         format_text: true,
         speaker_labels: true,
@@ -67,82 +114,64 @@ export async function POST(request: NextRequest) {
         auto_chapters: true,
         entity_detection: true,
       }
-
-      const transcriptResponse = await axios.post(`${baseUrl}/v2/transcript`, transcriptData, {
-        headers,
-      })
-
+      
+      const transcriptResponse = await axios.post(`${baseUrl}/v2/transcript`, transcriptData, { headers })
       const transcriptId = transcriptResponse.data.id
-      const pollingEndpoint = `${baseUrl}/v2/transcript/${transcriptId}`
-
+      
       // Poll for completion
-      console.log('Polling for transcription completion...')
-      let transcriptionResult
+      console.log('⏳ Polling for completion...')
+      let maxAttempts = 60 // 5 minutes max
       let attempts = 0
-      const maxAttempts = 60 // 5 minutes max (60 * 5 seconds)
-
+      
       while (attempts < maxAttempts) {
-        const pollingResponse = await axios.get(pollingEndpoint, { headers })
-        transcriptionResult = pollingResponse.data
-
+        const pollingResponse = await axios.get(`${baseUrl}/v2/transcript/${transcriptId}`, { headers })
+        const transcriptionResult = pollingResponse.data
+        
         if (transcriptionResult.status === 'completed') {
-          console.log('Transcription completed successfully!')
-          break
+          console.log('✅ Transcription completed!')
+          
+          // Clean up temp file
+          await fs.remove(audioFile)
+          
+          return NextResponse.json({
+            success: true,
+            transcript: transcriptionResult.text,
+            confidence: transcriptionResult.confidence || 0.95,
+            audio_duration: transcriptionResult.audio_duration || 0,
+            words: transcriptionResult.words || [],
+            highlights: transcriptionResult.auto_highlights_result?.results || [],
+            sentiment: transcriptionResult.sentiment_analysis?.results || [],
+            chapters: transcriptionResult.auto_chapters_result?.results || [],
+            entities: transcriptionResult.entities || [],
+            speaker_labels: transcriptionResult.speaker_labels || [],
+            language_code: transcriptionResult.language_code || 'en',
+            youtube_url: youtubeUrl
+          })
         } else if (transcriptionResult.status === 'error') {
           throw new Error(`Transcription failed: ${transcriptionResult.error}`)
         }
-
+        
         // Wait 5 seconds before next poll
         await new Promise(resolve => setTimeout(resolve, 5000))
         attempts++
       }
-
-      if (transcriptionResult.status !== 'completed') {
-        throw new Error('Transcription timed out')
+      
+      throw new Error('Transcription timeout - video may be too long')
+      
+    } finally {
+      // Clean up temp file
+      if (await fs.pathExists(audioFile)) {
+        await fs.remove(audioFile)
       }
-
-      // Clean up temp audio file
-      try {
-        await fs.remove(audioPath)
-      } catch (cleanupError) {
-        console.warn('Failed to clean up temp audio file:', cleanupError)
-      }
-
-      // Return comprehensive results
-      return NextResponse.json({
-        success: true,
-        transcript: transcriptionResult.text,
-        confidence: transcriptionResult.confidence,
-        audio_duration: transcriptionResult.audio_duration,
-        words: transcriptionResult.words,
-        highlights: transcriptionResult.auto_highlights_result,
-        sentiment: transcriptionResult.sentiment_analysis_results,
-        chapters: transcriptionResult.chapters,
-        entities: transcriptionResult.entities,
-        speaker_labels: transcriptionResult.speaker_labels,
-        language_code: transcriptionResult.language_code,
-        youtube_url: youtubeUrl,
-      })
-
-    } catch (error) {
-      // Clean up temp audio file on error
-      try {
-        if (await fs.pathExists(audioPath)) {
-          await fs.remove(audioPath)
-        }
-      } catch (cleanupError) {
-        console.warn('Failed to clean up temp audio file on error:', cleanupError)
-      }
-      throw error
     }
-
+    
   } catch (error) {
     console.error('Transcription error:', error)
     return NextResponse.json(
-      { 
-        error: 'Transcription failed', 
-        details: error instanceof Error ? error.message : 'Unknown error' 
-      }, 
+      {
+        error: 'Transcription failed',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      },
       { status: 500 }
     )
   }
