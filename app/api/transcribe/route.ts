@@ -57,6 +57,10 @@ const mockTranscriptionData = {
   youtube_url: ""
 }
 
+// Simple in-memory cache for server-side duplicate prevention
+const transcriptionCache = new Map<string, { data: any; timestamp: number }>()
+const CACHE_DURATION = 24 * 60 * 60 * 1000 // 24 hours
+
 export async function POST(request: NextRequest) {
   try {
     const { youtubeUrl } = await request.json()
@@ -75,6 +79,20 @@ export async function POST(request: NextRequest) {
         success: true,
         ...mockTranscriptionData,
         youtube_url: youtubeUrl
+      })
+    }
+
+    // Check server-side cache first
+    const cacheKey = `transcription_${youtubeUrl}`
+    const cachedResult = transcriptionCache.get(cacheKey)
+    
+    if (cachedResult && (Date.now() - cachedResult.timestamp) < CACHE_DURATION) {
+      console.log('🔄 Returning cached result from server for:', youtubeUrl)
+      return NextResponse.json({
+        success: true,
+        ...cachedResult.data,
+        isCached: true,
+        cachedAt: cachedResult.timestamp
       })
     }
 
@@ -133,8 +151,8 @@ export async function POST(request: NextRequest) {
           // Clean up temp file
           await fs.remove(audioFile)
           
-          return NextResponse.json({
-            success: true,
+          // Cache the result
+          const resultData = {
             transcript: transcriptionResult.text,
             confidence: transcriptionResult.confidence || 0.95,
             audio_duration: transcriptionResult.audio_duration || 0,
@@ -146,6 +164,13 @@ export async function POST(request: NextRequest) {
             speaker_labels: transcriptionResult.speaker_labels || [],
             language_code: transcriptionResult.language_code || 'en',
             youtube_url: youtubeUrl
+          }
+          
+          transcriptionCache.set(cacheKey, { data: resultData, timestamp: Date.now() })
+          
+          return NextResponse.json({
+            success: true,
+            ...resultData
           })
         } else if (transcriptionResult.status === 'error') {
           throw new Error(`Transcription failed: ${transcriptionResult.error}`)

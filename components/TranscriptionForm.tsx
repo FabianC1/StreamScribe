@@ -11,51 +11,20 @@ interface TranscriptionFormProps {
 
 export default function TranscriptionForm({ onTranscribe, isLoading, transcription }: TranscriptionFormProps) {
   const [youtubeUrl, setYoutubeUrl] = useState('')
-  const [error, setError] = useState('')
   const [isProcessing, setIsProcessing] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setError('')
-
-    if (!youtubeUrl.trim()) {
-      setError('Please enter a YouTube URL')
-      return
-    }
-
-    // Basic YouTube URL validation
-    const youtubeRegex = /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\/.+/
-    if (!youtubeRegex.test(youtubeUrl)) {
-      setError('Please enter a valid YouTube URL')
-      return
-    }
-
+    
+    if (!youtubeUrl.trim()) return
+    
+    setIsProcessing(true)
+    setError(null)
+    
     try {
-      setIsProcessing(true)
-      setError('')
-      
-      // Call the transcription API
-      const response = await fetch('/api/transcribe', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ youtubeUrl: youtubeUrl.trim() }),
-      })
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.error || data.details || 'Transcription failed')
-      }
-
-      if (data.success) {
-        // Call the parent handler with the results
-        onTranscribe(youtubeUrl.trim())
-      } else {
-        throw new Error('Transcription failed')
-      }
-
+      // Call the parent handler with the results
+      onTranscribe(youtubeUrl.trim())
     } catch (err) {
       console.error('Transcription error:', err)
       setError(err instanceof Error ? err.message : 'An unexpected error occurred')
@@ -89,7 +58,7 @@ export default function TranscriptionForm({ onTranscribe, isLoading, transcripti
         </div>
 
         <form onSubmit={handleSubmit} className="mb-10">
-          <div className="flex flex-col sm:flex-row gap-6">
+          <div className="flex flex-col sm:flex-row gap-4">
             <div className="flex-1 relative">
               <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                 <svg className="h-6 w-6 text-gray-400 dark:text-gray-500" fill="currentColor" viewBox="0 0 24 24">
@@ -109,7 +78,7 @@ export default function TranscriptionForm({ onTranscribe, isLoading, transcripti
             <button
               type="submit"
               disabled={!youtubeUrl.trim() || isLoading || isProcessing}
-              className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3 px-10 py-4 text-lg font-semibold hover:scale-105 transition-all duration-200"
+              className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3 px-8 py-4 text-lg font-semibold hover:scale-105 transition-all duration-200 whitespace-nowrap"
             >
               {isProcessing ? (
                 <>

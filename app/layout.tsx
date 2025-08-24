@@ -50,14 +50,13 @@ export const metadata: Metadata = {
     ],
   },
   manifest: '/manifest.json',
-  viewport: 'width=device-width, initial-scale=1',
-  themeColor: '#2563EB',
 }
 
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   colorScheme: 'light dark',
+  themeColor: '#2563EB',
 }
 
 export default function RootLayout({

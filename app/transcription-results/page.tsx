@@ -65,6 +65,8 @@ interface TranscriptionData {
   }>
   language_code: string
   youtube_url: string
+  isCached?: boolean
+  cachedAt?: number
 }
 
 interface Note {
@@ -109,62 +111,81 @@ export default function TranscriptionResultsPage() {
     }
   }, [searchParams])
 
+  const getCachedTranscription = (url: string) => {
+    try {
+      const cached = localStorage.getItem(`transcription_${url}`)
+      if (cached) {
+        const data = JSON.parse(cached)
+        // Check if cache is less than 24 hours old
+        const cacheAge = Date.now() - data.cachedAt
+        const maxAge = 24 * 60 * 60 * 1000 // 24 hours
+        if (cacheAge < maxAge) {
+          return data
+        } else {
+          // Remove expired cache
+          localStorage.removeItem(`transcription_${url}`)
+        }
+      }
+      return null
+    } catch (error) {
+      console.error('Error reading cached transcription:', error)
+      return null
+    }
+  }
+
+  const cacheTranscription = (url: string, data: TranscriptionData) => {
+    try {
+      const cacheData = {
+        ...data,
+        cachedAt: Date.now(),
+        isCached: true
+      }
+      localStorage.setItem(`transcription_${url}`, JSON.stringify(cacheData))
+    } catch (error) {
+      console.error('Error caching transcription:', error)
+    }
+  }
+
   const fetchTranscriptionData = async (url: string) => {
     try {
       setIsLoading(true)
       setError(null)
       
-      // For now, we'll simulate the API call with mock data
-      // In production, this would call your actual /api/transcribe endpoint
-      await new Promise(resolve => setTimeout(resolve, 2000)) // Simulate API delay
-      
-      // Mock data that matches the AssemblyAI format
-      const mockData: TranscriptionData = {
-        transcript: "Hello everyone, welcome to this amazing video about artificial intelligence and machine learning. Today we're going to explore the fascinating world of AI and how it's transforming our daily lives. From virtual assistants to autonomous vehicles, AI is everywhere around us. Let me share some incredible insights about the future of technology and how it will shape our world in the coming years.",
-        confidence: 0.95,
-        audio_duration: 1800,
-        words: [
-          { text: "Hello", start: 0, end: 0.5, confidence: 0.98, speaker: "A" },
-          { text: "everyone", start: 0.5, end: 1.2, confidence: 0.96, speaker: "A" },
-          { text: "welcome", start: 1.2, end: 1.8, confidence: 0.97, speaker: "A" },
-          { text: "to", start: 1.8, end: 2.0, confidence: 0.99, speaker: "A" },
-          { text: "this", start: 2.0, end: 2.3, confidence: 0.95, speaker: "A" },
-          { text: "amazing", start: 2.3, end: 3.0, confidence: 0.94, speaker: "A" },
-          { text: "video", start: 3.0, end: 3.5, confidence: 0.97, speaker: "A" },
-          { text: "about", start: 3.5, end: 3.8, confidence: 0.98, speaker: "A" },
-          { text: "artificial", start: 3.8, end: 4.5, confidence: 0.93, speaker: "A" },
-          { text: "intelligence", start: 4.5, end: 5.2, confidence: 0.92, speaker: "A" }
-        ],
-        highlights: [
-          { count: 3, rank: 1, text: "artificial intelligence", timestamps: [{ start: 3.8, end: 5.2 }] },
-          { count: 2, rank: 2, text: "machine learning", timestamps: [{ start: 5.5, end: 6.8 }] },
-          { count: 2, rank: 3, text: "technology", timestamps: [{ start: 12.3, end: 13.1 }] }
-        ],
-        sentiment: [
-          { text: "Hello everyone, welcome to this amazing video", start: 0, end: 3.5, sentiment: "positive", confidence: 0.89 },
-          { text: "Today we're going to explore the fascinating world", start: 5.5, end: 8.2, sentiment: "positive", confidence: 0.91 }
-        ],
-        chapters: [
-          { summary: "Introduction to AI and ML", headline: "Welcome & Overview", start: 0, end: 300 },
-          { summary: "AI in daily life", headline: "AI Applications", start: 300, end: 600 },
-          { summary: "Future of technology", headline: "Looking Forward", start: 600, end: 900 }
-        ],
-        entities: [
-          { text: "artificial intelligence", entity_type: "technology", start: 3.8, end: 5.2 },
-          { text: "machine learning", entity_type: "technology", start: 5.5, end: 6.8 },
-          { text: "virtual assistants", entity_type: "technology", start: 8.5, end: 9.8 }
-        ],
-        speaker_labels: [
-          { speaker: "A", start: 0, end: 1800 }
-        ],
-        language_code: "en",
-        youtube_url: url
+      // First, check if we have a cached version
+      const cachedData = getCachedTranscription(url)
+      if (cachedData) {
+        console.log('📚 Using cached transcription for:', url)
+        setTranscriptionData(cachedData)
+        setIsLoading(false)
+        return
       }
       
-      setTranscriptionData(mockData)
+      // If no cache, call the API
+      console.log('🔄 Fetching new transcription for:', url)
+      const response = await fetch('/api/transcribe', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ youtubeUrl: url }),
+      })
+      
+      if (!response.ok) {
+        throw new Error(`API request failed: ${response.status}`)
+      }
+      
+      const data = await response.json()
+      
+      if (data.success) {
+        // Cache the new transcription
+        cacheTranscription(url, data)
+        setTranscriptionData(data)
+      } else {
+        throw new Error(data.error || 'Transcription failed')
+      }
     } catch (err) {
       console.error('Failed to fetch transcription data:', err)
-      setError('Failed to load transcription data')
+      setError(err instanceof Error ? err.message : 'Failed to load transcription data')
     } finally {
       setIsLoading(false)
     }
@@ -174,6 +195,55 @@ export default function TranscriptionResultsPage() {
     const mins = Math.floor(seconds / 60)
     const secs = Math.floor(seconds % 60)
     return `${mins}:${secs.toString().padStart(2, '0')}`
+  }
+
+  const formatDuration = (seconds: number): string => {
+    const mins = Math.floor(seconds / 60)
+    const secs = Math.floor(seconds % 60)
+    return `${mins}:${secs.toString().padStart(2, '0')}`
+  }
+
+  const groupWordsIntoSentences = (words: Array<{ text: string; start: number; end: number; confidence: number; speaker: string }>) => {
+    const sentences = []
+    let currentSentence = []
+    let currentStart = 0
+    
+    for (let i = 0; i < words.length; i++) {
+      const word = words[i]
+      
+      if (currentSentence.length === 0) {
+        currentStart = word.start
+      }
+      
+      currentSentence.push(word)
+      
+      // Check if this word ends a sentence (ends with punctuation or is the last word)
+      const isEndOfSentence = word.text.match(/[.!?]$/) || i === words.length - 1
+      
+      if (isEndOfSentence && currentSentence.length > 0) {
+        sentences.push({
+          text: currentSentence.map(w => w.text).join(' '),
+          start: currentStart,
+          end: word.end,
+          confidence: currentSentence.reduce((sum, w) => sum + w.confidence, 0) / currentSentence.length,
+          speaker: word.speaker
+        })
+        currentSentence = []
+      }
+    }
+    
+    // If there are remaining words without punctuation, add them as a sentence
+    if (currentSentence.length > 0) {
+      sentences.push({
+        text: currentSentence.map(w => w.text).join(' '),
+        start: currentStart,
+        end: currentSentence[currentSentence.length - 1].end,
+        confidence: currentSentence.reduce((sum, w) => sum + w.confidence, 0) / currentSentence.length,
+        speaker: currentSentence[0].speaker
+      })
+    }
+    
+    return sentences
   }
 
   const handleCopyToClipboard = async (text: string, sectionId: string) => {
@@ -211,12 +281,77 @@ export default function TranscriptionResultsPage() {
 
   const jumpToTime = (startTime: number) => {
     setCurrentVideoTime(startTime)
-    // In a real app, this would control the video player
+    
+    // Send message to YouTube iframe to seek to specific time
+    const iframe = document.querySelector('iframe[src*="youtube.com"]') as HTMLIFrameElement
+    if (iframe && iframe.contentWindow) {
+      const message = JSON.stringify({
+        event: 'command',
+        func: 'seekTo',
+        args: [startTime, true]
+      })
+      iframe.contentWindow.postMessage(message, '*')
+    }
+    
     console.log(`Jumping to ${startTime} seconds`)
   }
 
   const getSectionNotes = (sectionId: string) => {
     return notes.filter(note => note.sectionId === sectionId)
+  }
+
+  const getYouTubeVideoId = (url: string) => {
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+    const match = url.match(regExp);
+    if (match && match[2].length === 11) {
+      return match[2];
+    }
+    return null;
+  };
+
+  const getAllCachedTranscriptions = () => {
+    try {
+      const transcriptions = []
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i)
+        if (key && key.startsWith('transcription_')) {
+          try {
+            const data = JSON.parse(localStorage.getItem(key) || '{}')
+            if (data.cachedAt) {
+              transcriptions.push({
+                url: key.replace('transcription_', ''),
+                title: data.youtube_url || 'Unknown Video',
+                cachedAt: data.cachedAt,
+                duration: data.audio_duration || 0
+              })
+            }
+          } catch (e) {
+            console.error('Error parsing cached transcription:', e)
+          }
+        }
+      }
+      // Sort by most recent first
+      return transcriptions.sort((a, b) => b.cachedAt - a.cachedAt)
+    } catch (error) {
+      console.error('Error getting cached transcriptions:', error)
+      return []
+    }
+  }
+
+  const clearCache = () => {
+    try {
+      const keysToRemove = []
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i)
+        if (key && key.startsWith('transcription_')) {
+          keysToRemove.push(key)
+        }
+      }
+      keysToRemove.forEach(key => localStorage.removeItem(key))
+      console.log('🗑️ Cleared transcription cache')
+    } catch (error) {
+      console.error('Error clearing cache:', error)
+    }
   }
 
   if (isLoading) {
@@ -279,45 +414,70 @@ export default function TranscriptionResultsPage() {
                 
                 {/* Mock Video Player */}
                 <div className="aspect-video bg-gray-900 rounded-lg flex items-center justify-center relative group mb-4">
-                  <div className="absolute inset-0 bg-gradient-to-br from-primary-600 to-secondary-600 opacity-20 rounded-lg"></div>
-                  <div className="relative z-10 text-center">
-                    <div className="w-16 h-16 sm:w-20 sm:h-20 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4 backdrop-blur-sm">
-                      <Play className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
-                    </div>
-                    <p className="text-white font-medium text-sm sm:text-base">Video Player</p>
-                    <p className="text-white/70 text-xs sm:text-sm mt-1">Click to play</p>
-                  </div>
-                  <div className="absolute bottom-3 sm:bottom-4 left-3 sm:left-4 right-3 sm:right-4">
-                    <div className="bg-black/50 rounded-full h-1">
-                      <div 
-                        className="bg-primary-500 h-1 rounded-full transition-all duration-300"
-                        style={{ width: `${(currentVideoTime / transcriptionData.audio_duration) * 100}%` }}
-                      ></div>
-                    </div>
-                    <div className="flex justify-between text-white text-xs mt-2">
-                      <span>{formatTime(currentVideoTime)}</span>
-                      <span>{formatTime(transcriptionData.audio_duration)}</span>
-                    </div>
-                  </div>
+                  <iframe
+                    src={`https://www.youtube.com/embed/${getYouTubeVideoId(youtubeUrl)}?enablejsapi=1&origin=${window.location.origin}`}
+                    title="YouTube video player"
+                    className="w-full h-full rounded-lg"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                  ></iframe>
                 </div>
 
                 {/* Video Info */}
                 <div className="mb-4">
                   <div className="flex items-center justify-between mb-2">
                     <h4 className="font-medium text-gray-900 dark:text-white text-sm sm:text-base">Video Information</h4>
-                    {searchParams.get('fromHistory') === 'true' && (
-                      <span className="px-2 py-1 bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-200 text-xs rounded-full">
-                        From History
-                      </span>
-                    )}
+                    <div className="flex gap-2">
+                      {searchParams.get('fromHistory') === 'true' && (
+                        <span className="px-2 py-1 bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-200 text-xs rounded-full">
+                          From History
+                        </span>
+                      )}
+                      {transcriptionData.isCached && (
+                        <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900/20 text-blue-800 dark:text-blue-200 text-xs rounded-full">
+                          From Cache
+                        </span>
+                      )}
+                    </div>
                   </div>
                   <div className="flex items-center justify-between text-xs sm:text-sm text-gray-600 dark:text-gray-400">
                     <div className="flex items-center gap-2 flex-1 min-w-0">
                       <Youtube className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
                       <span className="break-all truncate">{youtubeUrl || 'YouTube Video Title'}</span>
                     </div>
-                    <div className="flex items-center gap-2 flex-shrink-0 ml-2">
-                      <span>Language: {transcriptionData.language_code.toUpperCase()}</span>
+                    <div className="flex items-center gap-4 flex-shrink-0 ml-2">
+                      <div className="flex items-center gap-2">
+                        <Clock className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
+                        <span>Duration: {formatDuration(transcriptionData.audio_duration)}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span>Language: {transcriptionData.language_code.toUpperCase()}</span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Cache Management */}
+                  <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+                    <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+                      <span>Cache Status: {transcriptionData.isCached ? 'Cached' : 'Not Cached'}</span>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => {
+                            const cached = getAllCachedTranscriptions()
+                            console.log('📚 Cached transcriptions:', cached)
+                            alert(`Found ${cached.length} cached transcriptions. Check console for details.`)
+                          }}
+                          className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 text-xs underline"
+                        >
+                          View History
+                        </button>
+                        <button
+                          onClick={clearCache}
+                          className="text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 text-xs underline"
+                        >
+                          Clear Cache
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -397,33 +557,33 @@ export default function TranscriptionResultsPage() {
 
                 {/* Transcript Content */}
                 <div className="flex-1 space-y-3 sm:space-y-4 overflow-y-auto custom-scrollbar">
-                  {transcriptionData.words.map((word, index) => (
+                  {groupWordsIntoSentences(transcriptionData.words).map((sentence, index) => (
                     <div key={index} className="p-2 sm:p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
                       <div className="flex items-start justify-between gap-2 sm:gap-3 mb-2">
                         <button
-                          onClick={() => jumpToTime(word.start)}
+                          onClick={() => jumpToTime(sentence.start)}
                           className="text-xs sm:text-sm font-medium text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 transition-colors hover:underline"
                         >
-                          {formatTime(word.start)}
+                          {formatTime(sentence.start)}
                         </button>
                         <div className="flex items-center gap-1 sm:gap-2">
                           <button
-                            onClick={() => handleCopyToClipboard(word.text, `word-${index}`)}
+                            onClick={() => handleCopyToClipboard(sentence.text, `sentence-${index}`)}
                             className={`p-1.5 sm:p-2 rounded-lg transition-all duration-300 ${
-                              copiedSectionId === `word-${index}`
+                              copiedSectionId === `sentence-${index}`
                                 ? 'bg-green-100 dark:bg-green-900/20 text-green-600 dark:text-green-400 scale-110'
                                 : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600 hover:scale-105'
                             }`}
                             title="Copy to clipboard"
                           >
-                            {copiedSectionId === `word-${index}` ? (
+                            {copiedSectionId === `sentence-${index}` ? (
                               <Check className="w-3 h-3 sm:w-4 sm:h-4" />
                             ) : (
                               <Copy className="w-3 h-3 sm:w-4 sm:h-4" />
                             )}
                           </button>
                           <button
-                            onClick={() => handleAddNote(`word-${index}`)}
+                            onClick={() => handleAddNote(`sentence-${index}`)}
                             className="p-1.5 sm:p-2 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600 hover:scale-105 transition-all duration-300"
                             title="Add note"
                           >
@@ -431,10 +591,10 @@ export default function TranscriptionResultsPage() {
                           </button>
                         </div>
                       </div>
-                      <p className="text-gray-700 dark:text-gray-300 text-xs sm:text-sm leading-relaxed">{word.text}</p>
+                      <p className="text-gray-700 dark:text-gray-300 text-xs sm:text-sm leading-relaxed">{sentence.text}</p>
                       
                       {/* Note Input for this section */}
-                      {editingNoteId === `word-${index}` && (
+                      {editingNoteId === `sentence-${index}` && (
                         <div className="mt-3 p-2 sm:p-3 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-600">
                           <textarea
                             value={noteInput}
@@ -463,7 +623,7 @@ export default function TranscriptionResultsPage() {
                       )}
                       
                       {/* Notes for this section */}
-                      {getSectionNotes(`word-${index}`).map(note => (
+                      {getSectionNotes(`sentence-${index}`).map(note => (
                         <div key={note.id} className="mt-3 p-2 sm:p-3 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-600">
                           <div className="flex items-start justify-between gap-2">
                             <p className="text-xs sm:text-sm text-gray-700 dark:text-gray-300 flex-1">{note.text}</p>
