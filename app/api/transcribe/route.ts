@@ -61,9 +61,6 @@ const mockTranscriptionData = {
 const transcriptionCache = new Map<string, { data: any; timestamp: number }>()
 const CACHE_DURATION = 24 * 60 * 60 * 1000 // 24 hours
 
-// Track ongoing requests to prevent duplicates
-const ongoingRequests = new Map<string, Promise<any>>()
-
 export async function POST(request: NextRequest) {
   try {
     const { youtubeUrl } = await request.json()
@@ -99,23 +96,10 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    // Check if there's already an ongoing request for this URL
-    if (ongoingRequests.has(cacheKey)) {
-      console.log('⏳ Request already in progress for:', youtubeUrl)
-      return ongoingRequests.get(cacheKey)
-    }
-
-    // Create the transcription promise and store it
-    const transcriptionPromise = processTranscription(youtubeUrl, cacheKey)
-    ongoingRequests.set(cacheKey, transcriptionPromise)
-    
-    try {
-      const result = await transcriptionPromise
-      return result
-    } finally {
-      // Clean up the ongoing request
-      ongoingRequests.delete(cacheKey)
-    }
+    // Process transcription directly without complex request tracking
+    console.log('🚀 Starting new transcription for:', youtubeUrl)
+    const result = await processTranscription(youtubeUrl, cacheKey)
+    return result
     
   } catch (error) {
     console.error('Transcription error:', error)
@@ -130,8 +114,9 @@ export async function POST(request: NextRequest) {
 }
 
 async function processTranscription(youtubeUrl: string, cacheKey: string) {
-  // Real AssemblyAI processing for actual YouTube URLs
-  console.log('🚀 Processing real YouTube URL:', youtubeUrl)
+  try {
+    // Real AssemblyAI processing for actual YouTube URLs
+    console.log('🚀 Processing real YouTube URL:', youtubeUrl)
 
     // Create temp directory
     const tempDir = path.join(process.cwd(), 'temp')
@@ -181,13 +166,15 @@ async function processTranscription(youtubeUrl: string, cacheKey: string) {
         
         if (transcriptionResult.status === 'completed') {
           console.log('✅ Transcription completed!')
+          console.log('📊 Response structure:', Object.keys(transcriptionResult))
+          console.log('📝 Text field:', transcriptionResult.text)
           
           // Clean up temp file
           await fs.remove(audioFile)
           
           // Cache the result
           const resultData = {
-            transcript: transcriptionResult.text,
+            transcript: transcriptionResult.text || 'No transcript text found',
             confidence: transcriptionResult.confidence || 0.95,
             audio_duration: transcriptionResult.audio_duration || 0,
             words: transcriptionResult.words || [],
@@ -202,9 +189,22 @@ async function processTranscription(youtubeUrl: string, cacheKey: string) {
           
           transcriptionCache.set(cacheKey, { data: resultData, timestamp: Date.now() })
           
-          return NextResponse.json({
+          console.log('📤 Sending response to frontend...')
+          console.log('📊 Final transcript length:', resultData.transcript.length, 'characters')
+          
+          // Create a clean response object
+          const responseData = {
             success: true,
             ...resultData
+          }
+          
+          // Return with explicit headers to prevent stream issues
+          return new NextResponse(JSON.stringify(responseData), {
+            status: 200,
+            headers: {
+              'Content-Type': 'application/json',
+              'Cache-Control': 'no-cache',
+            },
           })
         } else if (transcriptionResult.status === 'error') {
           throw new Error(`Transcription failed: ${transcriptionResult.error}`)
@@ -223,4 +223,8 @@ async function processTranscription(youtubeUrl: string, cacheKey: string) {
         await fs.remove(audioFile)
       }
     }
+  } catch (error) {
+    console.error('❌ Error in processTranscription:', error)
+    throw error
+  }
 }

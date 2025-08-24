@@ -1,0 +1,10 @@
+[33m17652b5[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m)[m Implement ytdl-core solution: new API structure with start + poll approach
+[33m4224168[m Implement yt-dlp solution: download audio then upload to AssemblyAI
+[33m001e02c[m Fix: Remove old audio extraction, go straight to AssemblyAI YouTube support
+[33m7b89bcf[m Added built in AssemlbyAI built in support
+[33mc5b2ea5[m Disable caching and remove mock data to force real transcription
+[33m173a1bb[m Implement proven working YouTube audio extraction using get_video_info endpoint
+[33mc4577e3[m Enhance audio extraction method in transcription route by implementing a bulletproof approach that combines multiple extraction techniques, improving logging and error handling for better reliability.
+[33mc2edab2[m Refactor audio extraction method in transcription route to utilize YouTube's internal API for real audio extraction, improving logging and error handling throughout the process.
+[33m8305ff0[m Implement new YouTube embed audio extraction method
+[33m53edb59[m Implement mock transcription to bypass YouTube restrictions

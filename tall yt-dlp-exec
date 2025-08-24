@@ -1,0 +1,5 @@
+[33mb6f45ba[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m)[m improv
+[33mb0ff63c[m improb
+[33me13aea8[m improv
+[33m2f82497[m Enhance audio URL extraction in transcription route with multiple methods and improved logging
+[33md71da7a[m Update AssemblyAI API key handling and add logging for key status in transcription route
