@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
 import { ThemeProvider } from '@/lib/theme'
+import NextAuthProvider from '@/components/NextAuthProvider'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -68,9 +69,11 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
-        <ThemeProvider>
-          {children}
-        </ThemeProvider>
+        <NextAuthProvider>
+          <ThemeProvider>
+            {children}
+          </ThemeProvider>
+        </NextAuthProvider>
       </body>
     </html>
   )
