@@ -68,6 +68,8 @@ const handler = NextAuth({
             })
             
             await newUser.save()
+            // Set the user.id to the MongoDB _id for JWT token
+            user.id = newUser._id.toString()
             console.log('✅ New user created:', newUser.email)
           } else {
             // Update existing user's Google info
@@ -75,6 +77,8 @@ const handler = NextAuth({
             existingUser.avatar = user.image
             existingUser.lastLoginAt = new Date()
             await existingUser.save()
+            // Set the user.id to the MongoDB _id for JWT token
+            user.id = existingUser._id.toString()
             console.log('✅ Existing user updated:', existingUser.email)
           }
           

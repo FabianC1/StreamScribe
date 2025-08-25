@@ -187,7 +187,7 @@ export default function HomePage() {
                           href="/register"
                           className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors duration-200"
                         >
-                          Get Started Free
+                          Get Started
                         </Link>
                         <button
                           onClick={() => setShowAuthPrompt(false)}
@@ -449,7 +449,7 @@ export default function HomePage() {
                 Choose Your Plan
               </h2>
               <p className="text-lg text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
-                Start with our free tier and upgrade as you grow. All plans include our core features and 24/7 support.
+                Select the perfect plan for your transcription needs. All plans include our core features and 24/7 support.
               </p>
             </div>
             <PricingTiers />

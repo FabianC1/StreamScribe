@@ -5,14 +5,18 @@ import { Menu, X, Youtube, User, LogOut, Shield } from 'lucide-react'
 import ThemeToggle from './ThemeToggle'
 import Link from 'next/link'
 import { useRouter, usePathname } from 'next/navigation'
+import { useSession, signOut } from 'next-auth/react'
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isScrolled, setIsScrolled] = useState(false)
-  const [isAuthenticated, setIsAuthenticated] = useState(false) // TODO: Replace with actual auth state
   const [showAuthModal, setShowAuthModal] = useState(false)
   const router = useRouter()
   const pathname = usePathname()
+  const { data: session, status } = useSession()
+  
+  const isAuthenticated = status === 'authenticated'
+  const isLoading = status === 'loading'
 
   useEffect(() => {
     const handleScroll = () => {
@@ -50,9 +54,7 @@ export default function Header() {
   }
 
   const handleLogout = () => {
-    // TODO: Implement actual logout logic
-    setIsAuthenticated(false)
-    window.location.href = '/'
+    signOut({ callbackUrl: '/' })
   }
 
   const handleAnchorClick = (section: string) => {
@@ -104,34 +106,52 @@ export default function Header() {
               >
                 Features
               </button>
-              <button 
-                onClick={() => handleAnchorClick('pricing')}
+              <Link 
+                href="/pricing"
                 className={`nav-link text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-500 transition-all duration-200 ${
                   isScrolled ? 'scale-95 opacity-90' : 'scale-100 opacity-100'
                 }`}
               >
                 Pricing
-              </button>
+              </Link>
                
               {isAuthenticated ? (
                 <>
                   <Link 
-                    href="/subscriptions" 
+                    href="/dashboard" 
                     className={`nav-link text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-500 transition-all duration-200 ${
                       isScrolled ? 'scale-95 opacity-90' : 'scale-100 opacity-100'
                     }`}
                   >
-                    Subscriptions
+                    Dashboard
                   </Link>
-                  <button
-                    onClick={handleLogout}
-                    className={`nav-link text-gray-600 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400 transition-all duration-200 flex items-center gap-2 ${
-                      isScrolled ? 'scale-95 opacity-90' : 'scale-100 opacity-100'
-                    }`}
-                  >
-                    <LogOut className="w-4 h-4" />
-                    Logout
-                  </button>
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2">
+                      {session?.user?.image ? (
+                        <img 
+                          src={session.user.image} 
+                          alt={session.user.name || 'User'} 
+                          className="w-8 h-8 rounded-full"
+                        />
+                      ) : (
+                        <div className="w-8 h-8 bg-gray-300 dark:bg-gray-600 rounded-full flex items-center justify-center">
+                          <User className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                        </div>
+                      )}
+                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                        {session?.user?.name || 'User'}
+                      </span>
+                    </div>
+                    <button
+                      onClick={handleLogout}
+                      className={`nav-link text-gray-600 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400 transition-all duration-200 flex items-center gap-2 ${
+                        isScrolled ? 'scale-95 opacity-90' : 'scale-100 opacity-100'
+                      }`}
+                    >
+                      <LogOut className="w-4 h-4" />
+                      Sign Out
+                    </button>
+                  </div>
                 </>
               ) : (
                 <>
@@ -188,24 +208,45 @@ export default function Header() {
                 >
                   Features
                 </button>
-                <button 
-                  onClick={() => {
-                    handleAnchorClick('pricing')
-                    setIsMenuOpen(false)
-                  }}
+                <Link 
+                  href="/pricing"
+                  onClick={() => setIsMenuOpen(false)}
                   className="w-full text-left py-3 px-4 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-200 text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-500"
                 >
                   Pricing
-                </button>
+                </Link>
                  
                 {isAuthenticated ? (
                   <>
+                    <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700 mb-3">
+                      <div className="flex items-center gap-3">
+                        {session?.user?.image ? (
+                          <img 
+                            src={session.user.image} 
+                            alt={session.user.name || 'User'} 
+                            className="w-10 h-10 rounded-full"
+                          />
+                        ) : (
+                          <div className="w-10 h-10 bg-gray-300 dark:bg-gray-600 rounded-full flex items-center justify-center">
+                            <User className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                          </div>
+                        )}
+                        <div>
+                          <p className="font-medium text-gray-900 dark:text-white">
+                            {session?.user?.name || 'User'}
+                          </p>
+                          <p className="text-sm text-gray-500 dark:text-gray-400">
+                            {session?.user?.email}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
                     <Link 
-                      href="/subscriptions" 
+                      href="/dashboard" 
                       onClick={() => setIsMenuOpen(false)}
                       className="block w-full text-left py-3 px-4 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-200 text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-500"
                     >
-                      Subscriptions
+                      Dashboard
                     </Link>
                     <button
                       onClick={() => {
@@ -215,7 +256,7 @@ export default function Header() {
                       className="w-full text-left py-3 px-4 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-200 flex items-center gap-2 text-gray-600 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400"
                     >
                       <LogOut className="w-4 h-4" />
-                      Logout
+                      Sign Out
                     </button>
                   </>
                 ) : (
