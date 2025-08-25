@@ -7,6 +7,7 @@ import mongoose from 'mongoose'
 // Create auth config for getServerSession
 const authOptions = {
   secret: process.env.NEXTAUTH_SECRET,
+  providers: [], // Empty providers array for getServerSession
 }
 
 export async function GET(request: NextRequest) {
@@ -35,8 +36,20 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
+    // Handle different name field formats
+    let displayName = ''
+    if (user.name) {
+      displayName = user.name
+    } else if (user.firstName && user.lastName) {
+      displayName = `${user.firstName} ${user.lastName}`
+    } else if (user.firstName) {
+      displayName = user.firstName
+    } else {
+      displayName = 'User'
+    }
+
     return NextResponse.json({
-      name: user.name || user.firstName + ' ' + user.lastName || '',
+      name: displayName,
       email: user.email,
       timezone: user.timezone || 'UTC+0',
       language: user.language || 'English'
@@ -72,14 +85,21 @@ export async function PUT(request: NextRequest) {
     // Convert string ID to ObjectId
     const userId = new ObjectId(session.user.id)
     
+    // Split name into firstName and lastName for consistency
+    const nameParts = name.trim().split(' ')
+    const firstName = nameParts[0] || ''
+    const lastName = nameParts.slice(1).join(' ') || ''
+    
     const result = await db.collection('users').updateOne(
       { _id: userId },
       {
         $set: {
-          name,
-          email,
-          timezone,
-          language,
+          name: name, // Store full name
+          firstName: firstName,
+          lastName: lastName,
+          email: email,
+          timezone: timezone || 'UTC+0',
+          language: language || 'English',
           updatedAt: new Date()
         }
       }
