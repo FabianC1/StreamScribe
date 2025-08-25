@@ -17,7 +17,7 @@ const headers = {
 
 // Mock data for testing without using AssemblyAI credits
 const mockTranscriptionData = {
-  transcript: "Hello everyone, welcome to this amazing video about artificial intelligence and machine learning. Today we're going to explore the fascinating world of AI and how it's transforming our daily lives. From virtual assistants to autonomous vehicles, AI is everywhere around us. Let me share some incredible insights about the future of technology and how it will shape our world in the coming years.",
+  transcript: "Hello everyone, welcome to this amazing video about artificial intelligence and machine learning. Today we're going to explore the fascinating world of AI and how it's transforming our daily lives. From virtual assistants to autonomous vehicles, AI is everywhere around us. Let me share some incredible insights about the future of technology and how it will shape our world in the coming years. AI is transforming various industries and creating new opportunities for innovation. The key question is: How will artificial intelligence change the way we work and live? We need to understand that this technology requires careful consideration and strategic planning. What are the most important factors to consider when implementing AI solutions? First, you must identify your specific use cases. Second, ensure you have quality data. Third, start with pilot projects before scaling up. Remember, AI is not a magic solution - it's a powerful tool that requires expertise and thoughtful strategy.",
   confidence: 0.95,
   audio_duration: 1800,
   words: [
@@ -33,9 +33,36 @@ const mockTranscriptionData = {
     { text: "intelligence", start: 4.5, end: 5.2, confidence: 0.92, speaker: "A" }
   ],
   highlights: [
-    { count: 3, rank: 1, text: "artificial intelligence", timestamps: [{ start: 3.8, end: 5.2 }] },
-    { count: 2, rank: 2, text: "machine learning", timestamps: [{ start: 5.5, end: 6.8 }] },
-    { count: 2, rank: 3, text: "technology", timestamps: [{ start: 12.3, end: 13.1 }] }
+    { 
+      count: 1, 
+      rank: 1, 
+      text: "Today we're going to explore the fascinating world of AI and how it's transforming our daily lives.", 
+      timestamps: [{ start: 5.5, end: 8.2 }] 
+    },
+    { 
+      count: 1, 
+      rank: 2, 
+      text: "From virtual assistants to autonomous vehicles, AI is everywhere around us.", 
+      timestamps: [{ start: 8.5, end: 11.2 }] 
+    },
+    { 
+      count: 1, 
+      rank: 3, 
+      text: "Let me share some incredible insights about the future of technology and how it will shape our world.", 
+      timestamps: [{ start: 12.0, end: 15.8 }] 
+    },
+    { 
+      count: 1, 
+      rank: 4, 
+      text: "AI is transforming various industries and creating new opportunities for innovation.", 
+      timestamps: [{ start: 16.0, end: 19.5 }] 
+    },
+    { 
+      count: 1, 
+      rank: 5, 
+      text: "The key question is: How will artificial intelligence change the way we work and live?", 
+      timestamps: [{ start: 20.0, end: 23.8 }] 
+    }
   ],
   sentiment: [
     { text: "Hello everyone, welcome to this amazing video", start: 0, end: 3.5, sentiment: "positive", confidence: 0.89 },
@@ -165,28 +192,94 @@ export async function POST(request: NextRequest) {
           // Clean up temp file
           await fs.remove(audioFile)
           
-          // Generate fallback data if AssemblyAI features are empty
+          // Generate intelligent fallback data with meaningful insights
           const generateFallbackData = (text: string) => {
-            const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 10)
-            const words = text.toLowerCase().match(/\b\w+\b/g) || []
-            const wordFreq: { [key: string]: number } = {}
+            const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 15)
+            const paragraphs = text.split(/\n\s*\n/).filter(p => p.trim().length > 50)
             
-            words.forEach(word => {
-              if (word.length > 3) wordFreq[word] = (wordFreq[word] || 0) + 1
-            })
-            
-            const topWords = Object.entries(wordFreq)
-              .sort(([,a], [,b]) => b - a)
-              .slice(0, 5)
-              .map(([word]) => word)
+            // Generate meaningful highlights from key sentences and concepts
+            const generateHighlights = () => {
+              const highlights: Array<{
+                count: number
+                rank: number
+                text: string
+                timestamps: Array<{ start: number; end: number }>
+              }> = []
+              
+              // Find sentences with key phrases (questions, important statements, numbers)
+              const questionSentences = sentences.filter(s => 
+                s.includes('?') || 
+                s.toLowerCase().includes('how') || 
+                s.toLowerCase().includes('what') || 
+                s.toLowerCase().includes('why') ||
+                s.toLowerCase().includes('when') ||
+                s.toLowerCase().includes('where')
+              )
+              
+              const numberSentences = sentences.filter(s => 
+                /\d+/.test(s) && s.length > 20
+              )
+              
+              const actionSentences = sentences.filter(s => 
+                s.toLowerCase().includes('should') || 
+                s.toLowerCase().includes('must') || 
+                s.toLowerCase().includes('need to') ||
+                s.toLowerCase().includes('important') ||
+                s.toLowerCase().includes('key') ||
+                s.toLowerCase().includes('essential')
+              )
+              
+              // Add question highlights
+              questionSentences.slice(0, 2).forEach((sentence, i) => {
+                highlights.push({
+                  count: 1,
+                  rank: i + 1,
+                  text: sentence.trim().substring(0, 100) + (sentence.length > 100 ? '...' : ''),
+                  timestamps: [{ start: i * 30, end: (i + 1) * 30 }]
+                })
+              })
+              
+              // Add number/statistic highlights
+              numberSentences.slice(0, 2).forEach((sentence, i) => {
+                highlights.push({
+                  count: 1,
+                  rank: highlights.length + 1,
+                  text: sentence.trim().substring(0, 100) + (sentence.length > 100 ? '...' : ''),
+                  timestamps: [{ start: (highlights.length + i) * 30, end: (highlights.length + i + 1) * 30 }]
+                })
+              })
+              
+              // Add action item highlights
+              actionSentences.slice(0, 2).forEach((sentence, i) => {
+                highlights.push({
+                  count: 1,
+                  rank: highlights.length + 1,
+                  text: sentence.trim().substring(0, 100) + (sentence.length > 100 ? '...' : ''),
+                  timestamps: [{ start: (highlights.length + i) * 30, end: (highlights.length + i + 1) * 30 }]
+                })
+              })
+              
+              // If we don't have enough highlights, add key concept sentences
+              if (highlights.length < 5) {
+                const remainingSentences = sentences
+                  .filter(s => !highlights.some(h => h.text.includes(s.substring(0, 20))))
+                  .slice(0, 5 - highlights.length)
+                
+                remainingSentences.forEach((sentence, i) => {
+                  highlights.push({
+                    count: 1,
+                    rank: highlights.length + 1,
+                    text: sentence.trim().substring(0, 100) + (sentence.length > 100 ? '...' : ''),
+                    timestamps: [{ start: (highlights.length + i) * 30, end: (highlights.length + i + 1) * 30 }]
+                  })
+                })
+              }
+              
+              return highlights.slice(0, 5)
+            }
             
             return {
-              highlights: topWords.map((word, i) => ({
-                count: wordFreq[word],
-                rank: i + 1,
-                text: word,
-                timestamps: [{ start: 0, end: 0 }]
-              })),
+              highlights: generateHighlights(),
               sentiment: sentences.slice(0, 3).map((sentence, i) => ({
                 text: sentence.trim(),
                 start: i * 30,
@@ -194,11 +287,11 @@ export async function POST(request: NextRequest) {
                 sentiment: 'neutral',
                 confidence: 0.8
               })),
-              chapters: sentences.slice(0, 3).map((sentence, i) => ({
-                summary: sentence.trim(),
-                headline: `Section ${i + 1}`,
-                start: i * 30,
-                end: (i + 1) * 30
+              chapters: paragraphs.slice(0, 3).map((paragraph, i) => ({
+                summary: paragraph.trim().substring(0, 150) + (paragraph.length > 150 ? '...' : ''),
+                headline: `Key Point ${i + 1}`,
+                start: i * 60,
+                end: (i + 1) * 60
               }))
             }
           }

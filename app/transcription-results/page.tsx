@@ -21,6 +21,23 @@ import {
   Save,
   Trash2
 } from 'lucide-react'
+import { 
+  EXPORT_FORMATS, 
+  generateTXT, 
+  generateDOCX, 
+  generateSRT, 
+  generateVTT, 
+  generateMP3, 
+  generateMP4, 
+  downloadFile,
+  type TranscriptionData as ExportTranscriptionData
+} from '@/lib/exportFormats'
+import { 
+  canExportFormat, 
+  getUpgradeMessage, 
+  getCurrentUserTier,
+  type SubscriptionTier 
+} from '@/lib/subscription'
 
 interface TranscriptionData {
   transcript: string
@@ -89,6 +106,8 @@ export default function TranscriptionResultsPage() {
   const [copiedSectionId, setCopiedSectionId] = useState<string | null>(null)
   const [notes, setNotes] = useState<Note[]>([])
   const [showNotes, setShowNotes] = useState(true)
+  const [exportingFormat, setExportingFormat] = useState<string | null>(null)
+  const [currentTier] = useState<SubscriptionTier>(getCurrentUserTier())
 
   useEffect(() => {
     // Get YouTube URL from query parameters
@@ -325,6 +344,72 @@ export default function TranscriptionResultsPage() {
 
   const getSectionNotes = (sectionId: string) => {
     return notes.filter(note => note.sectionId === sectionId)
+  }
+
+  const handleExport = async (format: string, data: TranscriptionData) => {
+    if (!data) return
+    
+    setExportingFormat(format)
+    
+    try {
+      // Get video title for filename
+      const videoId = getYouTubeVideoId(data.youtube_url)
+      const videoTitle = videoId ? `transcript_${videoId}` : 'transcript'
+      
+      let content: string | Blob
+      let filename: string
+      let mimeType: string
+      
+      switch (format) {
+        case 'TXT':
+          content = generateTXT(data as ExportTranscriptionData)
+          filename = `${videoTitle}.txt`
+          mimeType = 'text/plain'
+          break
+        case 'DOCX':
+          content = generateDOCX(data as ExportTranscriptionData)
+          filename = `${videoTitle}.rtf` // Rich Text Format that Word can open
+          mimeType = 'application/rtf'
+          break
+        case 'SRT':
+          content = generateSRT(data as ExportTranscriptionData)
+          filename = `${videoTitle}.srt`
+          mimeType = 'text/plain'
+          break
+        case 'VTT':
+          content = generateVTT(data as ExportTranscriptionData)
+          filename = `${videoTitle}.vtt`
+          mimeType = 'text/vtt'
+          break
+        case 'MP3':
+          content = await generateMP3(data as ExportTranscriptionData)
+          filename = `${videoTitle}.mp3`
+          mimeType = 'audio/mpeg'
+          break
+        case 'MP4':
+          content = await generateMP4(data as ExportTranscriptionData)
+          filename = `${videoTitle}.mp4`
+          mimeType = 'video/mp4'
+          break
+        default:
+          console.error('Unsupported export format:', format)
+          return
+      }
+      
+      // Small delay to show loading state
+      await new Promise(resolve => setTimeout(resolve, 500))
+      
+      downloadFile(content, filename, mimeType)
+      
+      // Show success feedback
+      console.log(`✅ Successfully exported ${format} file: ${filename}`)
+      
+    } catch (error) {
+      console.error(`❌ Failed to export ${format}:`, error)
+      alert(`Failed to export ${format} file. Please try again.`)
+    } finally {
+      setExportingFormat(null)
+    }
   }
 
   const getYouTubeVideoId = (url: string) => {
@@ -647,15 +732,36 @@ export default function TranscriptionResultsPage() {
                 <div className="mt-4 sm:mt-6 pt-3 sm:pt-4 border-t border-gray-200 dark:border-gray-700">
                   <h4 className="font-medium text-gray-900 dark:text-white mb-2 sm:mb-3 text-sm sm:text-base">Export Options</h4>
                   <div className="flex flex-wrap gap-1 sm:gap-2">
-                    {['TXT', 'SRT', 'VTT', 'PDF'].map((format) => (
-                      <button
-                        key={format}
-                        className="px-2 sm:px-3 py-1.5 sm:py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm"
-                      >
-                        <Download className="w-3 h-3 sm:h-4" />
-                        {format}
-                      </button>
-                    ))}
+                    {EXPORT_FORMATS.map((format) => {
+                      const isExporting = exportingFormat === format.name
+                      const canExport = canExportFormat(currentTier, format.name)
+                      const upgradeMessage = getUpgradeMessage(currentTier, format.name)
+                      
+                      return (
+                        <button
+                          key={format.name}
+                          onClick={() => canExport ? handleExport(format.name, transcriptionData) : alert(upgradeMessage)}
+                          disabled={isExporting}
+                          className={`px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg transition-all duration-200 flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm ${
+                            isExporting
+                              ? 'bg-primary-100 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400 cursor-not-allowed'
+                              : canExport
+                                ? 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 hover:scale-105'
+                                : 'bg-gray-50 dark:bg-gray-800 text-gray-400 dark:text-gray-500 cursor-not-allowed opacity-60'
+                          }`}
+                          title={canExport ? format.description : upgradeMessage}
+                        >
+                          {isExporting ? (
+                            <div className="w-3 h-3 sm:w-4 sm:h-4 border-2 border-primary-600 dark:border-primary-400 border-t-transparent rounded-full animate-spin" />
+                          ) : canExport ? (
+                            <Download className="w-3 h-3 sm:h-4" />
+                          ) : (
+                            <div className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400 dark:text-gray-500">🔒</div>
+                          )}
+                          {isExporting ? 'Exporting...' : format.name}
+                        </button>
+                      )
+                    })}
                   </div>
                 </div>
               </div>
