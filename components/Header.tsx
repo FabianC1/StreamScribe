@@ -121,6 +121,17 @@ export default function Header() {
                       <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary-400 via-secondary-500 to-primary-600 animate-gradient-border"></div>
                     )}
                   </Link>
+                  <Link 
+                    href="/settings" 
+                    className={`nav-link text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-500 transition-all duration-200 relative ${
+                      isScrolled ? 'scale-95 opacity-90' : 'scale-100 opacity-100'
+                    }`}
+                  >
+                    Settings
+                    {pathname === '/settings' && (
+                      <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary-400 via-secondary-500 to-primary-600 animate-gradient-border"></div>
+                    )}
+                  </Link>
                   <div className="flex items-center gap-3">
                     <div className="flex items-center gap-2">
                       {session?.user?.image ? (
@@ -254,6 +265,18 @@ export default function Header() {
                     >
                       Dashboard
                       {pathname === '/dashboard' && (
+                        <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary-400 via-secondary-500 to-primary-600 animate-gradient-border"></div>
+                      )}
+                    </Link>
+                    <Link 
+                      href="/settings" 
+                      onClick={() => setIsMenuOpen(false)}
+                      className={`block w-full text-left py-3 px-4 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-200 text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-500 relative ${
+                        pathname === '/settings' ? 'text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-900/20' : ''
+                      }`}
+                    >
+                      Settings
+                      {pathname === '/settings' && (
                         <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary-400 via-secondary-500 to-primary-600 animate-gradient-border"></div>
                       )}
                     </Link>
