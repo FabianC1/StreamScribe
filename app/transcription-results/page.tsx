@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import TranscriptionHeader from '../../components/TranscriptionHeader'
+import Header from '../../components/Header'
 import { 
   Play, 
   Clock, 
@@ -469,7 +469,7 @@ export default function TranscriptionResultsPage() {
   if (isLoading) {
     return (
       <>
-        <TranscriptionHeader />
+        <Header />
         <main className="pt-20 min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-700">
           <div className="flex items-center justify-center h-[calc(100vh-80px)]">
             <div className="text-center">
@@ -486,7 +486,7 @@ export default function TranscriptionResultsPage() {
   if (error || !transcriptionData) {
     return (
       <>
-        <TranscriptionHeader />
+        <Header />
         <main className="pt-20 min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-700">
           <div className="flex items-center justify-center h-[calc(100vh-80px)]">
             <div className="text-center">
@@ -510,7 +510,7 @@ export default function TranscriptionResultsPage() {
 
   return (
     <>
-      <TranscriptionHeader />
+      <Header />
       
       <main className="pt-20 min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-700 transition-colors duration-200">
         <div className="w-full h-full">
