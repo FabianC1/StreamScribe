@@ -4,35 +4,67 @@ import { getServerSession } from 'next-auth'
 import { ObjectId } from 'mongodb'
 import mongoose from 'mongoose'
 
-// Create auth config for getServerSession
+// Create auth config for getServerSession that matches NextAuth
 const authOptions = {
   secret: process.env.NEXTAUTH_SECRET,
-  providers: [], // Empty providers array for getServerSession
+  session: {
+    strategy: 'jwt' as const,
+  },
+  callbacks: {
+    async session({ session, token }: any) {
+      if (token) {
+        session.user.id = token.userId
+        session.user.email = token.email
+        session.user.name = token.name
+        session.user.image = token.image
+      }
+      return session
+    },
+    async jwt({ token, user }: any) {
+      if (user) {
+        token.userId = user.id
+        token.email = user.email
+        token.name = user.name
+        token.image = user.image
+      }
+      return token
+    },
+  },
 }
 
 export async function GET(request: NextRequest) {
   try {
+    console.log('🔍 Profile API called')
     const session = await getServerSession(authOptions)
+    console.log('📋 Session data:', session)
+    
     if (!session?.user?.id) {
+      console.log('❌ No session or user ID')
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    console.log('🆔 User ID from session:', session.user.id)
     await connectDB()
     const db = mongoose.connection.db
     
     if (!db) {
+      console.log('❌ Database connection failed')
       return NextResponse.json({ error: 'Database connection failed' }, { status: 500 })
     }
     
     // Convert string ID to ObjectId
     const userId = new ObjectId(session.user.id)
+    console.log('🔍 Searching for user with ObjectId:', userId)
     
     const user = await db.collection('users').findOne(
       { _id: userId },
       { projection: { password: 0 } }
     )
 
+    console.log('👤 User found in database:', user)
+
     if (!user) {
+      console.log('❌ User not found in database')
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
@@ -48,14 +80,17 @@ export async function GET(request: NextRequest) {
       displayName = 'User'
     }
 
-    return NextResponse.json({
+    const response = {
       name: displayName,
       email: user.email,
       timezone: user.timezone || 'UTC+0',
       language: user.language || 'English'
-    })
+    }
+    
+    console.log('✅ Returning profile data:', response)
+    return NextResponse.json(response)
   } catch (error) {
-    console.error('Profile fetch error:', error)
+    console.error('❌ Profile fetch error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
