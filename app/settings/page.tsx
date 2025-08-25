@@ -11,19 +11,19 @@ import {
   User,
   CreditCard,
   Shield,
-  Settings as SettingsIcon,
   Bell,
   Palette,
-  Download,
-  Clock,
   CheckCircle,
-  AlertCircle,
   Edit,
   Save,
   X,
   Crown,
   Star,
-  Zap
+  Zap,
+  Clock,
+  BarChart3,
+  FileText,
+  Download
 } from 'lucide-react'
 
 export default function SettingsPage() {
@@ -36,14 +36,23 @@ export default function SettingsPage() {
   const isLoading = status === 'loading'
   const currentUser = session?.user || customUser
 
-  // Mock subscription data - replace with real data from your database
+  // Subscription data - will be fetched from database
   const [subscription, setSubscription] = useState({
-    tier: 'Standard',
+    tier: currentUser?.email === 'galaselfabian@gmail.com' ? 'Premium' : 'Standard',
     status: 'Active',
-    nextBilling: '2024-09-25',
-    hoursUsed: 23,
-    hoursTotal: 60,
-    features: [
+    nextBilling: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days from now
+    hoursUsed: 0,
+    hoursTotal: currentUser?.email === 'galaselfabian@gmail.com' ? 100 : 60,
+    features: currentUser?.email === 'galaselfabian@gmail.com' ? [
+      '100 hours transcription per month',
+      'All export formats (TXT, DOCX, SRT, VTT, MP3, MP4)',
+      'AI-powered highlights & summaries',
+      'Full theme customization',
+      'Team collaboration features',
+      'Advanced organization tools',
+      'Priority phone support',
+      'No ads'
+    ] : [
       '60 hours transcription per month',
       'TXT, DOCX, and SRT export formats',
       'Advanced analytics with insights',
@@ -55,8 +64,8 @@ export default function SettingsPage() {
 
   const [isEditingProfile, setIsEditingProfile] = useState(false)
   const [profileData, setProfileData] = useState({
-    name: (currentUser as any)?.name || '',
-    email: (currentUser as any)?.email || '',
+    name: '',
+    email: '',
     timezone: 'UTC+0',
     language: 'English'
   })
@@ -68,8 +77,75 @@ export default function SettingsPage() {
     newFeatures: false
   })
 
+  const [profileUpdateMessage, setProfileUpdateMessage] = useState('')
+
+  // Stats data - will be fetched from database
+  const [stats, setStats] = useState({
+    transcriptionsThisMonth: 0,
+    totalExports: 0
+  })
+
   // Remove the local theme state since we're using the context
   // const [theme, setTheme] = useState('system')
+
+  // Fetch profile data from MongoDB
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const response = await fetch('/api/profile')
+        if (response.ok) {
+          const data = await response.json()
+          setProfileData(data)
+        }
+      } catch (error) {
+        console.error('Failed to fetch profile:', error)
+      }
+    }
+
+    if (isAuthenticated) {
+      fetchProfile()
+    }
+  }, [isAuthenticated])
+
+  // Fetch subscription data from database
+  useEffect(() => {
+    const fetchSubscription = async () => {
+      try {
+        const response = await fetch('/api/subscription')
+        if (response.ok) {
+          const data = await response.json()
+          setSubscription(prev => ({ ...prev, ...data }))
+        }
+      } catch (error) {
+        console.error('Failed to fetch subscription:', error)
+        // Keep default values if fetch fails
+      }
+    }
+
+    if (isAuthenticated) {
+      fetchSubscription()
+    }
+  }, [isAuthenticated])
+
+  // Fetch stats data from database
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const response = await fetch('/api/stats')
+        if (response.ok) {
+          const data = await response.json()
+          setStats(data)
+        }
+      } catch (error) {
+        console.error('Failed to fetch stats:', error)
+        // Keep default values if fetch fails
+      }
+    }
+
+    if (isAuthenticated) {
+      fetchStats()
+    }
+  }, [isAuthenticated])
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -92,10 +168,34 @@ export default function SettingsPage() {
     return null
   }
 
-  const handleProfileSave = () => {
-    // TODO: Implement profile update API call
-    console.log('Saving profile:', profileData)
-    setIsEditingProfile(false)
+  const handleProfileSave = async () => {
+    try {
+      const response = await fetch('/api/profile', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(profileData),
+      })
+
+      if (response.ok) {
+        setIsEditingProfile(false)
+        setProfileUpdateMessage('Profile updated successfully!')
+        // Clear success message after 3 seconds
+        setTimeout(() => setProfileUpdateMessage(''), 3000)
+      } else {
+        const error = await response.json()
+        setProfileUpdateMessage('Failed to update profile. Please try again.')
+        // Clear error message after 5 seconds
+        setTimeout(() => setProfileUpdateMessage(''), 5000)
+        console.error('Failed to update profile:', error)
+      }
+    } catch (error) {
+      setProfileUpdateMessage('Failed to update profile. Please try again.')
+      // Clear error message after 5 seconds
+      setTimeout(() => setProfileUpdateMessage(''), 5000)
+      console.error('Profile update error:', error)
+    }
   }
 
   const handleNotificationToggle = (key: keyof typeof notifications) => {
@@ -184,6 +284,17 @@ export default function SettingsPage() {
                     </div>
                   )}
                 </div>
+
+                {/* Profile Update Message */}
+                {profileUpdateMessage && (
+                  <div className={`mb-4 p-3 rounded-lg ${
+                    profileUpdateMessage.includes('successfully') 
+                      ? 'bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-800'
+                      : 'bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800'
+                  }`}>
+                    {profileUpdateMessage}
+                  </div>
+                )}
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
@@ -327,12 +438,12 @@ export default function SettingsPage() {
                           onClick={() => setTheme(option.value)}
                           className={`p-4 rounded-lg border-2 transition-all ${
                             currentTheme === option.value
-                              ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20'
-                              : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'
+                              ? 'border-primary-500 bg-primary-100/50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300'
+                              : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500 text-gray-700 dark:text-gray-300'
                           }`}
                         >
                           <div className="text-2xl mb-2">{option.icon}</div>
-                          <div className="text-sm font-medium text-gray-900 dark:text-white">
+                          <div className="text-sm font-medium">
                             {option.label}
                           </div>
                         </button>
@@ -389,7 +500,10 @@ export default function SettingsPage() {
                     </div>
                   </div>
 
-                  <button className="btn-primary w-full">
+                  <button 
+                    onClick={() => router.push('/subscriptions')}
+                    className="btn-primary w-full"
+                  >
                     Manage Subscription
                   </button>
                 </div>
@@ -399,9 +513,9 @@ export default function SettingsPage() {
               <div className="card">
                 <div className="flex items-center gap-3 mb-6">
                   <Shield className="w-6 h-6 text-primary-600" />
-                  <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
                     Plan Features
-                  </h2>
+                  </h3>
                 </div>
 
                 <ul className="space-y-3">
@@ -414,33 +528,80 @@ export default function SettingsPage() {
                 </ul>
 
                 <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
-                  <button className="btn-secondary w-full">
-                    Upgrade Plan
-                  </button>
+                  {subscription.tier !== 'Premium' && (
+                    <button 
+                      onClick={() => router.push('/pricing')}
+                      className="btn-secondary w-full"
+                    >
+                      Upgrade Plan
+                    </button>
+                  )}
                 </div>
               </div>
 
-              {/* Quick Actions */}
-              <div className="card">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-                  Quick Actions
-                </h3>
-                
-                <div className="space-y-3">
-                  <button className="w-full text-left p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors flex items-center gap-3 text-gray-700 dark:text-gray-200 hover:text-primary-600 dark:hover:text-primary-400">
-                    <Download className="w-5 h-5 text-primary-600" />
-                    Export Data
-                  </button>
-                  <button className="w-full text-left p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors flex items-center gap-3 text-gray-700 dark:text-gray-200 hover:text-primary-600 dark:hover:text-primary-400">
-                    <Clock className="w-5 h-5 text-primary-600" />
-                    View History
-                  </button>
-                  <button className="w-full text-left p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors flex items-center gap-3 text-gray-700 dark:text-gray-200 hover:text-primary-600 dark:hover:text-primary-400">
-                    <SettingsIcon className="w-5 h-5 text-primary-600" />
-                    Advanced Settings
-                  </button>
-                </div>
-              </div>
+               {/* Quick Stats */}
+               <div className="card">
+                 <div className="flex items-center gap-3 mb-6">
+                   <BarChart3 className="w-6 h-6 text-primary-600" />
+                   <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                     Quick Stats
+                   </h3>
+                 </div>
+                 
+                 <div className="grid grid-cols-2 gap-4">
+                   <div className="p-4 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
+                     <div className="flex items-center gap-2 mb-2">
+                       <Clock className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                       <span className="text-sm font-medium text-blue-700 dark:text-blue-300">Hours Used</span>
+                     </div>
+                     <p className="text-2xl font-bold text-blue-900 dark:text-blue-100">
+                       {subscription.hoursUsed}
+                     </p>
+                     <p className="text-xs text-blue-600 dark:text-blue-400">
+                       of {subscription.hoursTotal} hours
+                     </p>
+                   </div>
+                   
+                   <div className="p-4 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800">
+                     <div className="flex items-center gap-2 mb-2">
+                       <FileText className="w-4 h-4 text-green-600 dark:text-green-400" />
+                       <span className="text-sm font-medium text-green-700 dark:text-green-300">Transcriptions</span>
+                     </div>
+                     <p className="text-2xl font-bold text-green-900 dark:text-green-100">
+                       {stats.transcriptionsThisMonth}
+                     </p>
+                     <p className="text-xs text-green-600 dark:text-green-400">
+                       this month
+                     </p>
+                   </div>
+                   
+                   <div className="p-4 rounded-lg bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800">
+                     <div className="flex items-center gap-2 mb-2">
+                       <Download className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                       <span className="text-sm font-medium text-purple-700 dark:text-purple-300">Exports</span>
+                     </div>
+                     <p className="text-2xl font-bold text-purple-900 dark:text-purple-100">
+                       {stats.totalExports}
+                     </p>
+                     <p className="text-xs text-purple-600 dark:text-purple-400">
+                       files downloaded
+                     </p>
+                   </div>
+                   
+                   <div className="p-4 rounded-lg bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800">
+                     <div className="flex items-center gap-2 mb-2">
+                       <Star className="w-4 h-4 text-orange-600 dark:text-orange-400" />
+                       <span className="text-sm font-medium text-orange-700 dark:text-orange-300">Plan</span>
+                     </div>
+                     <p className="text-2xl font-bold text-orange-900 dark:text-orange-100">
+                       {subscription.tier}
+                     </p>
+                     <p className="text-xs text-orange-600 dark:text-orange-400">
+                       {subscription.status}
+                     </p>
+                   </div>
+                 </div>
+               </div>
             </div>
           </div>
         </div>
