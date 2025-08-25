@@ -1,215 +1,329 @@
 'use client'
 
-import { useState, useEffect } from 'react'
 import { signIn, useSession } from 'next-auth/react'
-import { useRouter } from 'next/navigation'
-import Header from '../../components/Header'
-import { Mail, Lock, Eye, EyeOff, AlertCircle, Chrome } from 'lucide-react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { Chrome, Mail, Lock, Eye, EyeOff, AlertCircle, CheckCircle } from 'lucide-react'
+import { useAuth } from '../contexts/AuthContext'
 
 export default function LoginPage() {
   const { data: session, status } = useSession()
+  const { login } = useAuth()
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const [showPassword, setShowPassword] = useState(false)
   const [formData, setFormData] = useState({
     email: '',
     password: ''
   })
-  const [showPassword, setShowPassword] = useState(false)
+  const [fieldErrors, setFieldErrors] = useState({
+    email: '',
+    password: ''
+  })
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
-  const [isVisible, setIsVisible] = useState(false)
+  const [successMessage, setSuccessMessage] = useState('')
 
   useEffect(() => {
-    // Trigger animations when component mounts
-    setIsVisible(true)
-    
-    // Redirect if already authenticated
-    if (status === 'authenticated' && session) {
+    if (status === 'authenticated') {
       router.push('/dashboard')
     }
-  }, [status, session, router])
+  }, [status, router])
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  useEffect(() => {
+    // Check for success message from registration
+    const message = searchParams.get('message')
+    if (message) {
+      setSuccessMessage(message)
+    }
+  }, [searchParams])
+
+  const validateField = (name: string, value: string) => {
+    let error = ''
+    
+    switch (name) {
+      case 'email':
+        if (!value.trim()) error = 'Email is required'
+        else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) error = 'Please enter a valid email address'
+        break
+      case 'password':
+        if (!value) error = 'Password is required'
+        break
+    }
+    
+    return error
+  }
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target
+    setFormData({
+      ...formData,
+      [name]: value
+    })
+    
+    // Clear error when user starts typing
+    if (fieldErrors[name as keyof typeof fieldErrors]) {
+      setFieldErrors({
+        ...fieldErrors,
+        [name]: ''
+      })
+    }
+  }
+
+  const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+    const { name, value } = e.target
+    const error = validateField(name, value)
+    setFieldErrors({
+      ...fieldErrors,
+      [name]: error
+    })
+  }
+
+  const handleGoogleSignIn = async () => {
     setIsLoading(true)
-    setError('')
-
     try {
-      // TODO: Implement actual authentication logic
-      // For now, simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      
-      // Mock successful login
-      console.log('Login successful:', formData.email)
-      
-      // Redirect to subscriptions page or dashboard
-      window.location.href = '/subscriptions'
-    } catch (err) {
-      setError('Invalid email or password. Please try again.')
+      await signIn('google', { callbackUrl: '/dashboard' })
+    } catch (error) {
+      console.error('Google sign-in error:', error)
+      setError('Google sign-in failed. Please try again.')
     } finally {
       setIsLoading(false)
     }
   }
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData(prev => ({
-      ...prev,
-      [e.target.name]: e.target.value
-    }))
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setIsLoading(true)
+    setError('')
+    
+    // Validate all fields
+    const errors: typeof fieldErrors = {
+      email: validateField('email', formData.email),
+      password: validateField('password', formData.password)
+    }
+    
+    setFieldErrors(errors)
+    
+    // Check if there are any errors
+    if (Object.values(errors).some(error => error)) {
+      setIsLoading(false)
+      return
+    }
+    
+    try {
+      const success = await login(formData.email, formData.password)
+      if (success) {
+        router.push('/dashboard')
+      } else {
+        setError('Invalid email or password')
+      }
+    } catch (error) {
+      console.error('Login error:', error)
+      setError('Login failed. Please try again.')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  if (status === 'loading') {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-700 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    )
+  }
+
+  if (status === 'authenticated') {
+    return null
   }
 
   return (
-    <>
-      <Header />
-      <main className="pt-28 min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-700 transition-colors duration-200 flex items-center justify-center">
-        <div className={`w-full max-w-md transition-all duration-1000 transform ${
-          isVisible ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'
-        }`}>
-          <div className={`text-center mb-8 transition-all duration-1000 delay-200 ${
-            isVisible ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'
-          }`}>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-              Welcome Back
-            </h1>
-            <p className="text-gray-600 dark:text-gray-300">
-              Sign in to your StreamScribe account
-            </p>
-          </div>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-700 flex items-center justify-center px-4">
+      <div className="w-full max-w-md">
+        {/* Logo and Header */}
+        <div className="text-center mb-8">
+          <Link href="/" className="inline-flex items-center gap-2 mb-6">
+            <div className="w-12 h-12 bg-primary-600 rounded-xl flex items-center justify-center">
+              <svg className="w-7 h-7 text-white" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M2.5 17a24.12 24.12 0 0 1 0-10 2 2 0 0 1 1.4-1.4 49.56 49.56 0 0 1 16.2 0A2 2 0 0 1 21.5 7a24.12 24.12 0 0 1 0 10 2 2 0 0 1-1.4 1.4 49.55 49.55 0 0 1-16.2 0A2 2 0 0 1 2.5 17" fill="white"/>
+                <path d="m10 15 5-3-5-3z" fill="#2563EB"/>
+              </svg>
+            </div>
+            <span className="text-3xl font-bold text-gray-900 dark:text-white">StreamScribe</span>
+          </Link>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Welcome back</h1>
+          <p className="text-gray-600 dark:text-gray-300">Sign in to your account to continue</p>
+        </div>
 
-          <div className={`card transition-all duration-1000 delay-300 ${
-            isVisible ? 'translate-y-0 opacity-100 scale-100' : 'translate-y-4 opacity-0 scale-95'
-          }`}>
-            {error && (
-              <div className={`mb-4 p-3 bg-red-100 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg flex items-center gap-2 text-red-700 dark:text-red-300 transition-all duration-500 ${
-                error ? 'animate-bounce' : ''
-              }`}>
-                <AlertCircle className="w-4 h-4" />
-                {error}
-              </div>
-            )}
+        {/* Login Form */}
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8 border border-gray-200 dark:border-gray-700">
+          {successMessage && (
+            <div className="mb-6 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg flex items-center gap-2 text-green-700 dark:text-green-300">
+              <CheckCircle className="h-5 w-5" />
+              {successMessage}
+            </div>
+          )}
 
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className={`transition-all duration-500 delay-400 ${
-                isVisible ? 'translate-x-0 opacity-100' : '-translate-x-4 opacity-0'
-              }`}>
-                <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Email Address
-                </label>
-                <div className="relative group">
-                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 transition-colors duration-200 group-focus-within:text-primary-600" />
-                  <input
-                    type="email"
-                    id="email"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleChange}
-                    required
-                    className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-all duration-200 hover:border-primary-300 dark:hover:border-primary-600"
-                    placeholder="Enter your email"
-                  />
+          {error && (
+            <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg flex items-center gap-2 text-red-700 dark:text-red-300">
+              <AlertCircle className="h-5 w-5" />
+              {error}
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="space-y-6" noValidate>
+            {/* Email Field */}
+            <div>
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Email address
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Mail className="h-5 w-5 text-gray-400" />
                 </div>
+                <input
+                  id="email"
+                  name="email"
+                  type="email"
+                  autoComplete="email"
+                  value={formData.email}
+                  onChange={handleInputChange}
+                  onBlur={handleBlur}
+                  className={`block w-full pl-10 pr-3 py-3 border rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors duration-200 ${
+                    fieldErrors.email 
+                      ? 'border-red-300 dark:border-red-600 focus:ring-red-500' 
+                      : 'border-gray-300 dark:border-gray-600'
+                  }`}
+                  placeholder="Enter your email"
+                />
               </div>
+              {fieldErrors.email && (
+                <p className="mt-1 text-sm text-red-600 dark:text-red-400 flex items-center gap-1">
+                  <AlertCircle className="h-4 w-4" />
+                  {fieldErrors.email}
+                </p>
+              )}
+            </div>
 
-              <div className={`transition-all duration-500 delay-500 ${
-                isVisible ? 'translate-x-0 opacity-100' : '-translate-x-4 opacity-0'
-              }`}>
-                <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Password
-                </label>
-                <div className="relative group">
-                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 transition-colors duration-200 group-focus-within:text-primary-600" />
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    id="password"
-                    name="password"
-                    value={formData.password}
-                    onChange={handleChange}
-                    required
-                    className="w-full pl-10 pr-12 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-all duration-200 hover:border-primary-300 dark:hover:border-primary-600"
-                    placeholder="Enter your password"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors duration-200"
-                  >
-                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                  </button>
+            {/* Password Field */}
+            <div>
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Password
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Lock className="h-5 w-5 text-gray-400" />
                 </div>
+                <input
+                  id="password"
+                  name="password"
+                  type={showPassword ? 'text' : 'password'}
+                  autoComplete="current-password"
+                  value={formData.password}
+                  onChange={handleInputChange}
+                  onBlur={handleBlur}
+                  className={`block w-full pl-10 pr-12 py-3 border rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors duration-200 ${
+                    fieldErrors.password 
+                      ? 'border-red-300 dark:border-red-600 focus:ring-red-500' 
+                      : 'border-gray-300 dark:border-gray-600'
+                  }`}
+                  placeholder="Enter your password"
+                />
+                <button
+                  type="button"
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-5 w-5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300" />
+                  ) : (
+                    <Eye className="h-5 w-5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300" />
+                  )}
+                </button>
               </div>
+              {fieldErrors.password && (
+                <p className="mt-1 text-sm text-red-600 dark:text-red-400 flex items-center gap-1">
+                  <AlertCircle className="h-4 w-4" />
+                  {fieldErrors.password}
+                </p>
+              )}
+            </div>
 
-              <div className={`flex items-center justify-between transition-all duration-500 delay-600 ${
-                isVisible ? 'translate-x-0 opacity-100' : '-translate-x-4 opacity-0'
-              }`}>
-                <label className="flex items-center group cursor-pointer">
-                  <input
-                    type="checkbox"
-                    className="w-4 h-4 text-primary-600 bg-gray-100 border-gray-300 rounded focus:ring-primary-500 dark:focus:ring-primary-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600 transition-all duration-200"
-                  />
-                  <span className="ml-2 text-sm text-gray-600 dark:text-gray-300 group-hover:text-gray-800 dark:group-hover:text-gray-200 transition-colors duration-200">Remember me</span>
-                </label>
-                <Link href="/forgot-password" className="text-sm text-primary-600 hover:text-primary-500 dark:text-primary-400 dark:hover:text-primary-300 transition-colors duration-200 hover:underline">
-                  Forgot password?
-                </Link>
-              </div>
-
-              <button
-                type="submit"
-                disabled={isLoading}
-                className={`w-full btn-primary py-3 flex items-center justify-center gap-2 transition-all duration-500 delay-700 ${
-                  isVisible ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'
-                } hover:scale-105 active:scale-95`}
+            {/* Forgot Password Link */}
+            <div className="flex items-center justify-end">
+              <Link
+                href="/forgot-password"
+                className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors duration-200"
               >
-                {isLoading ? (
-                  <>
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    Signing in...
-                  </>
-                ) : (
-                  'Sign In'
-                )}
-              </button>
+                Forgot your password?
+              </Link>
+            </div>
 
-              {/* Divider */}
-              <div className={`relative my-6 transition-all duration-500 delay-800 ${
-                isVisible ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'
-              }`}>
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-gray-300 dark:border-gray-600"></div>
-                </div>
-                <div className="relative flex justify-center text-sm">
-                  <span className="px-2 bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400">
-                    Or continue with
-                  </span>
-                </div>
+            {/* Sign In Button */}
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="w-full flex justify-center py-3 px-4 border border-transparent rounded-xl shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+            >
+              {isLoading ? (
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+              ) : (
+                'Sign in'
+              )}
+            </button>
+          </form>
+
+          {/* Divider */}
+          <div className="mt-6">
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-300 dark:border-gray-600" />
               </div>
-
-              {/* Google Sign-In Button */}
-              <button
-                type="button"
-                className={`w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 py-3 px-4 rounded-lg flex items-center justify-center gap-3 transition-all duration-500 delay-900 hover:bg-gray-50 dark:hover:bg-gray-700 hover:border-gray-400 dark:hover:border-gray-500 active:scale-95 ${
-                  isVisible ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'
-                }`}
-                onClick={() => signIn('google', { callbackUrl: '/dashboard' })}
-              >
-                <Chrome className="w-5 h-4" />
-                <span className="font-medium">Sign in with Google</span>
-              </button>
-            </form>
-
-            <div className={`mt-6 text-center transition-all duration-500 delay-800 ${
-              isVisible ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'
-            }`}>
-              <p className="text-gray-600 dark:text-gray-300">
-                Don't have an account?{' '}
-                <Link href="/register" className="text-primary-600 hover:text-primary-500 dark:text-primary-400 dark:hover:text-primary-300 font-medium transition-colors duration-200 hover:underline">
-                  Sign up
-                </Link>
-              </p>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-2 bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400">
+                  Or continue with
+                </span>
+              </div>
             </div>
           </div>
+
+          {/* Google Sign In Button */}
+          <div className="mt-6">
+            <button
+              onClick={handleGoogleSignIn}
+              disabled={isLoading}
+              className="w-full flex justify-center items-center gap-3 py-3 px-4 border border-gray-300 dark:border-gray-600 rounded-xl shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+            >
+              <Chrome className="h-5 w-5" />
+              {isLoading ? 'Signing in...' : 'Sign in with Google'}
+            </button>
+          </div>
+
+          {/* Sign Up Link */}
+          <div className="mt-6 text-center">
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              Don't have an account?{' '}
+              <Link
+                href="/register"
+                className="font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors duration-200"
+              >
+                Sign up
+              </Link>
+            </p>
+          </div>
         </div>
-      </main>
-    </>
+
+        {/* Back to Home */}
+        <div className="text-center mt-6">
+          <Link
+            href="/"
+            className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors duration-200"
+          >
+            ← Back to home
+          </Link>
+        </div>
+      </div>
+    </div>
   )
 }

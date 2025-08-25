@@ -4,21 +4,45 @@ import { useSession, signOut } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { Menu, X, Youtube, User, LogOut, Shield } from 'lucide-react'
+import { Menu, X, Youtube, User, LogOut, Shield, Clock, FileText } from 'lucide-react'
 import ThemeToggle from '../../components/ThemeToggle'
+import { useAuth } from '../contexts/AuthContext'
+
+interface Transcription {
+  _id: string
+  videoTitle: string
+  youtubeUrl: string
+  audioDuration: number
+  cachedAt: string
+  highlights: string[]
+}
 
 export default function DashboardPage() {
   const { data: session, status } = useSession()
+  const { user: customUser, logout: customLogout, isLoading: customLoading } = useAuth()
   const router = useRouter()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isScrolled, setIsScrolled] = useState(false)
+  const [recentTranscriptions, setRecentTranscriptions] = useState<Transcription[]>([])
+  const [loading, setLoading] = useState(true)
+
+  // Determine which user is authenticated
+  const isAuthenticated = status === 'authenticated' || !!customUser
+  const currentUser = session?.user || customUser
+  const isLoading = status === 'loading' || customLoading
 
   useEffect(() => {
-    if (status === 'loading') return
-    if (status === 'unauthenticated') {
+    if (isLoading) return
+    if (!isAuthenticated) {
       router.push('/login')
     }
-  }, [status, router])
+  }, [isLoading, isAuthenticated, router])
+
+  useEffect(() => {
+    if (isAuthenticated && currentUser) {
+      fetchRecentTranscriptions()
+    }
+  }, [isAuthenticated, currentUser])
 
   useEffect(() => {
     const handleScroll = () => {
@@ -30,17 +54,78 @@ export default function DashboardPage() {
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
 
-  const handleSignOut = () => {
-    signOut({ callbackUrl: '/' })
+  const fetchRecentTranscriptions = async () => {
+    try {
+      // Use the appropriate user ID based on authentication method
+      const userId = session?.user?.id || customUser?._id
+      if (!userId) return
+
+      // Prepare headers based on authentication method
+      const headers: HeadersInit = {}
+      if (customUser && !session) {
+        // Custom auth user - send authorization header
+        headers['Authorization'] = `Bearer ${userId}`
+      }
+
+      const response = await fetch('/api/dashboard/transcriptions', {
+        headers
+      })
+      if (response.ok) {
+        const data = await response.json()
+        setRecentTranscriptions(data.transcriptions || [])
+      }
+    } catch (error) {
+      console.error('Error fetching transcriptions:', error)
+    } finally {
+      setLoading(false)
+    }
   }
 
-  // Debug: Log session data
-  console.log('Dashboard Session:', session)
-  console.log('Session User:', session?.user)
-  console.log('User Image:', session?.user?.image)
-  console.log('User Name:', session?.user?.name)
+  const handleSignOut = () => {
+    if (session) {
+      // NextAuth user
+      signOut({ callbackUrl: '/' })
+    } else {
+      // Custom auth user
+      customLogout()
+    }
+  }
 
-  if (status === 'loading') {
+  const formatDuration = (seconds: number) => {
+    const minutes = Math.floor(seconds / 60)
+    const remainingSeconds = Math.floor(seconds % 60)
+    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`
+  }
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    })
+  }
+
+  // Get user display info
+  const getUserDisplayInfo = () => {
+    if (session?.user) {
+      return {
+        name: session.user.name || 'User',
+        image: session.user.image,
+        email: session.user.email
+      }
+    } else if (customUser) {
+      return {
+        name: `${customUser.firstName} ${customUser.lastName}`,
+        image: null,
+        email: customUser.email
+      }
+    }
+    return { name: 'User', image: null, email: '' }
+  }
+
+  const userInfo = getUserDisplayInfo()
+
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
@@ -48,7 +133,7 @@ export default function DashboardPage() {
     )
   }
 
-  if (status === 'unauthenticated') {
+  if (!isAuthenticated) {
     return null
   }
 
@@ -59,6 +144,7 @@ export default function DashboardPage() {
           @apply text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-500 transition-all duration-200;
         }
       `}</style>
+      
       {/* Header - Matching Main Page Design */}
       <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-200 ${
         isScrolled 
@@ -88,15 +174,19 @@ export default function DashboardPage() {
             }`}>
               {/* User Info */}
               <div className="flex items-center space-x-3">
-                {session?.user?.image && (
+                {userInfo.image ? (
                   <img 
-                    src={session.user.image} 
-                    alt={session.user.name || 'User'}
+                    src={userInfo.image} 
+                    alt={userInfo.name}
                     className="h-8 w-8 rounded-full border-2 border-gray-200 dark:border-gray-700"
                   />
+                ) : (
+                  <div className="h-8 w-8 rounded-full bg-blue-100 dark:bg-blue-900/20 flex items-center justify-center">
+                    <User className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                  </div>
                 )}
                 <span className="text-gray-700 dark:text-gray-300 font-medium">
-                  {session?.user?.name || 'User'}
+                  {userInfo.name}
                 </span>
               </div>
               
@@ -138,15 +228,19 @@ export default function DashboardPage() {
               <nav className="py-4 px-4 space-y-3">
                 {/* User Info Mobile */}
                 <div className="flex items-center space-x-3 py-3 px-4">
-                  {session?.user?.image && (
+                  {userInfo.image ? (
                     <img 
-                      src={session.user.image} 
-                      alt={session.user.name || 'User'}
+                      src={userInfo.image} 
+                      alt={userInfo.name}
                       className="h-8 w-8 rounded-full border-2 border-gray-200 dark:border-gray-700"
                     />
+                  ) : (
+                    <div className="h-8 w-8 rounded-full bg-blue-100 dark:bg-blue-900/20 flex items-center justify-center">
+                      <User className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                    </div>
                   )}
                   <span className="text-gray-700 dark:text-gray-300 font-medium">
-                    {session?.user?.name || 'User'}
+                    {userInfo.name}
                   </span>
                 </div>
                 
@@ -170,91 +264,134 @@ export default function DashboardPage() {
       {/* Main Content - Adjusted for Fixed Header */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pt-28">
         {/* Welcome Section */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 mb-8">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-            Welcome back, {session?.user?.name || 'User'}! 👋
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+            Welcome back, {userInfo.name.split(' ')[0]}!
           </h1>
           <p className="text-gray-600 dark:text-gray-300">
-            Ready to transcribe your next video? Get started with AI-powered insights.
+            Here's what's happening with your transcriptions
           </p>
         </div>
 
-        {/* Quick Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-          <Link 
-            href="/"
-            className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 hover:shadow-md transition-shadow duration-200 border border-gray-200 dark:border-gray-700"
-          >
-            <div className="flex items-center space-x-3">
-              <div className="h-10 w-10 bg-blue-100 dark:bg-blue-900/20 rounded-lg flex items-center justify-center">
-                <svg className="h-6 w-6 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                </svg>
-              </div>
-              <div>
-                <h3 className="font-medium text-gray-900 dark:text-white">New Transcription</h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400">Start transcribing a video</p>
-              </div>
-            </div>
-          </Link>
-
-          <Link 
-            href="/dashboard/settings"
-            className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 hover:shadow-md transition-shadow duration-200 border border-gray-200 dark:border-gray-700"
-          >
-            <div className="flex items-center space-x-3">
-              <div className="h-10 w-10 bg-purple-100 dark:bg-purple-900/20 rounded-lg flex items-center justify-center">
-                <svg className="h-6 w-6 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-              </div>
-              <div>
-                <h3 className="font-medium text-gray-900 dark:text-white">Settings</h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400">Manage your account</p>
-              </div>
-            </div>
-          </Link>
-        </div>
-
-        {/* Subscription Status */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 mb-8">
-          <h2 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Subscription Status</h2>
-          <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border border-gray-200 dark:border-gray-700">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="font-medium text-blue-900 dark:text-blue-100">Basic Plan</h3>
-                <p className="text-sm text-blue-700 dark:text-blue-300">30 hours per month</p>
+                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Transcriptions</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">{recentTranscriptions.length}</p>
               </div>
-              <button 
-                onClick={() => window.location.href = '/'}
-                className="px-4 py-2 text-sm font-medium text-blue-700 dark:text-blue-300 bg-blue-100 dark:bg-blue-800 hover:bg-blue-200 dark:hover:bg-blue-700 rounded-lg transition-colors duration-200"
-              >
-                View Plans
-              </button>
+              <div className="h-12 w-12 bg-blue-100 dark:bg-blue-900/20 rounded-lg flex items-center justify-center">
+                <FileText className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border border-gray-200 dark:border-gray-700">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Hours Used</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                  {customUser ? customUser.hoursUsed : 0}
+                </p>
+              </div>
+              <div className="h-12 w-12 bg-green-100 dark:bg-green-900/20 rounded-lg flex items-center justify-center">
+                <Clock className="h-6 w-6 text-green-600 dark:text-green-400" />
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border border-gray-200 dark:border-gray-700">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Subscription</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white capitalize">
+                  {customUser ? customUser.subscriptionTier : 'Basic'}
+                </p>
+              </div>
+              <div className="h-12 w-12 bg-purple-100 dark:bg-purple-900/20 rounded-lg flex items-center justify-center">
+                <Shield className="h-6 w-6 text-purple-600 dark:text-purple-400" />
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Recent Activity */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
-          <h2 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Recent Activity</h2>
-          <div className="text-center py-8">
-            <svg className="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
-            <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-white">No transcriptions yet</h3>
-            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-              Get started by transcribing your first video.
-            </p>
-            <div className="mt-6">
-              <Link 
-                href="/"
-                className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-              >
-                Start Transcribing
-              </Link>
-            </div>
+        {/* Recent Transcriptions */}
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
+          <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Recent Transcriptions</h2>
+            <p className="text-gray-600 dark:text-gray-400 mt-1">Your latest video transcriptions</p>
+          </div>
+
+          <div className="p-6">
+            {loading ? (
+              <div className="text-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                <p className="mt-2 text-gray-500 dark:text-gray-400">Loading transcriptions...</p>
+              </div>
+            ) : recentTranscriptions.length > 0 ? (
+              <div className="space-y-4">
+                {recentTranscriptions.slice(0, 5).map((transcription) => (
+                  <div key={transcription._id} className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                    <div className="flex items-center space-x-3">
+                      <div className="h-10 w-10 bg-blue-100 dark:bg-blue-900/20 rounded-lg flex items-center justify-center">
+                        <Youtube className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                      </div>
+                      <div>
+                        <h3 className="font-medium text-gray-900 dark:text-white">
+                          {transcription.videoTitle}
+                        </h3>
+                        <div className="flex items-center space-x-4 text-sm text-gray-500 dark:text-gray-400">
+                          <span className="flex items-center space-x-1">
+                            <Clock className="h-4 w-4" />
+                            <span>{formatDuration(transcription.audioDuration)}</span>
+                          </span>
+                          <span className="flex items-center space-x-1">
+                            <FileText className="h-4 w-4" />
+                            <span>{transcription.highlights.length} highlights</span>
+                          </span>
+                          <span>Transcribed {formatDate(transcription.cachedAt)}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <Link
+                      href={`/transcription-results?id=${transcription._id}`}
+                      className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors duration-200"
+                    >
+                      View Details
+                    </Link>
+                  </div>
+                ))}
+                {recentTranscriptions.length > 5 && (
+                  <div className="text-center pt-4">
+                    <Link
+                      href="/dashboard/history"
+                      className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium"
+                    >
+                      View all transcriptions →
+                    </Link>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <div className="h-16 w-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Youtube className="h-8 w-8 text-gray-400 dark:text-gray-500" />
+                </div>
+                <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+                  No transcriptions yet
+                </h3>
+                <p className="text-gray-500 dark:text-gray-400 mb-6">
+                  Get started by transcribing your first YouTube video
+                </p>
+                <Link
+                  href="/"
+                  className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                >
+                  Start Transcribing
+                </Link>
+              </div>
+            )}
           </div>
         </div>
       </main>
