@@ -52,7 +52,7 @@ export default function LoadingPage() {
       setTimeout(() => setLoadingText('🎯 Starting AI transcription...'), 5000)
       setTimeout(() => setLoadingText('⏳ Processing with AI...'), 7000)
       
-      // Start the transcription process directly
+      // Start the transcription process
       const response = await fetch('/api/transcribe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -62,24 +62,45 @@ export default function LoadingPage() {
       if (response.ok) {
         const result = await response.json()
         
-        // Store result and redirect
-        localStorage.setItem('transcriptionResult', JSON.stringify(result))
-        
-        setLoadingText('✅ Transcription completed!')
-        setIsCompleted(true)
-        
-        // Redirect to results page after a short delay
-        setTimeout(() => {
-          const encodedUrl = encodeURIComponent(url)
-          router.push(`/transcription-results?url=${encodedUrl}`)
-        }, 1500)
+        if (result.success) {
+          // Store result and redirect
+          localStorage.setItem('transcriptionResult', JSON.stringify(result))
+          
+          setLoadingText('✅ Transcription completed!')
+          setIsCompleted(true)
+          
+          // Redirect to results page after a short delay
+          setTimeout(() => {
+            const encodedUrl = encodeURIComponent(url)
+            router.push(`/transcription-results?url=${encodedUrl}`)
+          }, 1500)
+        } else {
+          throw new Error(result.error || 'Transcription failed')
+        }
       } else {
-        throw new Error('Transcription failed')
+        const errorData = await response.json()
+        
+        if (errorData.error === 'DUPLICATE_URL') {
+          // Handle duplicate URL - redirect to dashboard
+          setLoadingText('🚫 You have already transcribed this video!')
+          setIsCompleted(true)
+          
+          setTimeout(() => {
+            router.push('/dashboard?duplicate=true')
+          }, 2000)
+        } else {
+          throw new Error(errorData.error || 'Transcription failed')
+        }
       }
 
     } catch (error) {
       console.error('Transcription failed:', error)
       setLoadingText('❌ Transcription failed. Please try again.')
+      
+      // Redirect back to transcribe page after error
+      setTimeout(() => {
+        router.push('/transcribe')
+      }, 3000)
     }
   }
 

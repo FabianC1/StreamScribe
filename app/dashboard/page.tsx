@@ -1,124 +1,86 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
-import { useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
-import Link from 'next/link'
-import { Youtube, Clock, FileText } from 'lucide-react'
-import Header from '../../components/Header'
 import { useAuth } from '../contexts/AuthContext'
+import { useRouter } from 'next/navigation'
+import Header from '../../components/Header'
+import Footer from '../../components/Footer'
+import { Youtube, Clock, Play, Download, History, TrendingUp, Zap } from 'lucide-react'
 
 interface Transcription {
   _id: string
   videoTitle: string
   youtubeUrl: string
   audioDuration: number
-  cachedAt: string
-  highlights: string[]
+  createdAt: string
+  confidence: number
 }
 
 export default function DashboardPage() {
   const { data: session, status } = useSession()
-  const { user: customUser, logout: customLogout, isLoading: customLoading } = useAuth()
+  const { user: customUser } = useAuth()
   const router = useRouter()
   const [recentTranscriptions, setRecentTranscriptions] = useState<Transcription[]>([])
-  const [loading, setLoading] = useState(true)
-
-  // Determine which user is authenticated
+  const [isLoading, setIsLoading] = useState(true)
+  const [showDuplicateMessage, setShowDuplicateMessage] = useState(false)
+  
   const isAuthenticated = status === 'authenticated' || !!customUser
-  const currentUser = session?.user || customUser
-  const isLoading = status === 'loading' || customLoading
+  const isLoadingAuth = status === 'loading'
 
   useEffect(() => {
-    if (isLoading) return
-    if (!isAuthenticated) {
-      router.push('/login')
-    }
-  }, [isLoading, isAuthenticated, router])
-
-  useEffect(() => {
-    if (isAuthenticated && currentUser) {
+    if (isAuthenticated) {
       fetchRecentTranscriptions()
+      
+      // Check if user was redirected from duplicate URL attempt
+      const urlParams = new URLSearchParams(window.location.search)
+      if (urlParams.get('duplicate') === 'true') {
+        setShowDuplicateMessage(true)
+        // Remove the parameter from URL
+        window.history.replaceState({}, document.title, '/dashboard')
+      }
     }
-  }, [isAuthenticated, currentUser])
+  }, [isAuthenticated])
 
   const fetchRecentTranscriptions = async () => {
     try {
-      // Use the appropriate user ID based on authentication method
-      const userId = session?.user?.id || customUser?._id
-      if (!userId) return
-
-      // Prepare headers based on authentication method
-      const headers: HeadersInit = {}
-      if (customUser && !session) {
-        // Custom auth user - send authorization header
-        headers['Authorization'] = `Bearer ${userId}`
-      }
-
-      const response = await fetch('/api/dashboard/transcriptions', {
-        headers
-      })
+      const response = await fetch('/api/transcriptions/recent')
       if (response.ok) {
         const data = await response.json()
         setRecentTranscriptions(data.transcriptions || [])
+      } else {
+        console.error('❌ API response not ok:', response.status)
       }
     } catch (error) {
-      console.error('Error fetching transcriptions:', error)
+      console.error('Failed to fetch recent transcriptions:', error)
     } finally {
-      setLoading(false)
+      setIsLoading(false)
     }
   }
 
   const formatDuration = (seconds: number) => {
-    const minutes = Math.floor(seconds / 60)
-    const remainingSeconds = Math.floor(seconds % 60)
-    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`
+    const hours = Math.floor(seconds / 3600)
+    const minutes = Math.floor((seconds % 3600) / 60)
+    if (hours > 0) {
+      return `${hours}h ${minutes}m`
+    }
+    return `${minutes}m`
   }
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
       month: 'short',
-      day: 'numeric'
+      day: 'numeric',
+      year: 'numeric'
     })
   }
 
-  // Remove unused handleSignOut function since Header handles logout
-  // const handleSignOut = () => {
-  //   if (session) {
-  //     // NextAuth user
-  //     signOut({ callbackUrl: '/' })
-  //   } else {
-  //     // Custom auth user
-  //     customLogout()
-  //   }
-  // }
+  const getVideoId = (url: string) => {
+    const match = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\n?#]+)/)
+    return match ? match[1] : null
+  }
 
-  // Remove unused userInfo and getUserDisplayInfo function
-  // const userInfo = getUserDisplayInfo()
-  // const getUserDisplayInfo = () => {
-  //   if (session?.user) {
-  //     return {
-  //       name: session.user.name || 'User',
-  //       image: session.user.image,
-  //       email: session.user.email || ''
-  //     }
-  //   } else if (customUser) {
-  //     return {
-  //       name: `${customUser.firstName} ${customUser.lastName}`,
-  //       image: customUser.avatar || null,
-  //       email: customUser.email
-  //     }
-  //   } else {
-  //     return {
-  //       name: 'User',
-  //       image: null,
-  //       email: ''
-  //     }
-  //   }
-  // }
-
-  if (isLoading) {
+  if (isLoadingAuth) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
@@ -151,6 +113,31 @@ export default function DashboardPage() {
           <p className="text-gray-600 dark:text-gray-300">
             Here's what's happening with your transcriptions
           </p>
+          
+          {/* Duplicate URL Message */}
+          {showDuplicateMessage && (
+            <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+              <div className="flex items-center gap-3">
+                <div className="w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center">
+                  <span className="text-white text-xs">ℹ️</span>
+                </div>
+                <div>
+                  <p className="text-blue-800 dark:text-blue-200 font-medium">
+                    Video Already Transcribed
+                  </p>
+                  <p className="text-blue-700 dark:text-blue-300 text-sm">
+                    You've already transcribed this video. Check your recent transcriptions below or start with a new one.
+                  </p>
+                </div>
+                <button
+                  onClick={() => setShowDuplicateMessage(false)}
+                  className="ml-auto text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-200"
+                >
+                  ×
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Stats Cards */}
@@ -162,7 +149,7 @@ export default function DashboardPage() {
                 <p className="text-2xl font-bold text-gray-900 dark:text-white">{recentTranscriptions.length}</p>
               </div>
               <div className="h-12 w-12 bg-blue-100 dark:bg-blue-900/20 rounded-lg flex items-center justify-center">
-                <FileText className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                <Youtube className="h-6 w-6 text-blue-600 dark:text-blue-400" />
               </div>
             </div>
           </div>
@@ -190,7 +177,7 @@ export default function DashboardPage() {
                 </p>
               </div>
               <div className="h-12 w-12 bg-purple-100 dark:bg-purple-900/20 rounded-lg flex items-center justify-center">
-                {/* Shield icon removed as per new_code */}
+                <TrendingUp className="h-6 w-6 text-purple-600 dark:text-purple-400" />
               </div>
             </div>
           </div>
@@ -204,7 +191,7 @@ export default function DashboardPage() {
           </div>
 
           <div className="p-6">
-            {loading ? (
+            {isLoading ? (
               <div className="text-center py-8">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
                 <p className="mt-2 text-gray-500 dark:text-gray-400">Loading transcriptions...</p>
@@ -227,29 +214,29 @@ export default function DashboardPage() {
                             <span>{formatDuration(transcription.audioDuration)}</span>
                           </span>
                           <span className="flex items-center space-x-1">
-                            <FileText className="h-4 w-4" />
-                            <span>{transcription.highlights.length} highlights</span>
+                            <Play className="h-4 w-4" />
+                            <span>{Math.round(transcription.confidence * 100)}% confidence</span>
                           </span>
-                          <span>Transcribed {formatDate(transcription.cachedAt)}</span>
+                          <span>Transcribed {formatDate(transcription.createdAt)}</span>
                         </div>
                       </div>
                     </div>
-                    <Link
-                      href={`/transcription-results?id=${transcription._id}`}
+                    <button
+                      onClick={() => router.push(`/transcription-results?url=${encodeURIComponent(transcription.youtubeUrl)}`)}
                       className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors duration-200"
                     >
                       View Details
-                    </Link>
+                    </button>
                   </div>
                 ))}
                 {recentTranscriptions.length > 5 && (
                   <div className="text-center pt-4">
-                    <Link
-                      href="/dashboard/history"
+                    <button
+                      onClick={() => router.push('/dashboard/history')}
                       className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium"
                     >
                       View all transcriptions →
-                    </Link>
+                    </button>
                   </div>
                 )}
               </div>
@@ -264,12 +251,12 @@ export default function DashboardPage() {
                 <p className="text-gray-500 dark:text-gray-400 mb-6">
                   Get started by transcribing your first YouTube video
                 </p>
-                <Link
-                  href="/transcribe"
+                <button
+                  onClick={() => router.push('/transcribe')}
                   className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                 >
                   Start Transcribing
-                </Link>
+                </button>
               </div>
             )}
           </div>

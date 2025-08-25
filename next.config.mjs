@@ -40,7 +40,7 @@ const nextConfig = {
   
   // Environment variables for production
   env: {
-    CUSTOM_KEY: process.env.CUSTOM_KEY,
+    CUSTOM_KEY: process.env.CUSTOM_KEY || 'default-key',
   },
   
   // Image optimization

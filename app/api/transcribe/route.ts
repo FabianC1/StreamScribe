@@ -5,6 +5,8 @@ import path from 'path'
 import { exec } from 'child_process'
 import { promisify } from 'util'
 import { updateProgress, setCompleted } from '../../../lib/progress'
+import connectDB from '@/lib/mongodb'
+import { Transcription, User, UsageTracking } from '@/models'
 
 const execAsync = promisify(exec)
 
@@ -98,6 +100,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing youtubeUrl parameter' }, { status: 400 })
     }
     
+    // TODO: Add proper authentication check here
+    // For now, we'll use a mock user ID for testing
+    const mockUserId = '507f1f77bcf86cd799439011' // This should come from session/auth
+    
     console.log('📝 Received transcription request for:', youtubeUrl)
     
     // Check if it's a test URL (for development/testing)
@@ -115,6 +121,31 @@ export async function POST(request: NextRequest) {
         ...mockTranscriptionData,
         youtube_url: youtubeUrl
       })
+    }
+
+    // Check for duplicate URL in database before processing
+    try {
+      await connectDB()
+      
+      // Check if this user has already transcribed this exact URL
+      const existingTranscription = await Transcription.findOne({
+        userId: mockUserId,
+        youtubeUrl: youtubeUrl
+      })
+      
+      if (existingTranscription) {
+        console.log('🚫 Duplicate URL detected for user:', mockUserId, 'URL:', youtubeUrl)
+        return NextResponse.json({
+          success: false,
+          error: 'DUPLICATE_URL',
+          message: 'You have already transcribed this video. Check your dashboard for the results.',
+          existingTranscriptionId: existingTranscription._id
+        }, { status: 409 }) // 409 Conflict
+      }
+      
+    } catch (dbError: any) {
+      console.error('❌ Database error during duplicate check:', dbError)
+      // Continue with transcription if duplicate check fails
     }
 
     // Check server-side cache first
@@ -337,7 +368,10 @@ export async function POST(request: NextRequest) {
             audio_duration: transcriptionResult.audio_duration || 0,
             words: transcriptionResult.words || [],
             highlights: transcriptionResult.auto_highlights_result?.results?.length > 0 
-              ? transcriptionResult.auto_highlights_result.results 
+              ? transcriptionResult.auto_highlights_result.results.map((h: any) => ({
+                  ...h,
+                  rank: Math.max(1, Math.round(h.rank * 10)) // Convert decimal rank to integer 1-10
+                }))
               : fallbackData.highlights,
             sentiment: transcriptionResult.sentiment_analysis?.results?.length > 0 
               ? transcriptionResult.sentiment_analysis.results 
@@ -353,9 +387,103 @@ export async function POST(request: NextRequest) {
           
           transcriptionCache.set(cacheKey, { data: resultData, timestamp: Date.now() })
           
+          // Save to database
+          let transcriptionId = null
+          try {
+            await connectDB()
+            
+            // Extract video ID from YouTube URL
+            const videoIdMatch = youtubeUrl.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\n?#]+)/)
+            const videoId = videoIdMatch ? videoIdMatch[1] : 'unknown'
+            
+            // Create transcription document with proper field mapping
+            const transcriptionDoc = new Transcription({
+              userId: mockUserId,
+              youtubeUrl: youtubeUrl,
+              videoTitle: `Video ${videoId}`, // TODO: Extract actual title
+              videoId: videoId,
+              transcript: transcriptionResult.text || '',
+              confidence: transcriptionResult.confidence || 0.95,
+              audioDuration: transcriptionResult.audio_duration || 0,
+              languageCode: transcriptionResult.language_code || 'en',
+              words: transcriptionResult.words || [],
+              highlights: (transcriptionResult.auto_highlights_result?.results || []).map((h: any) => ({
+                count: h.count || 1,
+                rank: Math.max(1, Math.round(h.rank * 10)), // Convert decimal rank to integer 1-10
+                text: h.text || '',
+                timestamps: h.timestamps || []
+              })),
+              sentiment: transcriptionResult.sentiment_analysis?.results || [],
+              chapters: transcriptionResult.auto_chapters_result?.results || [],
+              entities: (transcriptionResult.entities || []).map((e: any) => ({
+                text: e.text || '',
+                entityType: e.entity_type || 'unknown', // Map entity_type to entityType
+                start: e.start || 0,
+                end: e.end || 0
+              })),
+              speakerLabels: Array.isArray(transcriptionResult.speaker_labels) ? transcriptionResult.speaker_labels : [],
+              isCached: false,
+              cachedAt: new Date(),
+              createdAt: new Date() // Add this field for dashboard compatibility
+            })
+            
+            console.log('💾 Attempting to save transcription document:', {
+              userId: transcriptionDoc.userId,
+              youtubeUrl: transcriptionDoc.youtubeUrl,
+              videoTitle: transcriptionDoc.videoTitle,
+              highlightsCount: transcriptionDoc.highlights?.length || 0,
+              speakerLabelsCount: transcriptionDoc.speakerLabels?.length || 0
+            })
+            
+            await transcriptionDoc.save()
+            transcriptionId = transcriptionDoc._id
+            console.log('✅ Transcription saved to database with ID:', transcriptionId)
+            
+            // Update usage tracking
+            const today = new Date()
+            today.setHours(0, 0, 0, 0)
+            
+            const hoursUsed = (transcriptionResult.audio_duration || 0) / 3600 // Convert seconds to hours
+            
+            let usageDoc = await UsageTracking.findOne({
+              userId: mockUserId,
+              date: today
+            })
+            
+            if (!usageDoc) {
+              usageDoc = new UsageTracking({
+                userId: mockUserId,
+                date: today,
+                hoursUsed: hoursUsed,
+                transcriptionsCount: 1,
+                exportsCount: 0,
+                tier: 'basic' // TODO: Get from user subscription
+              })
+            } else {
+              usageDoc.hoursUsed += hoursUsed
+              usageDoc.transcriptionsCount += 1
+            }
+            
+            await usageDoc.save()
+            console.log('📊 Usage tracking updated:', {
+              hoursUsed: usageDoc.hoursUsed,
+              transcriptionsCount: usageDoc.transcriptionsCount
+            })
+            
+          } catch (dbError: any) {
+            console.error('❌ Database error during save:', dbError)
+            console.error('❌ Error details:', {
+              name: dbError.name,
+              message: dbError.message,
+              stack: dbError.stack
+            })
+            // Don't fail the transcription if database save fails, but log it
+          }
+          
           return NextResponse.json({
             success: true,
-            ...resultData
+            ...resultData,
+            transcriptionId: transcriptionId // Add the database ID
           })
         } else if (transcriptionResult.status === 'error') {
           throw new Error(`Transcription failed: ${transcriptionResult.error}`)

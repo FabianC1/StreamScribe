@@ -33,7 +33,13 @@ export default function SettingsPage() {
   const { theme: currentTheme, setTheme } = useTheme()
   
   const isAuthenticated = status === 'authenticated' || !!customUser
-  const isLoading = status === 'loading'
+  const [isLoading, setIsLoading] = useState(true)
+  const [usageStats, setUsageStats] = useState({
+    monthly: { hours: 0, transcriptions: 0, exports: 0 },
+    total: { transcriptions: 0 },
+    today: { hours: 0, transcriptions: 0 }
+  })
+
   const currentUser = session?.user || customUser
 
   // Subscription data - will be fetched from database
@@ -131,14 +137,19 @@ export default function SettingsPage() {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const response = await fetch('/api/stats')
+        const response = await fetch('/api/usage/stats')
         if (response.ok) {
           const data = await response.json()
-          setStats(data)
+          setUsageStats(data.stats || {
+            monthly: { hours: 0, transcriptions: 0, exports: 0 },
+            total: { transcriptions: 0 },
+            today: { hours: 0, transcriptions: 0 }
+          })
         }
       } catch (error) {
-        console.error('Failed to fetch stats:', error)
-        // Keep default values if fetch fails
+        console.error('Failed to fetch usage stats:', error)
+      } finally {
+        setIsLoading(false)
       }
     }
 
@@ -258,6 +269,24 @@ export default function SettingsPage() {
     } catch (error) {
       alert('Failed to change tier. Please try again.')
       console.error('Tier change error:', error)
+    }
+  }
+
+  const fetchUsageStats = async () => {
+    try {
+      const response = await fetch('/api/usage/stats')
+      if (response.ok) {
+        const data = await response.json()
+        setUsageStats(data.stats || {
+          monthly: { hours: 0, transcriptions: 0, exports: 0 },
+          total: { transcriptions: 0 },
+          today: { hours: 0, transcriptions: 0 }
+        })
+      }
+    } catch (error) {
+      console.error('Failed to fetch usage stats:', error)
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -570,33 +599,59 @@ export default function SettingsPage() {
               </div>
 
                {/* Quick Stats */}
-               <div className="card">
-                 <div className="flex items-center gap-3 mb-6">
-                   <BarChart3 className="w-6 h-6 text-primary-600" />
-                   <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-                     Quick Stats
-                   </h2>
-                 </div>
-                 
-                 <div className="grid grid-cols-2 gap-4">
-                   <div className="text-center p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                     <div className="text-2xl font-bold text-primary-600 dark:text-primary-400">
-                       {stats.transcriptionsThisMonth}
-                     </div>
-                     <div className="text-xs text-gray-600 dark:text-gray-400">
-                       This Month
-                     </div>
-                   </div>
-                   <div className="text-center p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                     <div className="text-2xl font-bold text-primary-600 dark:text-primary-400">
-                       {stats.totalExports}
-                     </div>
-                     <div className="text-xs text-gray-600 dark:text-gray-400">
-                       Total Exports
-                     </div>
-                   </div>
-                 </div>
-               </div>
+               <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
+                  <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+                    <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Quick Stats</h2>
+                    <p className="text-gray-600 dark:text-gray-400 mt-1">Your transcription activity overview</p>
+                  </div>
+                  
+                  <div className="p-6">
+                    {isLoading ? (
+                      <div className="text-center py-8">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto"></div>
+                        <p className="mt-2 text-gray-500 dark:text-gray-400">Loading stats...</p>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div className="text-center p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                          <div className="text-2xl font-bold text-primary-600 dark:text-primary-400">
+                            {usageStats.monthly.transcriptions}
+                          </div>
+                          <div className="text-xs text-gray-600 dark:text-gray-400">
+                            This Month
+                          </div>
+                        </div>
+                        
+                        <div className="text-center p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                          <div className="text-2xl font-bold text-green-600 dark:text-green-400">
+                            {usageStats.monthly.hours.toFixed(1)}
+                          </div>
+                          <div className="text-xs text-gray-600 dark:text-gray-400">
+                            Hours Used
+                          </div>
+                        </div>
+                        
+                        <div className="text-center p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                          <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                            {usageStats.total.transcriptions}
+                          </div>
+                          <div className="text-xs text-gray-600 dark:text-gray-400">
+                            Total
+                          </div>
+                        </div>
+                        
+                        <div className="text-center p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                          <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
+                            {usageStats.today.transcriptions}
+                          </div>
+                          <div className="text-xs text-gray-600 dark:text-gray-400">
+                            Today
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
 
               {/* Admin Panel - Only visible to admin */}
               {currentUser?.email === 'galaselfabian@gmail.com' && (

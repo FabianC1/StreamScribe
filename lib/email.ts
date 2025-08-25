@@ -1,7 +1,7 @@
 import nodemailer from 'nodemailer'
 
 // Email configuration
-const transporter = nodemailer.createTransporter({
+const transporter = nodemailer.createTransport({
   service: 'gmail', // You can use Gmail, SendGrid, or any other service
   auth: {
     user: process.env.EMAIL_USER,

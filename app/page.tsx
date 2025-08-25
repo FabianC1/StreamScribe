@@ -65,9 +65,11 @@ export default function HomePage() {
       return
     }
     
+    if (isLoading) return // Prevent multiple clicks
+    
     setIsLoading(true)
     try {
-      // Redirect to loading page with the YouTube URL
+      // Redirect to loading page immediately for better UX
       const encodedUrl = encodeURIComponent(youtubeUrl)
       window.location.href = `/loading?url=${encodedUrl}`
     } catch (error) {

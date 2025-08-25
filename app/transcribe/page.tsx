@@ -7,22 +7,32 @@ import Header from '../../components/Header'
 import Footer from '../../components/Footer'
 import TranscriptionForm from '../../components/TranscriptionForm'
 import { Youtube } from 'lucide-react'
+import { useState } from 'react'
 
 export default function TranscribePage() {
   const { data: session, status } = useSession()
   const { user: customUser } = useAuth()
   const router = useRouter()
+  const [isTranscribing, setIsTranscribing] = useState(false)
   
   const isAuthenticated = status === 'authenticated' || !!customUser
   const isLoading = status === 'loading'
 
   const handleTranscribe = async (youtubeUrl: string) => {
-    if (!isAuthenticated) {
+    if (!isAuthenticated || isTranscribing) {
       return
     }
     
-    // Redirect to loading page immediately, just like the about page
-    router.push(`/loading?url=${encodeURIComponent(youtubeUrl)}`)
+    setIsTranscribing(true)
+    
+    try {
+      // Redirect to loading page immediately for better UX
+      router.push(`/loading?url=${encodeURIComponent(youtubeUrl)}`)
+    } catch (error) {
+      console.error('Transcription error:', error)
+      alert('Transcription failed. Please try again.')
+      setIsTranscribing(false)
+    }
   }
 
   // Redirect if not authenticated
@@ -56,7 +66,7 @@ export default function TranscribePage() {
           <div className="max-w-4xl mx-auto">
             <TranscriptionForm 
               onTranscribe={handleTranscribe}
-              isLoading={false} // isTranscribing is removed
+              isLoading={isTranscribing}
               transcription={''} // transcription is removed
               disabled={false}
             />
