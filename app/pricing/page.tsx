@@ -5,6 +5,7 @@ import { useSession } from 'next-auth/react'
 import { useAuth } from '../contexts/AuthContext'
 import Header from '../../components/Header'
 import Footer from '../../components/Footer'
+import InternationalPricing from '../../components/InternationalPricing'
 import { 
   Check, 
   X, 
@@ -219,6 +220,13 @@ export default function PricingPage() {
                 </div>
               ))}
             </div>
+          </div>
+        </section>
+
+        {/* International Pricing Section */}
+        <section className="py-20 px-4 bg-gray-50 dark:bg-gray-900">
+          <div className="max-w-6xl mx-auto">
+            <InternationalPricing />
           </div>
         </section>
 

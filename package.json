@@ -10,7 +10,16 @@
     "lint": "next lint",
     "type-check": "tsc --noEmit",
     "clean": "rm -rf .next out",
-    "export": "next build && next export"
+    "export": "next build && next export",
+    "build:analyze": "ANALYZE=true next build",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "db:seed": "node scripts/populate-db.js",
+    "db:migrate": "node scripts/migrate-db.js",
+    "deploy:check": "npm run lint && npm run type-check && npm run build",
+    "deploy:staging": "npm run build && npm run start",
+    "deploy:production": "npm run build && npm run start"
   },
   "dependencies": {
     "@auth/mongodb-adapter": "^3.10.0",

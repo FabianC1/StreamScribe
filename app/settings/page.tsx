@@ -72,9 +72,9 @@ export default function SettingsPage() {
 
   const [notifications, setNotifications] = useState({
     emailUpdates: true,
-    transcriptionComplete: true,
     billingReminders: true,
-    newFeatures: false
+    usageAlerts: true,
+    securityAlerts: true
   })
 
   const [profileUpdateMessage, setProfileUpdateMessage] = useState('')
@@ -228,6 +228,36 @@ export default function SettingsPage() {
         return 'bg-gradient-to-r from-green-400 to-teal-500'
       default:
         return 'bg-gradient-to-r from-gray-400 to-gray-500'
+    }
+  }
+
+  const handleAdminTierChange = async (tier: string) => {
+    try {
+      const response = await fetch('/api/admin/test-subscription', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ tier }),
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        // Refresh subscription data
+        const subResponse = await fetch('/api/subscription')
+        if (subResponse.ok) {
+          const subData = await subResponse.json()
+          setSubscription(prev => ({ ...prev, ...subData }))
+        }
+        alert(`Subscription tier changed to ${tier}!`)
+      } else {
+        const error = await response.json()
+        alert(`Failed to change tier to ${tier}: ${error.error}`)
+        console.error('Failed to change tier:', error)
+      }
+    } catch (error) {
+      alert('Failed to change tier. Please try again.')
+      console.error('Tier change error:', error)
     }
   }
 
@@ -391,9 +421,9 @@ export default function SettingsPage() {
                         </h3>
                         <p className="text-sm text-gray-600 dark:text-gray-400">
                           {key === 'emailUpdates' && 'Receive updates about your account and service'}
-                          {key === 'transcriptionComplete' && 'Get notified when transcription is finished'}
                           {key === 'billingReminders' && 'Receive billing and payment reminders'}
-                          {key === 'newFeatures' && 'Learn about new features and updates'}
+                          {key === 'usageAlerts' && 'Get notified when approaching transcription limits'}
+                          {key === 'securityAlerts' && 'Receive security notifications and login alerts'}
                         </p>
                       </div>
                       <button
@@ -543,65 +573,68 @@ export default function SettingsPage() {
                <div className="card">
                  <div className="flex items-center gap-3 mb-6">
                    <BarChart3 className="w-6 h-6 text-primary-600" />
-                   <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                   <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
                      Quick Stats
-                   </h3>
+                   </h2>
                  </div>
                  
                  <div className="grid grid-cols-2 gap-4">
-                   <div className="p-4 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
-                     <div className="flex items-center gap-2 mb-2">
-                       <Clock className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                       <span className="text-sm font-medium text-blue-700 dark:text-blue-300">Hours Used</span>
-                     </div>
-                     <p className="text-2xl font-bold text-blue-900 dark:text-blue-100">
-                       {subscription.hoursUsed}
-                     </p>
-                     <p className="text-xs text-blue-600 dark:text-blue-400">
-                       of {subscription.hoursTotal} hours
-                     </p>
-                   </div>
-                   
-                   <div className="p-4 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800">
-                     <div className="flex items-center gap-2 mb-2">
-                       <FileText className="w-4 h-4 text-green-600 dark:text-green-400" />
-                       <span className="text-sm font-medium text-green-700 dark:text-green-300">Transcriptions</span>
-                     </div>
-                     <p className="text-2xl font-bold text-green-900 dark:text-green-100">
+                   <div className="text-center p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                     <div className="text-2xl font-bold text-primary-600 dark:text-primary-400">
                        {stats.transcriptionsThisMonth}
-                     </p>
-                     <p className="text-xs text-green-600 dark:text-green-400">
-                       this month
-                     </p>
-                   </div>
-                   
-                   <div className="p-4 rounded-lg bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800">
-                     <div className="flex items-center gap-2 mb-2">
-                       <Download className="w-4 h-4 text-purple-600 dark:text-purple-400" />
-                       <span className="text-sm font-medium text-purple-700 dark:text-purple-300">Exports</span>
                      </div>
-                     <p className="text-2xl font-bold text-purple-900 dark:text-purple-100">
+                     <div className="text-xs text-gray-600 dark:text-gray-400">
+                       This Month
+                     </div>
+                   </div>
+                   <div className="text-center p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                     <div className="text-2xl font-bold text-primary-600 dark:text-primary-400">
                        {stats.totalExports}
-                     </p>
-                     <p className="text-xs text-purple-600 dark:text-purple-400">
-                       files downloaded
-                     </p>
-                   </div>
-                   
-                   <div className="p-4 rounded-lg bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800">
-                     <div className="flex items-center gap-2 mb-2">
-                       <Star className="w-4 h-4 text-orange-600 dark:text-orange-400" />
-                       <span className="text-sm font-medium text-orange-700 dark:text-orange-300">Plan</span>
                      </div>
-                     <p className="text-2xl font-bold text-orange-900 dark:text-orange-100">
-                       {subscription.tier}
-                     </p>
-                     <p className="text-xs text-orange-600 dark:text-orange-400">
-                       {subscription.status}
-                     </p>
+                     <div className="text-xs text-gray-600 dark:text-gray-400">
+                       Total Exports
+                     </div>
                    </div>
                  </div>
                </div>
+
+              {/* Admin Panel - Only visible to admin */}
+              {currentUser?.email === 'galaselfabian@gmail.com' && (
+                <div className="card border-2 border-yellow-500">
+                  <div className="flex items-center gap-3 mb-6">
+                    <Shield className="w-6 h-6 text-yellow-500" />
+                    <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+                      🚀 Admin Panel
+                    </h2>
+                  </div>
+                  
+                  <div className="space-y-4">
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      Test different subscription tiers for development
+                    </p>
+                    
+                    <div className="grid grid-cols-3 gap-2">
+                      {['basic', 'standard', 'premium'].map((tier) => (
+                        <button
+                          key={tier}
+                          onClick={() => handleAdminTierChange(tier)}
+                          className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                            subscription.tier.toLowerCase() === tier
+                              ? 'bg-yellow-500 text-white'
+                              : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                          }`}
+                        >
+                          {tier.charAt(0).toUpperCase() + tier.slice(1)}
+                        </button>
+                      ))}
+                    </div>
+                    
+                    <div className="text-xs text-gray-500 dark:text-gray-500">
+                      Current: {subscription.tier} • Hours: {subscription.hoursTotal}
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>

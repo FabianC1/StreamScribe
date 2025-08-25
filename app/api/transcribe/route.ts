@@ -93,6 +93,13 @@ export async function POST(request: NextRequest) {
   try {
     const { youtubeUrl } = await request.json()
     
+    if (!youtubeUrl) {
+      console.error('❌ Missing youtubeUrl in request body')
+      return NextResponse.json({ error: 'Missing youtubeUrl parameter' }, { status: 400 })
+    }
+    
+    console.log('📝 Received transcription request for:', youtubeUrl)
+    
     // Check if it's a test URL (for development/testing)
     const isTestUrl = youtubeUrl.includes('test') || youtubeUrl.includes('example') || youtubeUrl.includes('demo')
     
@@ -132,21 +139,46 @@ export async function POST(request: NextRequest) {
     const tempDir = path.join(process.cwd(), 'temp')
     await fs.ensureDir(tempDir)
     
-    const audioFile = path.join(tempDir, `audio_${Date.now()}.mp3`)
+    let audioFile = ''
     
     try {
+      audioFile = path.join(tempDir, `audio_${Date.now()}.mp3`)
+      
       // Extract audio using yt-dlp
       console.log('📥 Extracting audio...')
       updateProgress('🎵 Extracting audio from video...')
-      await execAsync(`yt-dlp -f "bestaudio[ext=m4a]/bestaudio[ext=mp3]/bestaudio" --audio-format mp3 --audio-quality 0 -o "${audioFile}" "${youtubeUrl}"`)
+      
+      try {
+        await execAsync(`yt-dlp -f bestaudio[ext=m4a]/bestaudio[ext=mp3]/bestaudio -o "${audioFile}" "${youtubeUrl}"`)
+      } catch (ytdlpError) {
+        console.error('❌ yt-dlp error:', ytdlpError)
+        throw new Error(`Failed to extract audio: ${ytdlpError}`)
+      }
+      
+      // Check if audio file was created
+      if (!await fs.pathExists(audioFile)) {
+        throw new Error('Audio file was not created by yt-dlp')
+      }
+      
+      console.log('✅ Audio extracted successfully:', audioFile)
       
       // Read the audio file
       const audioData = await fs.readFile(audioFile)
+      console.log('📊 Audio file size:', audioData.length, 'bytes')
       
       // Upload to AssemblyAI
       console.log('☁️ Uploading to AssemblyAI...')
       updateProgress('☁️ Uploading audio for processing...')
-      const uploadResponse = await axios.post(`${baseUrl}/v2/upload`, audioData, { headers })
+      
+      let uploadResponse
+      try {
+        uploadResponse = await axios.post(`${baseUrl}/v2/upload`, audioData, { headers })
+        console.log('✅ Upload successful, audio URL:', uploadResponse.data.upload_url)
+      } catch (uploadError: any) {
+        console.error('❌ AssemblyAI upload error:', uploadError.response?.data || uploadError.message)
+        throw new Error(`Failed to upload to AssemblyAI: ${uploadError.message}`)
+      }
+      
       const audioUrl = uploadResponse.data.upload_url
       
       // Request transcription
@@ -342,15 +374,8 @@ export async function POST(request: NextRequest) {
         await fs.remove(audioFile)
       }
     }
-    
   } catch (error) {
-    console.error('Transcription error:', error)
-    return NextResponse.json(
-      {
-        error: 'Transcription failed',
-        details: error instanceof Error ? error.message : 'Unknown error'
-      },
-      { status: 500 }
-    )
+    console.error('❌ Request parsing error:', error)
+    return NextResponse.json({ error: 'Invalid request' }, { status: 400 })
   }
 }

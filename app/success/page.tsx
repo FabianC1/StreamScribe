@@ -40,7 +40,7 @@ export default function SuccessPage() {
 
         <div className="space-y-4">
           <Link 
-            href="/"
+            href="/transcribe"
             className="btn-primary w-full flex items-center justify-center gap-2"
           >
             Start Transcribing
