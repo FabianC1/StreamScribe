@@ -170,7 +170,7 @@ export default function TranscriptionResultsPage() {
       setIsLoading(true)
       setError(null)
       
-      // First, check if we have a stored result from the main page
+      // First, check if we have a stored result from the loading page
       const storedResult = localStorage.getItem('transcriptionResult')
       if (storedResult) {
         try {
@@ -200,33 +200,14 @@ export default function TranscriptionResultsPage() {
         return
       }
       
-      // If no stored or cached result, call the API
-      console.log('🔄 Fetching new transcription for:', url)
-      const response = await fetch('/api/transcribe', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ youtubeUrl: url }),
-      })
+      // If no stored or cached result, show error instead of calling API again
+      console.log('❌ No transcription data found for:', url)
+      setError('No transcription data found. Please transcribe the video again.')
+      setIsLoading(false)
       
-      if (!response.ok) {
-        throw new Error(`API request failed: ${response.status}`)
-      }
-      
-      const data = await response.json()
-      
-      if (data.success) {
-        // Cache the new transcription
-        cacheTranscription(url, data)
-        setTranscriptionData(data)
-      } else {
-        throw new Error(data.error || 'Transcription failed')
-      }
-    } catch (err) {
-      console.error('Failed to fetch transcription data:', err)
-      setError(err instanceof Error ? err.message : 'Failed to load transcription data')
-    } finally {
+    } catch (error) {
+      console.error('Error fetching transcription data:', error)
+      setError('Failed to load transcription data')
       setIsLoading(false)
     }
   }

@@ -10,13 +10,33 @@ export default function LoadingPage() {
   const [youtubeUrl, setYoutubeUrl] = useState('')
   const [loadingText, setLoadingText] = useState('🚀 Starting transcription...')
   const [isCompleted, setIsCompleted] = useState(false)
+  const [isProcessing, setIsProcessing] = useState(false)
 
   useEffect(() => {
     const url = searchParams.get('url')
     if (url) {
       const decodedUrl = decodeURIComponent(url)
       setYoutubeUrl(decodedUrl)
+      
+      // Check if we're already processing this URL to prevent duplicates
+      const processingKey = `processing_${decodedUrl}`
+      if (localStorage.getItem(processingKey)) {
+        console.log('🔄 Already processing this URL, skipping duplicate call')
+        setLoadingText('🔄 Already processing this video...')
+        return
+      }
+      
+      // Mark as processing to prevent duplicates
+      localStorage.setItem(processingKey, 'true')
+      setIsProcessing(true)
       startTranscription(decodedUrl)
+    }
+    
+    // Cleanup function to clear processing flag if component unmounts
+    return () => {
+      if (youtubeUrl) {
+        localStorage.removeItem(`processing_${youtubeUrl}`)
+      }
     }
   }, [searchParams])
 
@@ -36,6 +56,9 @@ export default function LoadingPage() {
         setTimeout(() => {
           setLoadingText('✅ Transcription completed!')
           setIsCompleted(true)
+          
+          // Clear processing flag
+          localStorage.removeItem(`processing_${url}`)
           
           // Redirect to results page after a short delay
           setTimeout(() => {
@@ -69,6 +92,9 @@ export default function LoadingPage() {
           setLoadingText('✅ Transcription completed!')
           setIsCompleted(true)
           
+          // Clear processing flag
+          localStorage.removeItem(`processing_${url}`)
+          
           // Redirect to results page after a short delay
           setTimeout(() => {
             const encodedUrl = encodeURIComponent(url)
@@ -85,6 +111,9 @@ export default function LoadingPage() {
           setLoadingText('🚫 You have already transcribed this video!')
           setIsCompleted(true)
           
+          // Clear processing flag
+          localStorage.removeItem(`processing_${url}`)
+          
           setTimeout(() => {
             router.push('/dashboard?duplicate=true')
           }, 2000)
@@ -96,6 +125,9 @@ export default function LoadingPage() {
     } catch (error) {
       console.error('Transcription failed:', error)
       setLoadingText('❌ Transcription failed. Please try again.')
+      
+      // Clear processing flag on error
+      localStorage.removeItem(`processing_${url}`)
       
       // Redirect back to transcribe page after error
       setTimeout(() => {

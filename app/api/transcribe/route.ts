@@ -91,6 +91,9 @@ const mockTranscriptionData = {
 const transcriptionCache = new Map<string, { data: any; timestamp: number }>()
 const CACHE_DURATION = 24 * 60 * 60 * 1000 // 24 hours
 
+// Track ongoing transcriptions to prevent duplicates
+const ongoingTranscriptions = new Map<string, Promise<any>>()
+
 export async function POST(request: NextRequest) {
   try {
     const { youtubeUrl } = await request.json()
@@ -105,6 +108,17 @@ export async function POST(request: NextRequest) {
     const mockUserId = '507f1f77bcf86cd799439011' // This should come from session/auth
     
     console.log('📝 Received transcription request for:', youtubeUrl)
+    
+    // Check if this transcription is already in progress
+    const transcriptionKey = `${mockUserId}_${youtubeUrl}`
+    if (ongoingTranscriptions.has(transcriptionKey)) {
+      console.log('🔄 Transcription already in progress for:', youtubeUrl)
+      return NextResponse.json({ 
+        success: false, 
+        error: 'ALREADY_PROCESSING',
+        message: 'This video is already being transcribed. Please wait for completion.'
+      }, { status: 409 })
+    }
     
     // Check if it's a test URL (for development/testing)
     const isTestUrl = youtubeUrl.includes('test') || youtubeUrl.includes('example') || youtubeUrl.includes('demo')
@@ -148,362 +162,378 @@ export async function POST(request: NextRequest) {
       // Continue with transcription if duplicate check fails
     }
 
-    // Check server-side cache first
-    const cacheKey = `transcription_${youtubeUrl}`
-    const cachedResult = transcriptionCache.get(cacheKey)
-    
-    if (cachedResult && (Date.now() - cachedResult.timestamp) < CACHE_DURATION) {
-      console.log('🔄 Returning cached result from server for:', youtubeUrl)
-      return NextResponse.json({
-        success: true,
-        ...cachedResult.data,
-        isCached: true,
-        cachedAt: cachedResult.timestamp
-      })
-    }
-
-    // Real AssemblyAI processing for actual YouTube URLs
-    console.log('🚀 Starting transcription for:', youtubeUrl)
-    updateProgress('🚀 Starting transcription...')
-
-    // Create temp directory
-    const tempDir = path.join(process.cwd(), 'temp')
-    await fs.ensureDir(tempDir)
-    
-    let audioFile = ''
+    // Create a promise for this transcription and store it
+    const transcriptionPromise = processTranscription(youtubeUrl, mockUserId)
+    ongoingTranscriptions.set(transcriptionKey, transcriptionPromise)
     
     try {
-      audioFile = path.join(tempDir, `audio_${Date.now()}.mp3`)
-      
-      // Extract audio using yt-dlp
-      console.log('📥 Extracting audio...')
-      updateProgress('🎵 Extracting audio from video...')
-      
-      try {
-        await execAsync(`yt-dlp -f bestaudio[ext=m4a]/bestaudio[ext=mp3]/bestaudio -o "${audioFile}" "${youtubeUrl}"`)
-      } catch (ytdlpError) {
-        console.error('❌ yt-dlp error:', ytdlpError)
-        throw new Error(`Failed to extract audio: ${ytdlpError}`)
-      }
-      
-      // Check if audio file was created
-      if (!await fs.pathExists(audioFile)) {
-        throw new Error('Audio file was not created by yt-dlp')
-      }
-      
-      console.log('✅ Audio extracted successfully:', audioFile)
-      
-      // Read the audio file
-      const audioData = await fs.readFile(audioFile)
-      console.log('📊 Audio file size:', audioData.length, 'bytes')
-      
-      // Upload to AssemblyAI
-      console.log('☁️ Uploading to AssemblyAI...')
-      updateProgress('☁️ Uploading audio for processing...')
-      
-      let uploadResponse
-      try {
-        uploadResponse = await axios.post(`${baseUrl}/v2/upload`, audioData, { headers })
-        console.log('✅ Upload successful, audio URL:', uploadResponse.data.upload_url)
-      } catch (uploadError: any) {
-        console.error('❌ AssemblyAI upload error:', uploadError.response?.data || uploadError.message)
-        throw new Error(`Failed to upload to AssemblyAI: ${uploadError.message}`)
-      }
-      
-      const audioUrl = uploadResponse.data.upload_url
-      
-      // Request transcription
-      console.log('🎯 Requesting transcription...')
-      updateProgress('🎯 Starting AI transcription...')
-      const transcriptData = {
-        audio_url: audioUrl,
-        speech_model: 'universal',
-        language_code: 'en',
-        punctuate: true,
-        format_text: true,
-        speaker_labels: true,
-        auto_highlights: true,
-        sentiment_analysis: true,
-        auto_chapters: true,
-        entity_detection: true,
-      }
-      
-      const transcriptResponse = await axios.post(`${baseUrl}/v2/transcript`, transcriptData, { headers })
-      const transcriptId = transcriptResponse.data.id
-      
-      // Poll for completion
-      console.log('⏳ Polling for completion...')
-      updateProgress('⏳ Processing with AI...')
-      let maxAttempts = 60 // 5 minutes max
-      let attempts = 0
-      
-      while (attempts < maxAttempts) {
-        const pollingResponse = await axios.get(`${baseUrl}/v2/transcript/${transcriptId}`, { headers })
-        const transcriptionResult = pollingResponse.data
-        
-        if (transcriptionResult.status === 'completed') {
-          console.log('✅ Transcription completed!')
-          updateProgress('✨ Transcription completed!')
-          setCompleted()
-          
-          // Debug the response structure
-          console.log('📊 Full transcription result:', JSON.stringify(transcriptionResult, null, 2))
-          console.log('🔍 Highlights result:', transcriptionResult.auto_highlights_result)
-          console.log('🔍 Sentiment result:', transcriptionResult.sentiment_analysis)
-          console.log('🔍 Chapters result:', transcriptionResult.auto_chapters_result)
-          
-          // Clean up temp file
-          await fs.remove(audioFile)
-          
-          // Generate intelligent fallback data with meaningful insights
-          const generateFallbackData = (text: string) => {
-            const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 15)
-            const paragraphs = text.split(/\n\s*\n/).filter(p => p.trim().length > 50)
-            
-            // Generate meaningful highlights from key sentences and concepts
-            const generateHighlights = () => {
-              const highlights: Array<{
-                count: number
-                rank: number
-                text: string
-                timestamps: Array<{ start: number; end: number }>
-              }> = []
-              
-              // Find sentences with key phrases (questions, important statements, numbers)
-              const questionSentences = sentences.filter(s => 
-                s.includes('?') || 
-                s.toLowerCase().includes('how') || 
-                s.toLowerCase().includes('what') || 
-                s.toLowerCase().includes('why') ||
-                s.toLowerCase().includes('when') ||
-                s.toLowerCase().includes('where')
-              )
-              
-              const numberSentences = sentences.filter(s => 
-                /\d+/.test(s) && s.length > 20
-              )
-              
-              const actionSentences = sentences.filter(s => 
-                s.toLowerCase().includes('should') || 
-                s.toLowerCase().includes('must') || 
-                s.toLowerCase().includes('need to') ||
-                s.toLowerCase().includes('important') ||
-                s.toLowerCase().includes('key') ||
-                s.toLowerCase().includes('essential')
-              )
-              
-              // Add question highlights
-              questionSentences.slice(0, 2).forEach((sentence, i) => {
-                highlights.push({
-                  count: 1,
-                  rank: i + 1,
-                  text: sentence.trim().substring(0, 100) + (sentence.length > 100 ? '...' : ''),
-                  timestamps: [{ start: i * 30, end: (i + 1) * 30 }]
-                })
-              })
-              
-              // Add number/statistic highlights
-              numberSentences.slice(0, 2).forEach((sentence, i) => {
-                highlights.push({
-                  count: 1,
-                  rank: highlights.length + 1,
-                  text: sentence.trim().substring(0, 100) + (sentence.length > 100 ? '...' : ''),
-                  timestamps: [{ start: (highlights.length + i) * 30, end: (highlights.length + i + 1) * 30 }]
-                })
-              })
-              
-              // Add action item highlights
-              actionSentences.slice(0, 2).forEach((sentence, i) => {
-                highlights.push({
-                  count: 1,
-                  rank: highlights.length + 1,
-                  text: sentence.trim().substring(0, 100) + (sentence.length > 100 ? '...' : ''),
-                  timestamps: [{ start: (highlights.length + i) * 30, end: (highlights.length + i + 1) * 30 }]
-                })
-              })
-              
-              // If we don't have enough highlights, add key concept sentences
-              if (highlights.length < 5) {
-                const remainingSentences = sentences
-                  .filter(s => !highlights.some(h => h.text.includes(s.substring(0, 20))))
-                  .slice(0, 5 - highlights.length)
-                
-                remainingSentences.forEach((sentence, i) => {
-                  highlights.push({
-                    count: 1,
-                    rank: highlights.length + 1,
-                    text: sentence.trim().substring(0, 100) + (sentence.length > 100 ? '...' : ''),
-                    timestamps: [{ start: (highlights.length + i) * 30, end: (highlights.length + i + 1) * 30 }]
-                  })
-                })
-              }
-              
-              return highlights.slice(0, 5)
-            }
-            
-            return {
-              highlights: generateHighlights(),
-              sentiment: sentences.slice(0, 3).map((sentence, i) => ({
-                text: sentence.trim(),
-                start: i * 30,
-                end: (i + 1) * 30,
-                sentiment: 'neutral',
-                confidence: 0.8
-              })),
-              chapters: paragraphs.slice(0, 3).map((paragraph, i) => ({
-                summary: paragraph.trim().substring(0, 150) + (paragraph.length > 150 ? '...' : ''),
-                headline: `Key Point ${i + 1}`,
-                start: i * 60,
-                end: (i + 1) * 60
-              }))
-            }
-          }
-          
-          const fallbackData = generateFallbackData(transcriptionResult.text || '')
-          
-          // Cache the result
-          const resultData = {
-            transcript: transcriptionResult.text,
-            confidence: transcriptionResult.confidence || 0.95,
-            audio_duration: transcriptionResult.audio_duration || 0,
-            words: transcriptionResult.words || [],
-            highlights: transcriptionResult.auto_highlights_result?.results?.length > 0 
-              ? transcriptionResult.auto_highlights_result.results.map((h: any) => ({
-                  ...h,
-                  rank: Math.max(1, Math.round(h.rank * 10)) // Convert decimal rank to integer 1-10
-                }))
-              : fallbackData.highlights,
-            sentiment: transcriptionResult.sentiment_analysis?.results?.length > 0 
-              ? transcriptionResult.sentiment_analysis.results 
-              : fallbackData.sentiment,
-            chapters: transcriptionResult.auto_chapters_result?.results?.length > 0 
-              ? transcriptionResult.auto_chapters_result.results 
-              : fallbackData.chapters,
-            entities: transcriptionResult.entities || [],
-            speaker_labels: transcriptionResult.speaker_labels || [],
-            language_code: transcriptionResult.language_code || 'en',
-            youtube_url: youtubeUrl
-          }
-          
-          transcriptionCache.set(cacheKey, { data: resultData, timestamp: Date.now() })
-          
-          // Save to database
-          let transcriptionId = null
-          try {
-            await connectDB()
-            
-            // Extract video ID from YouTube URL
-            const videoIdMatch = youtubeUrl.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\n?#]+)/)
-            const videoId = videoIdMatch ? videoIdMatch[1] : 'unknown'
-            
-            // Create transcription document with proper field mapping
-            const transcriptionDoc = new Transcription({
-              userId: mockUserId,
-              youtubeUrl: youtubeUrl,
-              videoTitle: `Video ${videoId}`, // TODO: Extract actual title
-              videoId: videoId,
-              transcript: transcriptionResult.text || '',
-              confidence: transcriptionResult.confidence || 0.95,
-              audioDuration: transcriptionResult.audio_duration || 0,
-              languageCode: transcriptionResult.language_code || 'en',
-              words: transcriptionResult.words || [],
-              highlights: (transcriptionResult.auto_highlights_result?.results || []).map((h: any) => ({
-                count: h.count || 1,
-                rank: Math.max(1, Math.round(h.rank * 10)), // Convert decimal rank to integer 1-10
-                text: h.text || '',
-                timestamps: h.timestamps || []
-              })),
-              sentiment: transcriptionResult.sentiment_analysis?.results || [],
-              chapters: transcriptionResult.auto_chapters_result?.results || [],
-              entities: (transcriptionResult.entities || []).map((e: any) => ({
-                text: e.text || '',
-                entityType: e.entity_type || 'unknown', // Map entity_type to entityType
-                start: e.start || 0,
-                end: e.end || 0
-              })),
-              speakerLabels: Array.isArray(transcriptionResult.speaker_labels) ? transcriptionResult.speaker_labels : [],
-              isCached: false,
-              cachedAt: new Date(),
-              createdAt: new Date() // Add this field for dashboard compatibility
-            })
-            
-            console.log('💾 Attempting to save transcription document:', {
-              userId: transcriptionDoc.userId,
-              youtubeUrl: transcriptionDoc.youtubeUrl,
-              videoTitle: transcriptionDoc.videoTitle,
-              highlightsCount: transcriptionDoc.highlights?.length || 0,
-              speakerLabelsCount: transcriptionDoc.speakerLabels?.length || 0
-            })
-            
-            await transcriptionDoc.save()
-            transcriptionId = transcriptionDoc._id
-            console.log('✅ Transcription saved to database with ID:', transcriptionId)
-            
-            // Update usage tracking
-            const today = new Date()
-            today.setHours(0, 0, 0, 0)
-            
-            const hoursUsed = (transcriptionResult.audio_duration || 0) / 3600 // Convert seconds to hours
-            
-            let usageDoc = await UsageTracking.findOne({
-              userId: mockUserId,
-              date: today
-            })
-            
-            if (!usageDoc) {
-              usageDoc = new UsageTracking({
-                userId: mockUserId,
-                date: today,
-                hoursUsed: hoursUsed,
-                transcriptionsCount: 1,
-                exportsCount: 0,
-                tier: 'basic' // TODO: Get from user subscription
-              })
-            } else {
-              usageDoc.hoursUsed += hoursUsed
-              usageDoc.transcriptionsCount += 1
-            }
-            
-            await usageDoc.save()
-            console.log('📊 Usage tracking updated:', {
-              hoursUsed: usageDoc.hoursUsed,
-              transcriptionsCount: usageDoc.transcriptionsCount
-            })
-            
-          } catch (dbError: any) {
-            console.error('❌ Database error during save:', dbError)
-            console.error('❌ Error details:', {
-              name: dbError.name,
-              message: dbError.message,
-              stack: dbError.stack
-            })
-            // Don't fail the transcription if database save fails, but log it
-          }
-          
-          return NextResponse.json({
-            success: true,
-            ...resultData,
-            transcriptionId: transcriptionId // Add the database ID
-          })
-        } else if (transcriptionResult.status === 'error') {
-          throw new Error(`Transcription failed: ${transcriptionResult.error}`)
-        }
-        
-        // Wait 5 seconds before next poll
-        await new Promise(resolve => setTimeout(resolve, 5000))
-        attempts++
-      }
-      
-      throw new Error('Transcription timeout - video may be too long')
-      
+      const result = await transcriptionPromise
+      return result
     } finally {
-      // Clean up temp file
-      if (await fs.pathExists(audioFile)) {
-        await fs.remove(audioFile)
-      }
+      // Always clean up the ongoing transcription
+      ongoingTranscriptions.delete(transcriptionKey)
     }
+    
   } catch (error) {
     console.error('❌ Request parsing error:', error)
     return NextResponse.json({ error: 'Invalid request' }, { status: 400 })
+  }
+}
+
+// Separate function to handle the actual transcription processing
+async function processTranscription(youtubeUrl: string, mockUserId: string) {
+  // Real AssemblyAI processing for actual YouTube URLs
+  console.log('🚀 Starting transcription for:', youtubeUrl)
+  updateProgress('🚀 Starting transcription...')
+
+  // Extract video ID from YouTube URL
+  const videoIdMatch = youtubeUrl.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\n?#]+)/)
+  const videoId = videoIdMatch ? videoIdMatch[1] : 'unknown'
+  
+  // Get actual video title from YouTube
+  let videoTitle = `Video ${videoId}` // Fallback title
+  try {
+    console.log('📺 Fetching video title for:', videoId)
+    const titleResponse = await axios.get(`https://www.youtube.com/oembed?url=${encodeURIComponent(youtubeUrl)}&format=json`)
+    if (titleResponse.data && titleResponse.data.title) {
+      videoTitle = titleResponse.data.title
+      console.log('✅ Video title fetched:', videoTitle)
+    }
+  } catch (titleError: any) {
+    console.warn('⚠️ Could not fetch video title, using fallback:', titleError.message)
+  }
+
+  // Create temp directory
+  const tempDir = path.join(process.cwd(), 'temp')
+  await fs.ensureDir(tempDir)
+  
+  let audioFile = ''
+  
+  try {
+    audioFile = path.join(tempDir, `audio_${Date.now()}.mp3`)
+    
+    // Extract audio using yt-dlp
+    console.log('📥 Extracting audio...')
+    updateProgress('🎵 Extracting audio from video...')
+    
+    try {
+      await execAsync(`yt-dlp -f bestaudio[ext=m4a]/bestaudio[ext=mp3]/bestaudio -o "${audioFile}" "${youtubeUrl}"`)
+    } catch (ytdlpError) {
+      console.error('❌ yt-dlp error:', ytdlpError)
+      throw new Error(`Failed to extract audio: ${ytdlpError}`)
+    }
+    
+    // Check if audio file was created
+    if (!await fs.pathExists(audioFile)) {
+      throw new Error('Audio file was not created by yt-dlp')
+    }
+    
+    console.log('✅ Audio extracted successfully:', audioFile)
+    
+    // Read the audio file
+    const audioData = await fs.readFile(audioFile)
+    console.log('📊 Audio file size:', audioData.length, 'bytes')
+    
+    // Upload to AssemblyAI
+    console.log('☁️ Uploading to AssemblyAI...')
+    updateProgress('☁️ Uploading audio for processing...')
+    
+    let uploadResponse
+    try {
+      uploadResponse = await axios.post(`${baseUrl}/v2/upload`, audioData, { headers })
+      console.log('✅ Upload successful, audio URL:', uploadResponse.data.upload_url)
+    } catch (uploadError: any) {
+      console.error('❌ AssemblyAI upload error:', uploadError.response?.data || uploadError.message)
+      throw new Error(`Failed to upload to AssemblyAI: ${uploadError.message}`)
+    }
+    
+    const audioUrl = uploadResponse.data.upload_url
+    
+    // Request transcription
+    console.log('🎯 Requesting transcription...')
+    updateProgress('🎯 Starting AI transcription...')
+    const transcriptData = {
+      audio_url: audioUrl,
+      speech_model: 'universal',
+      language_code: 'en',
+      punctuate: true,
+      format_text: true,
+      speaker_labels: true,
+      auto_highlights: true,
+      sentiment_analysis: true,
+      auto_chapters: true,
+      entity_detection: true,
+    }
+    
+    const transcriptResponse = await axios.post(`${baseUrl}/v2/transcript`, transcriptData, { headers })
+    const transcriptId = transcriptResponse.data.id
+    
+    // Poll for completion
+    console.log('⏳ Polling for completion...')
+    updateProgress('⏳ Processing with AI...')
+    let maxAttempts = 60 // 5 minutes max
+    let attempts = 0
+    
+    while (attempts < maxAttempts) {
+      const pollingResponse = await axios.get(`${baseUrl}/v2/transcript/${transcriptId}`, { headers })
+      const transcriptionResult = pollingResponse.data
+      
+      if (transcriptionResult.status === 'completed') {
+        console.log('✅ Transcription completed!')
+        updateProgress('✨ Transcription completed!')
+        setCompleted()
+        
+        // Debug the response structure
+        console.log('📊 Full transcription result:', JSON.stringify(transcriptionResult, null, 2))
+        console.log('🔍 Highlights result:', transcriptionResult.auto_highlights_result)
+        console.log('🔍 Sentiment result:', transcriptionResult.sentiment_analysis)
+        console.log('🔍 Chapters result:', transcriptionResult.auto_chapters_result)
+        
+        // Clean up temp file
+        await fs.remove(audioFile)
+        
+        // Generate intelligent fallback data with meaningful insights
+        const generateFallbackData = (text: string) => {
+          const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 15)
+          const paragraphs = text.split(/\n\s*\n/).filter(p => p.trim().length > 50)
+          
+          // Generate meaningful highlights from key sentences and concepts
+          const generateHighlights = () => {
+            const highlights: Array<{
+              count: number
+              rank: number
+              text: string
+              timestamps: Array<{ start: number; end: number }>
+            }> = []
+            
+            // Find sentences with key phrases (questions, important statements, numbers)
+            const questionSentences = sentences.filter(s => 
+              s.includes('?') || 
+              s.toLowerCase().includes('how') || 
+              s.toLowerCase().includes('what') || 
+              s.toLowerCase().includes('why') ||
+              s.toLowerCase().includes('when') ||
+              s.toLowerCase().includes('where')
+            )
+            
+            const numberSentences = sentences.filter(s => 
+              /\d+/.test(s) && s.length > 20
+            )
+            
+            const actionSentences = sentences.filter(s => 
+              s.toLowerCase().includes('should') || 
+              s.toLowerCase().includes('must') || 
+              s.toLowerCase().includes('need to') ||
+              s.toLowerCase().includes('important') ||
+              s.toLowerCase().includes('key') ||
+              s.toLowerCase().includes('essential')
+            )
+            
+            // Add question highlights
+            questionSentences.slice(0, 2).forEach((sentence, i) => {
+              highlights.push({
+                count: 1,
+                rank: i + 1,
+                text: sentence.trim().substring(0, 100) + (sentence.length > 100 ? '...' : ''),
+                timestamps: [{ start: i * 30, end: (i + 1) * 30 }]
+              })
+            })
+            
+            // Add number/statistic highlights
+            numberSentences.slice(0, 2).forEach((sentence, i) => {
+              highlights.push({
+                count: 1,
+                rank: highlights.length + 1,
+                text: sentence.trim().substring(0, 100) + (sentence.length > 100 ? '...' : ''),
+                timestamps: [{ start: (highlights.length + i) * 30, end: (highlights.length + i + 1) * 30 }]
+              })
+            })
+            
+            // Add action item highlights
+            actionSentences.slice(0, 2).forEach((sentence, i) => {
+              highlights.push({
+                count: 1,
+                rank: highlights.length + 1,
+                text: sentence.trim().substring(0, 100) + (sentence.length > 100 ? '...' : ''),
+                timestamps: [{ start: (highlights.length + i) * 30, end: (highlights.length + i + 1) * 30 }]
+              })
+            })
+            
+            // If we don't have enough highlights, add key concept sentences
+            if (highlights.length < 5) {
+              const remainingSentences = sentences
+                .filter(s => !highlights.some(h => h.text.includes(s.substring(0, 20))))
+                .slice(0, 5 - highlights.length)
+              
+              remainingSentences.forEach((sentence, i) => {
+                highlights.push({
+                  count: 1,
+                  rank: highlights.length + 1,
+                  text: sentence.trim().substring(0, 100) + (sentence.length > 100 ? '...' : ''),
+                  timestamps: [{ start: (highlights.length + i) * 30, end: (highlights.length + i + 1) * 30 }]
+                })
+              })
+            }
+            
+            return highlights.slice(0, 5)
+          }
+          
+          return {
+            highlights: generateHighlights(),
+            sentiment: sentences.slice(0, 3).map((sentence, i) => ({
+              text: sentence.trim(),
+              start: i * 30,
+              end: (i + 1) * 30,
+              sentiment: 'neutral',
+              confidence: 0.8
+            })),
+            chapters: paragraphs.slice(0, 3).map((paragraph, i) => ({
+              summary: paragraph.trim().substring(0, 150) + (paragraph.length > 150 ? '...' : ''),
+              headline: `Key Point ${i + 1}`,
+              start: i * 60,
+              end: (i + 1) * 60
+            }))
+          }
+        }
+        
+        const fallbackData = generateFallbackData(transcriptionResult.text || '')
+        
+        // Cache the result
+        const cacheKey = `transcription_${youtubeUrl}`
+        const resultData = {
+          transcript: transcriptionResult.text,
+          confidence: transcriptionResult.confidence || 0.95,
+          audio_duration: transcriptionResult.audio_duration || 0,
+          words: transcriptionResult.words || [],
+          highlights: transcriptionResult.auto_highlights_result?.results?.length > 0 
+            ? transcriptionResult.auto_highlights_result.results.map((h: any) => ({
+                ...h,
+                rank: Math.max(1, Math.round(h.rank * 10)) // Convert decimal rank to integer 1-10
+              }))
+            : fallbackData.highlights,
+          sentiment: transcriptionResult.sentiment_analysis?.results?.length > 0 
+            ? transcriptionResult.sentiment_analysis.results 
+            : fallbackData.sentiment,
+          chapters: transcriptionResult.auto_chapters_result?.results?.length > 0 
+            ? transcriptionResult.auto_chapters_result.results 
+            : fallbackData.chapters,
+          entities: transcriptionResult.entities || [],
+          speaker_labels: transcriptionResult.speaker_labels || [],
+          language_code: transcriptionResult.language_code || 'en',
+          youtube_url: youtubeUrl
+        }
+        
+        transcriptionCache.set(cacheKey, { data: resultData, timestamp: Date.now() })
+        
+        // Save to database
+        let transcriptionId = null
+        try {
+          await connectDB()
+          
+          // Create transcription document with proper field mapping
+          const transcriptionDoc = new Transcription({
+            userId: mockUserId,
+            youtubeUrl: youtubeUrl,
+            videoTitle: videoTitle, // Use fetched video title
+            videoId: videoId,
+            transcript: transcriptionResult.text || '',
+            confidence: transcriptionResult.confidence || 0.95,
+            audioDuration: transcriptionResult.audio_duration || 0,
+            languageCode: transcriptionResult.language_code || 'en',
+            words: transcriptionResult.words || [],
+            highlights: (transcriptionResult.auto_highlights_result?.results || []).map((h: any) => ({
+              count: h.count || 1,
+              rank: Math.max(1, Math.round(h.rank * 10)), // Convert decimal rank to integer 1-10
+              text: h.text || '',
+              timestamps: h.timestamps || []
+            })),
+            sentiment: transcriptionResult.sentiment_analysis?.results || [],
+            chapters: transcriptionResult.auto_chapters_result?.results || [],
+            entities: (transcriptionResult.entities || []).map((e: any) => ({
+              text: e.text || '',
+              entityType: e.entity_type || 'unknown', // Map entity_type to entityType
+              start: e.start || 0,
+              end: e.end || 0
+            })),
+            speakerLabels: Array.isArray(transcriptionResult.speaker_labels) ? transcriptionResult.speaker_labels : [],
+            isCached: false,
+            cachedAt: new Date(),
+            createdAt: new Date() // Add this field for dashboard compatibility
+          })
+          
+          console.log('💾 Attempting to save transcription document:', {
+            userId: transcriptionDoc.userId,
+            youtubeUrl: transcriptionDoc.youtubeUrl,
+            videoTitle: transcriptionDoc.videoTitle,
+            highlightsCount: transcriptionDoc.highlights?.length || 0,
+            speakerLabelsCount: transcriptionDoc.speakerLabels?.length || 0
+          })
+          
+          await transcriptionDoc.save()
+          transcriptionId = transcriptionDoc._id
+          console.log('✅ Transcription saved to database with ID:', transcriptionId)
+          
+          // Update usage tracking
+          const today = new Date()
+          today.setHours(0, 0, 0, 0)
+          
+          const hoursUsed = (transcriptionResult.audio_duration || 0) / 3600 // Convert seconds to hours
+          
+          let usageDoc = await UsageTracking.findOne({
+            userId: mockUserId,
+            date: today
+          })
+          
+          if (!usageDoc) {
+            usageDoc = new UsageTracking({
+              userId: mockUserId,
+              date: today,
+              hoursUsed: hoursUsed,
+              transcriptionsCount: 1,
+              exportsCount: 0,
+              tier: 'basic' // TODO: Get from user subscription
+            })
+          } else {
+            usageDoc.hoursUsed += hoursUsed
+            usageDoc.transcriptionsCount += 1
+          }
+          
+          await usageDoc.save()
+          console.log('📊 Usage tracking updated:', {
+            hoursUsed: usageDoc.hoursUsed,
+            transcriptionsCount: usageDoc.transcriptionsCount
+          })
+          
+        } catch (dbError: any) {
+          console.error('❌ Database error during save:', dbError)
+          console.error('❌ Error details:', {
+            name: dbError.name,
+            message: dbError.message,
+            stack: dbError.stack
+          })
+          // Don't fail the transcription if database save fails, but log it
+        }
+        
+        return NextResponse.json({
+          success: true,
+          ...resultData,
+          transcriptionId: transcriptionId // Add the database ID
+        })
+      } else if (transcriptionResult.status === 'error') {
+        throw new Error(`Transcription failed: ${transcriptionResult.error}`)
+      }
+      
+      // Wait 5 seconds before next poll
+      await new Promise(resolve => setTimeout(resolve, 5000))
+      attempts++
+    }
+    
+    throw new Error('Transcription timeout - video may be too long')
+    
+  } finally {
+    // Clean up temp file
+    if (await fs.pathExists(audioFile)) {
+      await fs.remove(audioFile)
+    }
   }
 }

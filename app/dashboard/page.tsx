@@ -154,16 +154,20 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border border-gray-200 dark:border-gray-700">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border border-gray-200 dark:border-gray-700 group hover:bg-green-50 dark:hover:bg-green-900/10 transition-colors duration-200">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Hours Used</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                  {customUser ? customUser.hoursUsed : 0}
+                <p className="text-sm font-medium text-gray-600 dark:text-gray-400 group-hover:text-green-700 dark:group-hover:text-green-300 transition-colors duration-200">
+                  <span className="group-hover:hidden">Hours Used</span>
+                  <span className="hidden group-hover:inline">Minutes Used</span>
+                </p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white group-hover:text-green-700 dark:group-hover:text-green-300 transition-colors duration-200">
+                  <span className="group-hover:hidden">{customUser ? customUser.hoursUsed : 0}</span>
+                  <span className="hidden group-hover:inline">{customUser ? Math.round((customUser.hoursUsed || 0) * 60) : 0}</span>
                 </p>
               </div>
-              <div className="h-12 w-12 bg-green-100 dark:bg-green-900/20 rounded-lg flex items-center justify-center">
-                <Clock className="h-6 w-6 text-green-600 dark:text-green-400" />
+              <div className="h-12 w-12 bg-green-100 dark:bg-green-900/20 rounded-lg flex items-center justify-center group-hover:bg-green-200 dark:group-hover:bg-green-800/30 transition-colors duration-200">
+                <Clock className="h-6 w-6 text-green-600 dark:text-green-400 group-hover:text-green-700 dark:group-hover:text-green-300 transition-colors duration-200" />
               </div>
             </div>
           </div>
@@ -186,8 +190,23 @@ export default function DashboardPage() {
         {/* Recent Transcriptions */}
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
           <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Recent Transcriptions</h2>
-            <p className="text-gray-600 dark:text-gray-400 mt-1">Your latest video transcriptions</p>
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Recent Transcriptions</h2>
+                <p className="text-gray-600 dark:text-gray-400 mt-1">Your latest video transcriptions</p>
+              </div>
+              
+              {/* New Transcription Button */}
+              <button
+                onClick={() => router.push('/transcribe')}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors duration-200"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                New Transcription
+              </button>
+            </div>
           </div>
 
           <div className="p-6">
