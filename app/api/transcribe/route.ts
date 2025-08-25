@@ -110,7 +110,7 @@ export async function POST(request: NextRequest) {
     try {
       // Extract audio using yt-dlp
       console.log('📥 Extracting audio...')
-      updateProgress('📥 Extracting audio...')
+      updateProgress('🎵 Extracting audio from video...')
       await execAsync(`yt-dlp -f "bestaudio[ext=m4a]/bestaudio[ext=mp3]/bestaudio" --audio-format mp3 --audio-quality 0 -o "${audioFile}" "${youtubeUrl}"`)
       
       // Read the audio file
@@ -118,13 +118,13 @@ export async function POST(request: NextRequest) {
       
       // Upload to AssemblyAI
       console.log('☁️ Uploading to AssemblyAI...')
-      updateProgress('☁️ Uploading to AssemblyAI...')
+      updateProgress('☁️ Uploading audio for processing...')
       const uploadResponse = await axios.post(`${baseUrl}/v2/upload`, audioData, { headers })
       const audioUrl = uploadResponse.data.upload_url
       
       // Request transcription
       console.log('🎯 Requesting transcription...')
-      updateProgress('🎯 Requesting transcription...')
+      updateProgress('🎯 Starting AI transcription...')
       const transcriptData = {
         audio_url: audioUrl,
         speech_model: 'universal',
@@ -143,7 +143,7 @@ export async function POST(request: NextRequest) {
       
       // Poll for completion
       console.log('⏳ Polling for completion...')
-      updateProgress('⏳ Polling for completion...')
+      updateProgress('⏳ Processing with AI...')
       let maxAttempts = 60 // 5 minutes max
       let attempts = 0
       
@@ -153,7 +153,7 @@ export async function POST(request: NextRequest) {
         
         if (transcriptionResult.status === 'completed') {
           console.log('✅ Transcription completed!')
-          updateProgress('✅ Transcription completed!')
+          updateProgress('✨ Transcription completed!')
           setCompleted()
           
           // Debug the response structure

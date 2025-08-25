@@ -24,11 +24,13 @@ export default function PricingTiers() {
       price: 6.99,
       hours: 30,
       features: [
-        '30 hours of transcription',
+        '30 hours transcription',
         'Standard accuracy',
-        'Text export',
-        'Email support',
-        'Basic analytics'
+        'TXT export only',
+        'Timestamps',
+        'Save notes',
+        'Cached transcripts',
+        'Video history'
       ],
       icon: <Zap className="w-6 h-6" />
     },
@@ -38,12 +40,13 @@ export default function PricingTiers() {
       price: 12.99,
       hours: 60,
       features: [
-        '60 hours of transcription',
+        'Everything in Basic',
+        '60 hours transcription',
         'High accuracy',
-        'Multiple export formats',
-        'Priority support',
+        'DOCX & SRT exports',
         'Advanced analytics',
-        'Bulk processing'
+        'No ads',
+        'Themes'
       ],
       popular: true,
       icon: <Star className="w-6 h-6" />
@@ -54,14 +57,15 @@ export default function PricingTiers() {
       price: 19.99,
       hours: 100,
       features: [
-        '100 hours of transcription',
+        'Everything in Standard',
+        '100 hours transcription',
         'Premium accuracy',
-        'All export formats',
-        '24/7 support',
-        'Full analytics dashboard',
-        'API access',
-        'Custom integrations',
-        'White-label options'
+        'All export formats (VTT, MP3, MP4)',
+        'AI highlights & summaries',
+        'Full customization',
+        'Collaboration features',
+        'Organization tools',
+        'Custom workspace'
       ],
       icon: <Crown className="w-6 h-6" />
     }
@@ -107,7 +111,7 @@ export default function PricingTiers() {
               <span className="text-4xl font-bold text-gray-900 dark:text-white transition-colors duration-200">£{tier.price}</span>
               <span className="text-gray-500 dark:text-gray-400 transition-colors duration-200">/month</span>
             </div>
-            <p className="text-gray-600 dark:text-gray-300 mb-4 transition-colors duration-200">{tier.hours} hours of transcription</p>
+            <p className="text-gray-600 dark:text-gray-300 mb-4 transition-colors duration-200">{tier.hours} hours per month</p>
           </div>
 
           {/* Features */}
