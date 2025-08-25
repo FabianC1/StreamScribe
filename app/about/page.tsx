@@ -1,195 +1,179 @@
 'use client'
 
-// About Page - Features showcase with transcription demo (locked for non-authenticated users)
 import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 import { useAuth } from '../contexts/AuthContext'
 import { useRouter } from 'next/navigation'
 import Header from '../../components/Header'
-import TranscriptionForm from '../../components/TranscriptionForm'
-import PricingTiers from '../../components/PricingTiers'
 import Footer from '../../components/Footer'
+import TranscriptionForm from '../../components/TranscriptionForm'
 import { 
-  Play, 
-  Clock, 
-  Download, 
-  Globe, 
-  Zap, 
-  Shield, 
-  Users, 
-  Star, 
+  Lock, 
   CheckCircle, 
-  BarChart3,
+  Clock, 
+  Download,
   FileText,
+  Video,
   Headphones,
-  Monitor,
-  Target,
-  Lock
+  BarChart3,
+  Star,
+  Zap,
+  Shield
 } from 'lucide-react'
-import Link from 'next/link'
 
 export default function AboutPage() {
-  const [isVisible, setIsVisible] = useState(false)
-  const [transcription, setTranscription] = useState<string>('')
-  const [isLoading, setIsLoading] = useState(false)
-  const [showAuthPrompt, setShowAuthPrompt] = useState(false)
-  const [isHovering, setIsHovering] = useState(false)
-  
   const { data: session, status } = useSession()
   const { user: customUser } = useAuth()
   const router = useRouter()
-
-  // Check if user is authenticated
+  
   const isAuthenticated = status === 'authenticated' || !!customUser
+  const isLoading = status === 'loading'
 
-  useEffect(() => {
-    setIsVisible(true)
-    
-    // Handle hash navigation for anchor links
-    if (typeof window !== 'undefined') {
-      const hash = window.location.hash
-      if (hash) {
-        const element = document.querySelector(hash)
-        if (element) {
-          setTimeout(() => {
-            element.scrollIntoView({ behavior: 'smooth' })
-          }, 100)
-        }
-      }
-    }
-  }, [])
+  // Mock state for transcription form
+  const [isTranscribing, setIsTranscribing] = useState(false)
+  const [transcription, setTranscription] = useState('')
 
-  const handleTranscription = async (youtubeUrl: string) => {
+  const handleTranscribe = async (youtubeUrl: string) => {
     if (!isAuthenticated) {
-      setShowAuthPrompt(true)
+      // Show lock overlay or redirect to login
       return
     }
     
-    setIsLoading(true)
-    try {
-      // Redirect to loading page with the YouTube URL
-      const encodedUrl = encodeURIComponent(youtubeUrl)
-      window.location.href = `/loading?url=${encodedUrl}`
-    } catch (error) {
-      console.error('Transcription failed:', error)
-      setIsLoading(false)
-    }
-  }
-
-  const handleInputFocus = () => {
-    if (!isAuthenticated) {
-      setShowAuthPrompt(true)
-    }
+    setIsTranscribing(true)
+    // TODO: Implement actual transcription logic
+    console.log('Transcribing:', youtubeUrl)
+    setTimeout(() => {
+      setIsTranscribing(false)
+      setTranscription('Sample transcription result...')
+    }, 2000)
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-700 transition-colors duration-200">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-700">
       <Header />
       
       <main className="pt-28">
         {/* Hero Section */}
-        <section className={`text-center py-20 px-4 hero-animate transition-all duration-1000 ${
-          isVisible ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'
-        }`}>
-          <div className="max-w-6xl mx-auto">
-            <div className="mb-8">
-              <div className="inline-flex items-center gap-2 bg-primary-100 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300 px-4 py-2 rounded-full text-sm font-medium mb-6">
-                <Zap className="w-4 h-4" />
-                AI-Powered Transcription
-              </div>
-              <h1 className="text-5xl md:text-6xl font-bold text-gray-900 dark:text-white mb-6 leading-tight">
-                Transform YouTube Videos
-                <span className="block text-primary-600 dark:text-primary-400">Into Perfect Transcripts</span>
-              </h1>
-              <p className="text-xl md:text-2xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto mb-8 leading-relaxed">
-                Get accurate, timestamped transcripts in seconds. Perfect for content creators, researchers, and professionals who need reliable video-to-text conversion.
-              </p>
-              
-              {/* Hero Stats */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 max-w-4xl mx-auto mb-8">
-                <div className="text-center p-3 md:p-0">
-                  <div className="text-2xl md:text-3xl font-bold text-primary-600 dark:text-primary-400 mb-1 md:mb-2">99.5%</div>
-                  <div className="text-xs md:text-sm text-gray-600 dark:text-gray-400">Accuracy Rate</div>
-                </div>
-                <div className="text-center p-3 md:p-0">
-                  <div className="text-2xl md:text-3xl font-bold text-primary-600 dark:text-primary-400 mb-1 md:mb-2">50+</div>
-                  <div className="text-xs md:text-sm text-gray-600 dark:text-gray-400">Languages</div>
-                </div>
-                <div className="text-center p-3 md:p-0">
-                  <div className="text-2xl md:text-3xl font-bold text-primary-600 dark:text-primary-400 mb-1 md:mb-2">24/7</div>
-                  <div className="text-xs md:text-sm text-gray-600 dark:text-gray-400">Processing</div>
-                </div>
-                <div className="text-center p-3 md:p-0">
-                  <div className="text-2xl md:text-3xl font-bold text-primary-600 dark:text-primary-400 mb-1 md:mb-2">10k+</div>
-                  <div className="text-xs md:text-sm text-gray-600 dark:text-gray-400">Happy Users</div>
-                </div>
-              </div>
-
-              
-            </div>
-
-            
+        <section className="text-center py-20 px-4">
+          <div className="max-w-4xl mx-auto">
+            <h1 className="text-5xl md:text-6xl font-bold text-gray-900 dark:text-white mb-6">
+              AI-Powered Video Transcription
+            </h1>
+            <p className="text-xl md:text-2xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto leading-relaxed">
+              Transform any YouTube video into accurate, searchable text with our advanced AI technology. 
+              Get timestamps, speaker detection, and multiple export formats.
+            </p>
           </div>
         </section>
 
-        {/* Transcription Form Section - Main Focus */}
-        <section id="transcription-form" className="py-24 px-4 form-animate">
-          <div className="max-w-5xl mx-auto">
-            <div className="text-center mb-16">
-              <h2 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-6">
-                Start Transcribing Now
-              </h2>
-              <p className="text-xl md:text-2xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto leading-relaxed">
-                Transform any YouTube video into a perfect transcript in seconds
-              </p>
-            </div>
-            
-            <div className="max-w-4xl mx-auto">
-              <div 
-                className="relative"
-                onMouseEnter={() => setIsHovering(true)}
-                onMouseLeave={() => setIsHovering(false)}
-              >
-                {/* Authentication Overlay */}
-                {showAuthPrompt && (
-                  <div className="absolute inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-10 rounded-2xl">
-                    <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 max-w-md mx-4 text-center border border-gray-200 dark:border-gray-700">
-                      <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <Lock className="h-8 w-8 text-blue-600 dark:text-blue-400" />
-                      </div>
-                      <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
-                        Sign Up to Transcribe
-                      </h3>
-                      <p className="text-gray-600 dark:text-gray-300 mb-6">
-                        Create your account to start transcribing YouTube videos with our AI technology.
-                      </p>
-                      <div className="flex flex-col gap-3">
-                        <Link
-                          href="/register"
-                          className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors duration-200"
-                        >
-                          Get Started Free
-                        </Link>
-                        <button
-                          onClick={() => setShowAuthPrompt(false)}
-                          className="w-full py-3 px-4 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-semibold rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200"
-                        >
-                          Maybe Later
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                )}
+        {/* Features Grid */}
+        <section className="py-20 px-4">
+          <div className="max-w-6xl mx-auto">
+            <h2 className="text-3xl md:text-4xl font-bold text-center text-gray-900 dark:text-white mb-16">
+              Why Choose StreamScribe?
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              <div className="bg-white dark:bg-gray-800 rounded-xl p-6 text-center shadow-lg">
+                <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Headphones className="h-8 w-8 text-blue-600 dark:text-blue-400" />
+                </div>
+                <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">
+                  High Accuracy
+                </h3>
+                <p className="text-gray-600 dark:text-gray-300">
+                  Industry-leading AI models for precise transcription with 99%+ accuracy
+                </p>
+              </div>
 
-                {/* Hover Prompt */}
-                {isHovering && !showAuthPrompt && !isAuthenticated && (
-                  <div className="absolute inset-0 bg-blue-600/90 backdrop-blur-sm flex items-center justify-center transition-all duration-300 rounded-2xl">
+              <div className="bg-white dark:bg-gray-800 rounded-xl p-6 text-center shadow-lg">
+                <div className="w-16 h-16 bg-green-100 dark:bg-green-900/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Clock className="h-8 w-8 text-green-600 dark:text-green-400" />
+                </div>
+                <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">
+                  Word-Level Timestamps
+                </h3>
+                <p className="text-gray-600 dark:text-gray-300">
+                  Navigate to any moment in your content instantly with precise timing
+                </p>
+              </div>
+
+              <div className="bg-white dark:bg-gray-800 rounded-xl p-6 text-center shadow-lg">
+                <div className="w-16 h-16 bg-purple-100 dark:bg-purple-900/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Download className="h-8 w-8 text-purple-600 dark:text-purple-400" />
+                </div>
+                <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">
+                  Multiple Formats
+                </h3>
+                <p className="text-gray-600 dark:text-gray-300">
+                  Export as TXT, DOCX, SRT, VTT, MP3, or MP4 based on your plan
+                </p>
+              </div>
+
+              <div className="bg-white dark:bg-gray-800 rounded-xl p-6 text-center shadow-lg">
+                <div className="w-16 h-16 bg-orange-100 dark:bg-orange-900/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <BarChart3 className="h-8 w-8 text-orange-600 dark:text-orange-400" />
+                </div>
+                <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">
+                  Advanced Analytics
+                </h3>
+                <p className="text-gray-600 dark:text-gray-300">
+                  Get insights, key quotes, and action items from your content
+                </p>
+              </div>
+
+              <div className="bg-white dark:bg-gray-800 rounded-xl p-6 text-center shadow-lg">
+                <div className="w-16 h-16 bg-red-100 dark:bg-red-900/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Shield className="h-8 w-8 text-red-600 dark:text-red-400" />
+                </div>
+                <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">
+                  Secure & Private
+                </h3>
+                <p className="text-gray-600 dark:text-gray-300">
+                  Your content is processed securely and never shared with third parties
+                </p>
+              </div>
+
+              <div className="bg-white dark:bg-gray-800 rounded-xl p-6 text-center shadow-lg">
+                <div className="w-16 h-16 bg-yellow-100 dark:bg-yellow-900/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Zap className="h-8 w-8 text-yellow-600 dark:text-yellow-400" />
+                </div>
+                <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">
+                  Lightning Fast
+                </h3>
+                <p className="text-gray-600 dark:text-gray-300">
+                  Process videos up to 10x faster than traditional transcription services
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Transcription Form Section */}
+        <section className="py-20 px-4">
+          <div className="max-w-4xl mx-auto">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-xl border border-gray-200 dark:border-gray-700">
+              <div className="text-center mb-8">
+                <div className="w-20 h-20 bg-primary-100 dark:bg-primary-900/20 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <Video className="h-10 w-10 text-primary-600 dark:text-primary-400" />
+                </div>
+                <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
+                  Try It Now
+                </h2>
+                <p className="text-xl text-gray-600 dark:text-gray-300">
+                  Experience the power of AI transcription with any YouTube video
+                </p>
+              </div>
+
+              {/* Lock Overlay for Non-Authenticated Users */}
+              <div className="relative group">
+                {!isAuthenticated && (
+                  <div className="absolute inset-0 bg-blue-600/40 backdrop-blur-sm flex items-center justify-center transition-all duration-300 rounded-2xl z-20">
                     <div className="text-center text-white">
-                      <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4 backdrop-blur-sm">
-                        <Lock className="h-8 w-8 text-white" />
+                      <div className="w-24 h-24 bg-white/30 rounded-full flex items-center justify-center mx-auto mb-6 backdrop-blur-sm shadow-lg">
+                        <Lock className="h-12 w-12 text-white" />
                       </div>
-                      <h3 className="text-xl font-semibold mb-2">Transcription Locked</h3>
-                      <p className="text-blue-100 text-sm">
+                      <h3 className="text-3xl font-bold mb-4">Transcription Locked</h3>
+                      <p className="text-blue-100 text-xl">
                         Sign up to unlock AI-powered transcription
                       </p>
                     </div>
@@ -197,10 +181,9 @@ export default function AboutPage() {
                 )}
 
                 <TranscriptionForm 
-                  onTranscribe={handleTranscription}
-                  isLoading={isLoading}
+                  onTranscribe={handleTranscribe}
+                  isLoading={isTranscribing}
                   transcription={transcription}
-                  onInputFocus={handleInputFocus}
                   disabled={!isAuthenticated}
                 />
               </div>
@@ -208,311 +191,28 @@ export default function AboutPage() {
           </div>
         </section>
 
-        {/* Features Section */}
-        <section id="features" className="py-20 px-4 section-animate">
-          <div className="max-w-7xl mx-auto">
-            <div className="text-center mb-16">
-              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-4">
-                Why Choose StreamScribe?
-              </h2>
-              <p className="text-lg text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
-                Our advanced AI technology and user-friendly platform make video transcription effortless and accurate
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
-              {/* Feature 1 */}
-              <div className={`card p-6 text-center transition-all duration-200 hover:scale-105 group ${
-                isVisible ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'
-              }`}>
-                <div className="w-16 h-16 bg-primary-100 dark:bg-primary-900/20 rounded-full flex items-center justify-center mx-auto mb-4 transition-all duration-200 group-hover:bg-primary-200 dark:group-hover:bg-primary-800/30 group-hover:scale-110">
-                  <Zap className="w-8 h-8 text-primary-600 dark:text-primary-500 transition-all duration-200 group-hover:scale-110" />
-                </div>
-                <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">Lightning Fast</h3>
-                <p className="text-gray-600 dark:text-gray-300">
-                  Get transcripts in seconds, not hours. Our AI processes videos 10x faster than traditional methods.
-                </p>
-              </div>
-
-              {/* Feature 2 */}
-              <div className={`card p-6 text-center transition-all duration-200 hover:scale-105 group ${
-                isVisible ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'
-              }`}>
-                <div className="w-16 h-16 bg-primary-100 dark:bg-primary-900/20 rounded-full flex items-center justify-center mx-auto mb-4 transition-all duration-200 group-hover:bg-primary-200 dark:group-hover:bg-primary-800/30 group-hover:scale-110">
-                  <Target className="w-8 h-8 text-primary-600 dark:text-primary-500 transition-all duration-200 group-hover:scale-110" />
-                </div>
-                <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">99.5% Accuracy</h3>
-                <p className="text-gray-600 dark:text-gray-300">
-                  Industry-leading accuracy with advanced speech recognition and natural language processing.
-                </p>
-              </div>
-
-              {/* Feature 3 */}
-              <div className={`card p-6 text-center transition-all duration-200 hover:scale-105 group ${
-                isVisible ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'
-              }`}>
-                <div className="w-16 h-16 bg-primary-100 dark:bg-primary-900/20 rounded-full flex items-center justify-center mx-auto mb-4 transition-all duration-200 group-hover:bg-primary-200 dark:group-hover:bg-primary-800/30 group-hover:scale-110">
-                  <Globe className="w-8 h-8 text-primary-600 dark:text-primary-500 transition-all duration-200 group-hover:scale-110" />
-                </div>
-                <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">50+ Languages</h3>
-                <p className="text-gray-600 dark:text-gray-300">
-                  Support for major world languages with automatic language detection and translation.
-                </p>
-              </div>
-
-              {/* Feature 4 */}
-              <div className={`card p-6 text-center transition-all duration-200 hover:scale-105 group ${
-                isVisible ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'
-              }`}>
-                <div className="w-16 h-16 bg-primary-100 dark:bg-primary-900/20 rounded-full flex items-center justify-center mx-auto mb-4 transition-all duration-200 group-hover:bg-primary-200 dark:group-hover:bg-primary-800/30 group-hover:scale-110">
-                  <Clock className="w-8 h-8 text-primary-600 dark:text-primary-500 transition-all duration-200 group-hover:scale-110" />
-                </div>
-                <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">Timestamps</h3>
-                <p className="text-gray-600 dark:text-gray-300">
-                  Precise timestamps for every word, making it easy to navigate and reference specific parts.
-                </p>
-              </div>
-
-              {/* Feature 5 */}
-              <div className={`card p-6 text-center transition-all duration-200 hover:scale-105 group ${
-                isVisible ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'
-              }`}>
-                <div className="w-16 h-16 bg-primary-100 dark:bg-primary-900/20 rounded-full flex items-center justify-center mx-auto mb-4 transition-all duration-200 group-hover:bg-primary-200 dark:group-hover:bg-primary-800/30 group-hover:scale-110">
-                  <Download className="w-8 h-8 text-primary-600 dark:text-primary-500 transition-all duration-200 group-hover:scale-110" />
-                </div>
-                <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">Multiple Formats</h3>
-                <p className="text-gray-600 dark:text-gray-300">
-                  Export in TXT, SRT, VTT, or PDF formats for maximum compatibility with your workflow.
-                </p>
-              </div>
-
-              {/* Feature 6 */}
-              <div className={`card p-6 text-center transition-all duration-200 hover:scale-105 group ${
-                isVisible ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'
-              }`}>
-                <div className="w-16 h-16 bg-primary-100 dark:bg-primary-900/20 rounded-full flex items-center justify-center mx-auto mb-4 transition-all duration-200 group-hover:bg-primary-200 dark:group-hover:bg-primary-800/30 group-hover:scale-110">
-                  <Shield className="w-8 h-8 text-primary-600 dark:text-primary-500 transition-all duration-200 group-hover:scale-110" />
-                </div>
-                <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">Enterprise Security</h3>
-                <p className="text-gray-600 dark:text-gray-300">
-                  Bank-level encryption and GDPR compliance ensure your content stays private and secure.
-                </p>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* How It Works Section */}
-        <section className="py-20 px-4 section-animate">
-          <div className="max-w-6xl mx-auto">
-            <div className="text-center mb-16">
-              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-4">
-                How It Works
-              </h2>
-              <p className="text-lg text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
-                Three simple steps to get your perfect transcript
-              </p>
-            </div>
-
-            <div className="grid md:grid-cols-3 gap-8">
-              <div className={`text-center transition-all duration-200 hover:scale-105 group ${
-                isVisible ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'
-              }`}>
-                <div className="w-20 h-20 bg-primary-100 dark:bg-primary-900/20 rounded-full flex items-center justify-center mx-auto mb-6 transition-all duration-200 group-hover:bg-primary-200 dark:group-hover:bg-primary-800/30 group-hover:scale-110">
-                  <span className="text-2xl font-bold text-primary-600 dark:text-primary-500 transition-all duration-200 group-hover:scale-110">1</span>
-                </div>
-                <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">Paste URL</h3>
-                <p className="text-gray-600 dark:text-gray-300">
-                  Simply copy and paste any YouTube video URL into our transcription form
-                </p>
-              </div>
-
-              <div className={`text-center transition-all duration-200 hover:scale-105 group ${
-                isVisible ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'
-              }`}>
-                <div className="w-20 h-20 bg-primary-100 dark:bg-primary-900/20 rounded-full flex items-center justify-center mx-auto mb-6 transition-all duration-200 group-hover:bg-primary-200 dark:group-hover:bg-primary-800/30 group-hover:scale-110">
-                  <span className="text-2xl font-bold text-primary-600 dark:text-primary-500 transition-all duration-200 group-hover:scale-110">2</span>
-                </div>
-                <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">AI Processing</h3>
-                <p className="text-gray-600 dark:text-gray-300">
-                  Our advanced AI analyzes the audio and generates a highly accurate transcript
-                </p>
-              </div>
-
-              <div className={`text-center transition-all duration-200 hover:scale-105 group ${
-                isVisible ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'
-              }`}>
-                <div className="w-20 h-20 bg-primary-100 dark:bg-primary-900/20 rounded-full flex items-center justify-center mx-auto mb-6 transition-all duration-200 group-hover:bg-primary-200 dark:group-hover:bg-primary-800/30 group-hover:scale-110">
-                  <span className="text-2xl font-bold text-primary-600 dark:text-primary-500 transition-all duration-200 group-hover:scale-110">3</span>
-                </div>
-                <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">Download</h3>
-                <p className="text-gray-600 dark:text-gray-300">
-                  Download your transcript in multiple formats and start using it immediately
-                </p>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* Use Cases Section */}
-        <section className="py-20 px-4 section-animate">
-          <div className="max-w-6xl mx-auto">
-            <div className="text-center mb-16">
-              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-4">
-                Perfect For Every Need
-              </h2>
-              <p className="text-lg text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
-                Whether you're a content creator, researcher, or business professional, StreamScribe has you covered
-              </p>
-            </div>
-
-            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <div className={`card p-6 text-center transition-all duration-200 hover:scale-105 group ${
-                isVisible ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'
-              }`}>
-                <div className="w-16 h-16 bg-primary-100 dark:bg-primary-900/20 rounded-full flex items-center justify-center mx-auto mb-4 transition-all duration-200 group-hover:bg-primary-200 dark:group-hover:bg-primary-800/30 group-hover:scale-110">
-                  <Monitor className="w-8 h-8 text-primary-600 dark:text-primary-500 transition-all duration-200 group-hover:scale-110" />
-                </div>
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Content Creators</h3>
-                <p className="text-sm text-gray-600 dark:text-gray-300">
-                  Create captions, blog posts, and social media content from your videos
-                </p>
-              </div>
-
-              <div className={`card p-6 text-center transition-all duration-200 hover:scale-105 group ${
-                isVisible ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'
-              }`}>
-                <div className="w-16 h-16 bg-primary-100 dark:bg-primary-900/20 rounded-full flex items-center justify-center mx-auto mb-4 transition-all duration-200 group-hover:bg-primary-200 dark:group-hover:bg-primary-800/30 group-hover:scale-110">
-                  <BarChart3 className="w-8 h-8 text-primary-600 dark:text-primary-500 transition-all duration-200 group-hover:scale-110" />
-                </div>
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Researchers</h3>
-                <p className="text-sm text-gray-600 dark:text-gray-300">
-                  Analyze interviews, lectures, and research presentations with ease
-                </p>
-              </div>
-
-              <div className={`card p-6 text-center transition-all duration-200 hover:scale-105 group ${
-                isVisible ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'
-              }`}>
-                <div className="w-16 h-16 bg-primary-100 dark:bg-primary-900/20 rounded-full flex items-center justify-center mx-auto mb-4 transition-all duration-200 group-hover:bg-primary-200 dark:group-hover:bg-primary-800/30 group-hover:scale-110">
-                  <Users className="w-8 h-8 text-primary-600 dark:text-primary-500 transition-all duration-200 group-hover:scale-110" />
-                </div>
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Business Teams</h3>
-                <p className="text-sm text-gray-600 dark:text-gray-300">
-                  Document meetings, training sessions, and presentations
-                </p>
-              </div>
-
-              <div className={`card p-6 text-center transition-all duration-200 hover:scale-105 group ${
-                isVisible ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'
-              }`}>
-                <div className="w-16 h-16 bg-primary-100 dark:bg-primary-900/20 rounded-full flex items-center justify-center mx-auto mb-4 transition-all duration-200 group-hover:bg-primary-200 dark:group-hover:bg-primary-800/30 group-hover:scale-110">
-                  <Headphones className="w-8 h-8 text-primary-600 dark:text-primary-500 transition-all duration-200 group-hover:scale-110" />
-                </div>
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Accessibility</h3>
-                <p className="text-sm text-gray-600 dark:text-gray-300">
-                  Make your content accessible to hearing-impaired audiences
-                </p>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        
-
-        {/* Pricing Section */}
-        <section id="pricing" className="py-20 px-4 section-animate">
-          <div className="max-w-6xl mx-auto">
-            <div className="text-center mb-16">
-              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-4">
-                Choose Your Plan
-              </h2>
-              <p className="text-lg text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
-                Start with our free tier and upgrade as you grow. All plans include our core features and 24/7 support.
-              </p>
-            </div>
-            <PricingTiers />
-          </div>
-        </section>
-
-        {/* Testimonials Section */}
-        <section className="py-20 px-4 section-animate">
-          <div className="max-w-6xl mx-auto">
-            <div className="text-center mb-16">
-              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-4">
-                Loved by Thousands
-              </h2>
-              <p className="text-lg text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
-                See what our users are saying about StreamScribe
-              </p>
-            </div>
-
-            <div className="grid md:grid-cols-3 gap-8">
-              <div className={`card p-6 transition-all duration-200 hover:scale-105 ${
-                isVisible ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'
-              }`}>
-                <div className="flex items-center gap-1 mb-4">
-                  {[...Array(5)].map((_, i) => (
-                    <Star key={i} className="w-5 h-5 text-yellow-400 fill-current" />
-                  ))}
-                </div>
-                <p className="text-gray-600 dark:text-gray-300 mb-4">
-                  "StreamScribe has revolutionized my content creation workflow. I can now turn my YouTube videos into blog posts in minutes instead of hours!"
-                </p>
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-primary-100 dark:bg-primary-900/20 rounded-full flex items-center justify-center">
-                    <span className="text-sm font-semibold text-primary-600 dark:text-primary-500">S</span>
-                  </div>
-                  <div>
-                    <div className="font-semibold text-gray-900 dark:text-white">Sarah Chen</div>
-                    <div className="text-sm text-gray-500 dark:text-gray-400">Content Creator</div>
-                  </div>
-                </div>
-              </div>
-
-              <div className={`card p-6 transition-all duration-200 hover:scale-105 ${
-                isVisible ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'
-              }`}>
-                <div className="flex items-center gap-1 mb-4">
-                  {[...Array(5)].map((_, i) => (
-                    <Star key={i} className="w-5 h-5 text-yellow-400 fill-current" />
-                  ))}
-                </div>
-                <p className="text-gray-600 dark:text-gray-300 mb-4">
-                  "As a researcher, I need accurate transcripts of interviews. StreamScribe delivers 99.5% accuracy every time. It's become an essential tool in my toolkit."
-                </p>
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-primary-100 dark:bg-primary-900/20 rounded-full flex items-center justify-center">
-                    <span className="text-sm font-semibold text-primary-600 dark:text-primary-500">D</span>
-                  </div>
-                  <div>
-                    <div className="font-semibold text-gray-900 dark:text-white">Dr. Michael Rodriguez</div>
-                    <div className="text-sm text-gray-500 dark:text-gray-400">Research Professor</div>
-                  </div>
-                </div>
-              </div>
-
-              <div className={`card p-6 transition-all duration-200 hover:scale-105 ${
-                isVisible ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'
-              }`}>
-                <div className="flex items-center gap-1 mb-4">
-                  {[...Array(5)].map((_, i) => (
-                    <Star key={i} className="w-5 h-5 text-yellow-400 fill-current" />
-                  ))}
-                </div>
-                <p className="text-gray-600 dark:text-gray-300 mb-4">
-                  "Our marketing team uses StreamScribe to transcribe client meetings and training sessions. The accuracy and speed are incredible!"
-                </p>
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-primary-100 dark:bg-primary-900/20 rounded-full flex items-center justify-center">
-                    <span className="text-sm font-semibold text-primary-600 dark:text-primary-500">E</span>
-                  </div>
-                  <div>
-                    <div className="font-semibold text-gray-900 dark:text-white">Emma Thompson</div>
-                    <div className="text-sm text-gray-500 dark:text-gray-400">Marketing Director</div>
-                  </div>
-                </div>
-              </div>
+        {/* CTA Section */}
+        <section className="py-20 px-4 text-center">
+          <div className="max-w-4xl mx-auto">
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-6">
+              Ready to Get Started?
+            </h2>
+            <p className="text-xl text-gray-600 dark:text-gray-300 mb-8">
+              Join thousands of users who trust StreamScribe for their transcription needs.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <a
+                href="/register"
+                className="inline-flex items-center justify-center px-8 py-4 bg-primary-600 hover:bg-primary-700 text-white font-semibold rounded-lg transition-colors duration-200"
+              >
+                Get Started
+              </a>
+              <a
+                href="/pricing"
+                className="inline-flex items-center justify-center px-8 py-4 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-semibold rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200"
+              >
+                View Pricing
+              </a>
             </div>
           </div>
         </section>

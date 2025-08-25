@@ -1,11 +1,11 @@
 'use client'
 
-import { useSession, signOut } from 'next-auth/react'
+import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { Menu, X, Youtube, User, LogOut, Shield, Clock, FileText } from 'lucide-react'
-import ThemeToggle from '../../components/ThemeToggle'
+import { Youtube, Clock, FileText } from 'lucide-react'
+import Header from '../../components/Header'
 import { useAuth } from '../contexts/AuthContext'
 
 interface Transcription {
@@ -21,8 +21,6 @@ export default function DashboardPage() {
   const { data: session, status } = useSession()
   const { user: customUser, logout: customLogout, isLoading: customLoading } = useAuth()
   const router = useRouter()
-  const [isMenuOpen, setIsMenuOpen] = useState(false)
-  const [isScrolled, setIsScrolled] = useState(false)
   const [recentTranscriptions, setRecentTranscriptions] = useState<Transcription[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -43,16 +41,6 @@ export default function DashboardPage() {
       fetchRecentTranscriptions()
     }
   }, [isAuthenticated, currentUser])
-
-  useEffect(() => {
-    const handleScroll = () => {
-      const scrollTop = window.scrollY
-      setIsScrolled(scrollTop > 10)
-    }
-
-    window.addEventListener('scroll', handleScroll)
-    return () => window.removeEventListener('scroll', handleScroll)
-  }, [])
 
   const fetchRecentTranscriptions = async () => {
     try {
@@ -81,16 +69,6 @@ export default function DashboardPage() {
     }
   }
 
-  const handleSignOut = () => {
-    if (session) {
-      // NextAuth user
-      signOut({ callbackUrl: '/' })
-    } else {
-      // Custom auth user
-      customLogout()
-    }
-  }
-
   const formatDuration = (seconds: number) => {
     const minutes = Math.floor(seconds / 60)
     const remainingSeconds = Math.floor(seconds % 60)
@@ -99,31 +77,46 @@ export default function DashboardPage() {
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
       month: 'short',
-      day: 'numeric',
-      year: 'numeric'
+      day: 'numeric'
     })
   }
 
-  // Get user display info
-  const getUserDisplayInfo = () => {
-    if (session?.user) {
-      return {
-        name: session.user.name || 'User',
-        image: session.user.image,
-        email: session.user.email
-      }
-    } else if (customUser) {
-      return {
-        name: `${customUser.firstName} ${customUser.lastName}`,
-        image: null,
-        email: customUser.email
-      }
-    }
-    return { name: 'User', image: null, email: '' }
-  }
+  // Remove unused handleSignOut function since Header handles logout
+  // const handleSignOut = () => {
+  //   if (session) {
+  //     // NextAuth user
+  //     signOut({ callbackUrl: '/' })
+  //   } else {
+  //     // Custom auth user
+  //     customLogout()
+  //   }
+  // }
 
-  const userInfo = getUserDisplayInfo()
+  // Remove unused userInfo and getUserDisplayInfo function
+  // const userInfo = getUserDisplayInfo()
+  // const getUserDisplayInfo = () => {
+  //   if (session?.user) {
+  //     return {
+  //       name: session.user.name || 'User',
+  //       image: session.user.image,
+  //       email: session.user.email || ''
+  //     }
+  //   } else if (customUser) {
+  //     return {
+  //       name: `${customUser.firstName} ${customUser.lastName}`,
+  //       image: customUser.avatar || null,
+  //       email: customUser.email
+  //     }
+  //   } else {
+  //     return {
+  //       name: 'User',
+  //       image: null,
+  //       email: ''
+  //     }
+  //   }
+  // }
 
   if (isLoading) {
     return (
@@ -146,127 +139,14 @@ export default function DashboardPage() {
       `}</style>
       
       {/* Header - Matching Main Page Design */}
-      <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-200 ${
-        isScrolled 
-          ? 'bg-white/85 dark:bg-gray-900/85 backdrop-blur-md shadow-lg rounded-b-2xl' 
-          : 'bg-white dark:bg-gray-900 shadow-sm rounded-b-2xl'
-      } border-b border-gray-100 dark:border-gray-800`}>
-        <div className="container mx-auto px-4">
-          <div className="flex items-center justify-between h-16">
-            {/* Logo */}
-            <div className={`flex items-center gap-2 transition-all duration-200 ${
-              isScrolled ? 'scale-95' : 'scale-100'
-            }`}>
-              <Link href="/" className="flex items-center gap-2">
-                <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center">
-                  <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M2.5 17a24.12 24.12 0 0 1 0-10 2 2 0 0 1 1.4-1.4 49.56 49.56 0 0 1 16.2 0A2 2 0 0 1 21.5 7a24.12 24.12 0 0 1 0 10 2 2 0 0 1-1.4 1.4 49.55 49.55 0 0 1-16.2 0A2 2 0 0 1 2.5 17" fill="white"/>
-                    <path d="m10 15 5-3-5-3z" fill="#2563EB"/>
-                  </svg>
-                </div>
-                <span className="text-xl font-bold text-gray-900 dark:text-white">StreamScribe</span>
-              </Link>
-            </div>
-
-            {/* Desktop Navigation - User Info & Sign Out */}
-            <nav className={`hidden md:flex items-center gap-6 transition-all duration-200 ${
-              isScrolled ? 'gap-5' : 'gap-6'
-            }`}>
-              {/* User Info */}
-              <div className="flex items-center space-x-3">
-                {userInfo.image ? (
-                  <img 
-                    src={userInfo.image} 
-                    alt={userInfo.name}
-                    className="h-8 w-8 rounded-full border-2 border-gray-200 dark:border-gray-700"
-                  />
-                ) : (
-                  <div className="h-8 w-8 rounded-full bg-blue-100 dark:bg-blue-900/20 flex items-center justify-center">
-                    <User className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                  </div>
-                )}
-                <span className="text-gray-700 dark:text-gray-300 font-medium">
-                  {userInfo.name}
-                </span>
-              </div>
-              
-              {/* Sign Out Button */}
-              <button
-                onClick={handleSignOut}
-                className={`nav-link text-gray-600 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400 transition-all duration-200 flex items-center gap-2 ${
-                  isScrolled ? 'scale-95 opacity-90' : 'scale-100 opacity-100'
-                }`}
-              >
-                <LogOut className="w-4 h-4" />
-                Sign Out
-              </button>
-
-              {/* Theme Toggle */}
-              <div className={`transition-all duration-200 ${
-                isScrolled ? 'scale-95' : 'scale-100'
-              }`}>
-                <ThemeToggle />
-              </div>
-            </nav>
-
-            {/* Mobile Menu Button and Theme Toggle */}
-            <div className="md:hidden flex items-center gap-3">
-              <ThemeToggle />
-              <button
-                onClick={() => setIsMenuOpen(!isMenuOpen)}
-                className="p-2 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 transition-all duration-200 mobile-menu-container"
-                aria-label="Toggle mobile menu"
-              >
-                {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-              </button>
-            </div>
-          </div>
-
-          {/* Mobile Menu */}
-          {isMenuOpen && (
-            <div className="md:hidden border-t border-gray-200 dark:border-gray-700 mobile-menu-container">
-              <nav className="py-4 px-4 space-y-3">
-                {/* User Info Mobile */}
-                <div className="flex items-center space-x-3 py-3 px-4">
-                  {userInfo.image ? (
-                    <img 
-                      src={userInfo.image} 
-                      alt={userInfo.name}
-                      className="h-8 w-8 rounded-full border-2 border-gray-200 dark:border-gray-700"
-                    />
-                  ) : (
-                    <div className="h-8 w-8 rounded-full bg-blue-100 dark:bg-blue-900/20 flex items-center justify-center">
-                      <User className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                    </div>
-                  )}
-                  <span className="text-gray-700 dark:text-gray-300 font-medium">
-                    {userInfo.name}
-                  </span>
-                </div>
-                
-                {/* Sign Out Mobile */}
-                <button 
-                  onClick={() => {
-                    handleSignOut()
-                    setIsMenuOpen(false)
-                  }}
-                  className="w-full text-left py-3 px-4 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-200 text-gray-600 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400 flex items-center gap-2"
-                >
-                  <LogOut className="w-4 h-4" />
-                  Sign Out
-                </button>
-              </nav>
-            </div>
-          )}
-        </div>
-      </header>
+      <Header />
 
       {/* Main Content - Adjusted for Fixed Header */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pt-28">
         {/* Welcome Section */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-            Welcome back, {userInfo.name.split(' ')[0]}!
+            Welcome back, {session?.user?.name?.split(' ')[0] || customUser?.firstName || 'User'}!
           </h1>
           <p className="text-gray-600 dark:text-gray-300">
             Here's what's happening with your transcriptions
@@ -310,7 +190,7 @@ export default function DashboardPage() {
                 </p>
               </div>
               <div className="h-12 w-12 bg-purple-100 dark:bg-purple-900/20 rounded-lg flex items-center justify-center">
-                <Shield className="h-6 w-6 text-purple-600 dark:text-purple-400" />
+                {/* Shield icon removed as per new_code */}
               </div>
             </div>
           </div>

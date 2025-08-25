@@ -57,19 +57,6 @@ export default function Header() {
     signOut({ callbackUrl: '/' })
   }
 
-  const handleAnchorClick = (section: string) => {
-    // If we're not on the main page, navigate there first
-    if (pathname !== '/') {
-      router.push(`/#${section}`)
-    } else {
-      // If we're already on the main page, just scroll to the section
-      const element = document.getElementById(section)
-      if (element) {
-        element.scrollIntoView({ behavior: 'smooth' })
-      }
-    }
-  }
-
   return (
     <>
       <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-200 ${
@@ -98,19 +85,19 @@ export default function Header() {
             <nav className={`hidden md:flex items-center gap-6 transition-all duration-200 ${
               isScrolled ? 'gap-5' : 'gap-6'
             }`}>
-              <button 
-                onClick={() => handleAnchorClick('features')}
+              <Link 
+                href="/"
                 className={`nav-link text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-500 transition-all duration-200 ${
                   isScrolled ? 'scale-95 opacity-90' : 'scale-100 opacity-100'
-                }`}
+                } ${pathname === '/' ? 'text-primary-600 dark:text-primary-400 border-b-2 border-primary-600 dark:border-primary-400' : ''}`}
               >
-                Features
-              </button>
+                About
+              </Link>
               <Link 
                 href="/pricing"
                 className={`nav-link text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-500 transition-all duration-200 ${
                   isScrolled ? 'scale-95 opacity-90' : 'scale-100 opacity-100'
-                }`}
+                } ${pathname === '/pricing' ? 'text-primary-600 dark:text-primary-400 border-b-2 border-primary-600 dark:border-primary-400' : ''}`}
               >
                 Pricing
               </Link>
@@ -121,7 +108,7 @@ export default function Header() {
                     href="/dashboard" 
                     className={`nav-link text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-500 transition-all duration-200 ${
                       isScrolled ? 'scale-95 opacity-90' : 'scale-100 opacity-100'
-                    }`}
+                    } ${pathname === '/dashboard' ? 'text-primary-600 dark:text-primary-400 border-b-2 border-primary-600 dark:border-primary-400' : ''}`}
                   >
                     Dashboard
                   </Link>
@@ -199,19 +186,21 @@ export default function Header() {
           {isMenuOpen && (
             <div className="md:hidden border-t border-gray-200 dark:border-gray-700 mobile-menu-container">
               <nav className="py-4 px-4 space-y-3">
-                <button 
-                  onClick={() => {
-                    handleAnchorClick('features')
-                    setIsMenuOpen(false)
-                  }}
-                  className="w-full text-left py-3 px-4 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-200 text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-500"
+                <Link 
+                  href="/"
+                  onClick={() => setIsMenuOpen(false)}
+                  className={`w-full text-left py-3 px-4 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-200 text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-500 ${
+                    pathname === '/' ? 'text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-900/20' : ''
+                  }`}
                 >
-                  Features
-                </button>
+                  About
+                </Link>
                 <Link 
                   href="/pricing"
                   onClick={() => setIsMenuOpen(false)}
-                  className="w-full text-left py-3 px-4 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-200 text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-500"
+                  className={`w-full text-left py-3 px-4 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-200 text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-500 ${
+                    pathname === '/pricing' ? 'text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-900/20' : ''
+                  }`}
                 >
                   Pricing
                 </Link>
@@ -244,7 +233,9 @@ export default function Header() {
                     <Link 
                       href="/dashboard" 
                       onClick={() => setIsMenuOpen(false)}
-                      className="block w-full text-left py-3 px-4 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-200 text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-500"
+                      className={`block w-full text-left py-3 px-4 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-200 text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-500 ${
+                        pathname === '/dashboard' ? 'text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-900/20' : ''
+                      }`}
                     >
                       Dashboard
                     </Link>
