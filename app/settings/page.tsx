@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 import { useAuth } from '../contexts/AuthContext'
 import { useRouter } from 'next/navigation'
+import { useTheme } from '@/lib/theme'
 import Header from '../../components/Header'
 import Footer from '../../components/Footer'
 import { 
@@ -29,6 +30,7 @@ export default function SettingsPage() {
   const { data: session, status } = useSession()
   const { user: customUser } = useAuth()
   const router = useRouter()
+  const { theme: currentTheme, setTheme } = useTheme()
   
   const isAuthenticated = status === 'authenticated' || !!customUser
   const isLoading = status === 'loading'
@@ -53,8 +55,8 @@ export default function SettingsPage() {
 
   const [isEditingProfile, setIsEditingProfile] = useState(false)
   const [profileData, setProfileData] = useState({
-    name: currentUser?.name || '',
-    email: currentUser?.email || '',
+    name: (currentUser as any)?.name || '',
+    email: (currentUser as any)?.email || '',
     timezone: 'UTC+0',
     language: 'English'
   })
@@ -66,7 +68,8 @@ export default function SettingsPage() {
     newFeatures: false
   })
 
-  const [theme, setTheme] = useState('system')
+  // Remove the local theme state since we're using the context
+  // const [theme, setTheme] = useState('system')
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -315,15 +318,15 @@ export default function SettingsPage() {
                     </label>
                     <div className="grid grid-cols-3 gap-3">
                       {[
-                        { value: 'light', label: 'Light', icon: '☀️' },
-                        { value: 'dark', label: 'Dark', icon: '🌙' },
-                        { value: 'system', label: 'System', icon: '💻' }
+                        { value: 'light' as const, label: 'Light', icon: '☀️' },
+                        { value: 'dark' as const, label: 'Dark', icon: '🌙' },
+                        { value: 'system' as const, label: 'System', icon: '💻' }
                       ].map((option) => (
                         <button
                           key={option.value}
                           onClick={() => setTheme(option.value)}
                           className={`p-4 rounded-lg border-2 transition-all ${
-                            theme === option.value
+                            currentTheme === option.value
                               ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20'
                               : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'
                           }`}
@@ -424,15 +427,15 @@ export default function SettingsPage() {
                 </h3>
                 
                 <div className="space-y-3">
-                  <button className="w-full text-left p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors flex items-center gap-3 text-gray-700 dark:text-gray-200">
+                  <button className="w-full text-left p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors flex items-center gap-3 text-gray-700 dark:text-gray-200 hover:text-primary-600 dark:hover:text-primary-400">
                     <Download className="w-5 h-5 text-primary-600" />
                     Export Data
                   </button>
-                  <button className="w-full text-left p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors flex items-center gap-3 text-gray-700 dark:text-gray-200">
+                  <button className="w-full text-left p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors flex items-center gap-3 text-gray-700 dark:text-gray-200 hover:text-primary-600 dark:hover:text-primary-400">
                     <Clock className="w-5 h-5 text-primary-600" />
                     View History
                   </button>
-                  <button className="w-full text-left p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors flex items-center gap-3 text-gray-700 dark:text-gray-200">
+                  <button className="w-full text-left p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors flex items-center gap-3 text-gray-700 dark:text-gray-200 hover:text-primary-600 dark:hover:text-primary-400">
                     <SettingsIcon className="w-5 h-5 text-primary-600" />
                     Advanced Settings
                   </button>
