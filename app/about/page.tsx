@@ -3,12 +3,12 @@
 // About Page - Features showcase with transcription demo (locked for non-authenticated users)
 import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
-import { useAuth } from './contexts/AuthContext'
+import { useAuth } from '../contexts/AuthContext'
 import { useRouter } from 'next/navigation'
-import Header from '../components/Header'
-import TranscriptionForm from '../components/TranscriptionForm'
-import PricingTiers from '../components/PricingTiers'
-import Footer from '../components/Footer'
+import Header from '../../components/Header'
+import TranscriptionForm from '../../components/TranscriptionForm'
+import PricingTiers from '../../components/PricingTiers'
+import Footer from '../../components/Footer'
 import { 
   Play, 
   Clock, 
@@ -28,7 +28,7 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 
-export default function HomePage() {
+export default function AboutPage() {
   const [isVisible, setIsVisible] = useState(false)
   const [transcription, setTranscription] = useState<string>('')
   const [isLoading, setIsLoading] = useState(false)
@@ -81,25 +81,6 @@ export default function HomePage() {
       setShowAuthPrompt(true)
     }
   }
-
-  // Debug logging
-  useEffect(() => {
-    console.log('Auth state:', { 
-      isAuthenticated, 
-      isHovering, 
-      showAuthPrompt, 
-      sessionStatus: status, 
-      customUser: !!customUser,
-      session: !!session
-    })
-  }, [isAuthenticated, isHovering, showAuthPrompt, status, customUser, session])
-
-  // Force hover state for testing when not authenticated
-  useEffect(() => {
-    if (!isAuthenticated) {
-      console.log('User not authenticated, hover overlay should work')
-    }
-  }, [isAuthenticated])
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-700 transition-colors duration-200">
@@ -165,13 +146,13 @@ export default function HomePage() {
             
             <div className="max-w-4xl mx-auto">
               <div 
-                className="relative group"
-                onMouseEnter={() => !isAuthenticated && setIsHovering(true)}
+                className="relative"
+                onMouseEnter={() => setIsHovering(true)}
                 onMouseLeave={() => setIsHovering(false)}
               >
                 {/* Authentication Overlay */}
                 {showAuthPrompt && (
-                  <div className="absolute inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-30 rounded-2xl">
+                  <div className="absolute inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-10 rounded-2xl">
                     <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 max-w-md mx-4 text-center border border-gray-200 dark:border-gray-700">
                       <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/20 rounded-full flex items-center justify-center mx-auto mb-4">
                         <Lock className="h-8 w-8 text-blue-600 dark:text-blue-400" />
@@ -200,30 +181,28 @@ export default function HomePage() {
                   </div>
                 )}
 
-                {/* Hover Lock Overlay */}
+                {/* Hover Prompt */}
                 {isHovering && !showAuthPrompt && !isAuthenticated && (
-                  <div className="absolute inset-0 bg-blue-600/40 backdrop-blur-sm flex items-center justify-center transition-all duration-300 rounded-2xl z-20">
+                  <div className="absolute inset-0 bg-blue-600/90 backdrop-blur-sm flex items-center justify-center transition-all duration-300 rounded-2xl">
                     <div className="text-center text-white">
-                      <div className="w-24 h-24 bg-white/30 rounded-full flex items-center justify-center mx-auto mb-6 backdrop-blur-sm shadow-lg">
-                        <Lock className="h-12 w-12 text-white" />
+                      <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4 backdrop-blur-sm">
+                        <Lock className="h-8 w-8 text-white" />
                       </div>
-                      <h3 className="text-3xl font-bold mb-4">Transcription Locked</h3>
-                      <p className="text-blue-100 text-xl">
+                      <h3 className="text-xl font-semibold mb-2">Transcription Locked</h3>
+                      <p className="text-blue-100 text-sm">
                         Sign up to unlock AI-powered transcription
                       </p>
                     </div>
                   </div>
                 )}
 
-                <div className="relative">
-                  <TranscriptionForm 
-                    onTranscribe={handleTranscription}
-                    isLoading={isLoading}
-                    transcription={transcription}
-                    onInputFocus={handleInputFocus}
-                    disabled={!isAuthenticated}
-                  />
-                </div>
+                <TranscriptionForm 
+                  onTranscribe={handleTranscription}
+                  isLoading={isLoading}
+                  transcription={transcription}
+                  onInputFocus={handleInputFocus}
+                  disabled={!isAuthenticated}
+                />
               </div>
             </div>
           </div>

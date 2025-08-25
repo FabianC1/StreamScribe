@@ -7,9 +7,11 @@ interface TranscriptionFormProps {
   onTranscribe: (youtubeUrl: string) => void
   isLoading: boolean
   transcription: string
+  onInputFocus?: () => void
+  disabled?: boolean
 }
 
-export default function TranscriptionForm({ onTranscribe, isLoading, transcription }: TranscriptionFormProps) {
+export default function TranscriptionForm({ onTranscribe, isLoading, transcription, onInputFocus, disabled = false }: TranscriptionFormProps) {
   const [youtubeUrl, setYoutubeUrl] = useState('')
   const [isProcessing, setIsProcessing] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -137,12 +139,13 @@ export default function TranscriptionForm({ onTranscribe, isLoading, transcripti
                     ? 'border-red-500 dark:border-red-400 focus:ring-red-500/20 focus:border-red-500'
                     : 'border-gray-300 dark:border-gray-600 hover:border-primary-300 dark:hover:border-primary-500'
                 }`}
-                disabled={isProcessing || isLoading}
+                disabled={isProcessing || isLoading || disabled}
+                onFocus={onInputFocus}
               />
             </div>
             <button
               type="submit"
-              disabled={!isValidYouTubeUrl(youtubeUrl) || isLoading || isProcessing}
+              disabled={!isValidYouTubeUrl(youtubeUrl) || isLoading || isProcessing || disabled}
               className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3 px-8 py-4 text-lg font-semibold hover:scale-105 transition-all duration-200 whitespace-nowrap"
             >
               {isProcessing ? (
