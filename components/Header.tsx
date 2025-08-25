@@ -87,30 +87,39 @@ export default function Header() {
             }`}>
               <Link 
                 href="/"
-                className={`nav-link text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-500 transition-all duration-200 ${
+                className={`nav-link text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-500 transition-all duration-200 relative ${
                   isScrolled ? 'scale-95 opacity-90' : 'scale-100 opacity-100'
-                } ${pathname === '/' ? 'text-primary-600 dark:text-primary-400 border-b-2 border-primary-600 dark:border-primary-400' : ''}`}
+                }`}
               >
                 About
+                {pathname === '/' && (
+                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary-400 via-secondary-500 to-primary-600 animate-gradient-border"></div>
+                )}
               </Link>
               <Link 
                 href="/pricing"
-                className={`nav-link text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-500 transition-all duration-200 ${
+                className={`nav-link text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-500 transition-all duration-200 relative ${
                   isScrolled ? 'scale-95 opacity-90' : 'scale-100 opacity-100'
-                } ${pathname === '/pricing' ? 'text-primary-600 dark:text-primary-400 border-b-2 border-primary-600 dark:border-primary-400' : ''}`}
+                }`}
               >
                 Pricing
+                {pathname === '/pricing' && (
+                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary-400 via-secondary-500 to-primary-600 animate-gradient-border"></div>
+                )}
               </Link>
                
               {isAuthenticated ? (
                 <>
                   <Link 
                     href="/dashboard" 
-                    className={`nav-link text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-500 transition-all duration-200 ${
+                    className={`nav-link text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-500 transition-all duration-200 relative ${
                       isScrolled ? 'scale-95 opacity-90' : 'scale-100 opacity-100'
-                    } ${pathname === '/dashboard' ? 'text-primary-600 dark:text-primary-400 border-b-2 border-primary-600 dark:border-primary-400' : ''}`}
+                    }`}
                   >
                     Dashboard
+                    {pathname === '/dashboard' && (
+                      <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary-400 via-secondary-500 to-primary-600 animate-gradient-border"></div>
+                    )}
                   </Link>
                   <div className="flex items-center gap-3">
                     <div className="flex items-center gap-2">
@@ -189,20 +198,26 @@ export default function Header() {
                 <Link 
                   href="/"
                   onClick={() => setIsMenuOpen(false)}
-                  className={`w-full text-left py-3 px-4 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-200 text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-500 ${
+                  className={`w-full text-left py-3 px-4 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-200 text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-500 relative ${
                     pathname === '/' ? 'text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-900/20' : ''
                   }`}
                 >
                   About
+                  {pathname === '/' && (
+                    <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary-400 via-secondary-500 to-primary-600 animate-gradient-border"></div>
+                  )}
                 </Link>
                 <Link 
                   href="/pricing"
                   onClick={() => setIsMenuOpen(false)}
-                  className={`w-full text-left py-3 px-4 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-200 text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-500 ${
+                  className={`w-full text-left py-3 px-4 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-200 text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-500 relative ${
                     pathname === '/pricing' ? 'text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-900/20' : ''
                   }`}
                 >
                   Pricing
+                  {pathname === '/pricing' && (
+                    <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary-400 via-secondary-500 to-primary-600 animate-gradient-border"></div>
+                  )}
                 </Link>
                  
                 {isAuthenticated ? (
@@ -233,11 +248,14 @@ export default function Header() {
                     <Link 
                       href="/dashboard" 
                       onClick={() => setIsMenuOpen(false)}
-                      className={`block w-full text-left py-3 px-4 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-200 text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-500 ${
+                      className={`block w-full text-left py-3 px-4 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-200 text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-500 relative ${
                         pathname === '/dashboard' ? 'text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-900/20' : ''
                       }`}
                     >
                       Dashboard
+                      {pathname === '/dashboard' && (
+                        <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary-400 via-secondary-500 to-primary-600 animate-gradient-border"></div>
+                      )}
                     </Link>
                     <button
                       onClick={() => {

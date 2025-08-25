@@ -45,6 +45,7 @@ export default function PricingPage() {
         'Email support'
       ],
       limitations: [
+        'Ads shown (ad removal not included)',
         'No DOCX/SRT/VTT export',
         'No MP3/MP4 download',
         'No AI highlights',

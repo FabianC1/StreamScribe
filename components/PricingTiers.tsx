@@ -30,7 +30,8 @@ export default function PricingTiers() {
         'Timestamps',
         'Save notes',
         'Cached transcripts',
-        'Video history'
+        'Video history',
+        'Ads shown (ad removal not included)'
       ],
       icon: <Zap className="w-6 h-6" />
     },
