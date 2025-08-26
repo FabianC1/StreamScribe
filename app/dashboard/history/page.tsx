@@ -25,6 +25,7 @@ export default function HistoryPage() {
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [filteredTranscriptions, setFilteredTranscriptions] = useState<Transcription[]>([])
+  const [deleteConfirmation, setDeleteConfirmation] = useState<{ show: boolean; transcriptionId: string; videoTitle: string } | null>(null)
 
   // Helper function to extract YouTube video ID from URL
   const getVideoId = (url: string): string => {
@@ -74,6 +75,25 @@ export default function HistoryPage() {
       console.error('Error fetching transcriptions:', error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleDeleteTranscription = async (transcriptionId: string) => {
+    try {
+      const response = await fetch(`/api/transcriptions/${transcriptionId}`, {
+        method: 'DELETE',
+      })
+      
+      if (response.ok) {
+        // Remove from local state
+        setTranscriptions(prev => prev.filter(t => t._id !== transcriptionId))
+        setFilteredTranscriptions(prev => prev.filter(t => t._id !== transcriptionId))
+        setDeleteConfirmation(null)
+      } else {
+        console.error('Failed to delete transcription')
+      }
+    } catch (error) {
+      console.error('Error deleting transcription:', error)
     }
   }
 
@@ -157,94 +177,112 @@ export default function HistoryPage() {
           </div>
         </div>
 
-        {/* Transcriptions List */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm">
-          {loading ? (
-            <div className="text-center py-12">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-              <p className="mt-4 text-gray-500 dark:text-gray-400">Loading transcriptions...</p>
-            </div>
-          ) : filteredTranscriptions.length > 0 ? (
-            <div className="divide-y divide-gray-200 dark:divide-gray-700">
-              {filteredTranscriptions.map((transcription) => (
-                <div key={transcription._id} className="p-6 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-start space-x-3">
-                        {transcription.videoId ? (
-                          <img 
-                            src={getThumbnailUrl(transcription.videoId)} 
-                            alt={transcription.videoTitle}
-                            className="h-12 w-12 rounded-lg object-cover flex-shrink-0 border border-gray-200 dark:border-gray-600"
-                            onError={(e) => {
-                              // Fallback to YouTube icon if image fails to load
-                              const target = e.target as HTMLImageElement
-                              target.style.display = 'none'
-                              const fallback = target.nextElementSibling as HTMLElement
-                              if (fallback) fallback.style.display = 'flex'
-                            }}
-                          />
-                        ) : null}
-                        <div className={`h-12 w-12 bg-blue-100 dark:bg-blue-900/20 rounded-lg flex items-center justify-center flex-shrink-0 ${
-                          transcription.videoId ? 'hidden' : ''
-                        }`}>
-                          <Youtube className="h-6 w-6 text-blue-600 dark:text-blue-400" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
-                            {transcription.videoTitle}
-                          </h3>
-                          <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500 dark:text-gray-400 mb-3">
-                            <span className="flex items-center space-x-1 group relative">
-                              <Clock className="h-4 w-4" />
-                              <span className="cursor-help" title={`${transcription.audioDuration} seconds`}>
-                                {formatDuration(transcription.audioDuration)}
-                              </span>
-                            </span>
-                            <span className="flex items-center space-x-1">
-                              <FileText className="h-4 w-4" />
-                              <span>{transcription.highlights.length} highlights</span>
-                            </span>
-                            <span>Transcribed {formatDate(transcription)}</span>
-                          </div>
-                          <div className="flex flex-wrap gap-2">
-                            {transcription.highlights.slice(0, 3).map((highlight, index) => (
-                              <span
-                                key={index}
-                                className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-900/20 text-blue-800 dark:text-blue-200"
-                              >
-                                {typeof highlight === 'string' ? highlight : highlight.text || 'Highlight'}
-                              </span>
-                            ))}
-                            {transcription.highlights.length > 3 && (
-                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200">
-                                +{transcription.highlights.length - 3} more
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex flex-col gap-2 ml-4">
-                                             <Link
-              href={`/transcription-results?url=${encodeURIComponent(transcription.youtubeUrl)}&fromHistory=true`}
-              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors duration-200 text-center"
-            >
-              Edit
-            </Link>
-                      <a
-                        href={transcription.youtubeUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors duration-200"
-                      >
-                        Open Video
-                      </a>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
+                 {/* Transcriptions List */}
+         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm overflow-hidden">
+           {loading ? (
+             <div className="text-center py-12">
+               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+               <p className="mt-4 text-gray-500 dark:text-gray-400">Loading transcriptions...</p>
+             </div>
+           ) : filteredTranscriptions.length > 0 ? (
+             <div className="space-y-0">
+               {filteredTranscriptions.map((transcription, index) => (
+                 <div key={transcription._id}>
+                   <div className="p-6 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-200">
+                     <div className="flex items-start justify-between">
+                       <div className="flex-1">
+                         <div className="flex items-start space-x-4">
+                           {transcription.videoId ? (
+                             <img 
+                               src={getThumbnailUrl(transcription.videoId)} 
+                               alt={transcription.videoTitle}
+                               className="h-16 w-16 rounded-lg object-cover flex-shrink-0 border border-gray-200 dark:border-gray-600 shadow-sm"
+                               onError={(e) => {
+                                 // Fallback to YouTube icon if image fails to load
+                                 const target = e.target as HTMLImageElement
+                                 target.style.display = 'none'
+                                 const fallback = target.nextElementSibling as HTMLElement
+                                 if (fallback) fallback.style.display = 'flex'
+                               }}
+                             />
+                           ) : null}
+                           <div className={`h-16 w-16 bg-blue-100 dark:bg-blue-900/20 rounded-lg flex items-center justify-center flex-shrink-0 shadow-sm ${
+                             transcription.videoId ? 'hidden' : ''
+                           }`}>
+                             <Youtube className="h-8 w-8 text-blue-600 dark:text-blue-400" />
+                           </div>
+                           <div className="flex-1 min-w-0">
+                             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2 line-clamp-2">
+                               {transcription.videoTitle}
+                             </h3>
+                             <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500 dark:text-gray-400 mb-3">
+                               <span className="flex items-center space-x-2">
+                                 <Clock className="h-4 w-4" />
+                                 <span className="cursor-help" title={`${transcription.audioDuration} seconds`}>
+                                   {formatDuration(transcription.audioDuration)}
+                                 </span>
+                               </span>
+                               <span className="flex items-center space-x-2">
+                                 <FileText className="h-4 w-4" />
+                                 <span>{transcription.highlights.length} highlights</span>
+                               </span>
+                               <span className="text-xs bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded-full">
+                                 {formatDate(transcription)}
+                               </span>
+                             </div>
+                             <div className="flex flex-wrap gap-2">
+                               {transcription.highlights.slice(0, 3).map((highlight, index) => (
+                                 <span
+                                   key={index}
+                                   className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-900/20 text-blue-800 dark:text-blue-200 border border-blue-200 dark:border-blue-800"
+                                 >
+                                   {typeof highlight === 'string' ? highlight : highlight.text || 'Highlight'}
+                                 </span>
+                               ))}
+                               {transcription.highlights.length > 3 && (
+                                 <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 border border-gray-200 dark:border-gray-600">
+                                   +{transcription.highlights.length - 3} more
+                                 </span>
+                               )}
+                             </div>
+                           </div>
+                         </div>
+                       </div>
+                       <div className="flex flex-col gap-2 ml-4">
+                         <Link
+                           href={`/transcription-results?url=${encodeURIComponent(transcription.youtubeUrl)}&fromHistory=true`}
+                           className="px-3 py-2 text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-all duration-300 text-center relative group border-2 border-transparent hover:border-blue-400"
+                         >
+                           <span className="relative z-10">Edit</span>
+                         </Link>
+                         <a
+                           href={transcription.youtubeUrl}
+                           target="_blank"
+                           rel="noopener noreferrer"
+                           className="px-3 py-2 text-xs font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-md transition-all duration-300 relative group border-2 border-transparent hover:border-gray-400"
+                         >
+                           <span className="relative z-10">Open Video</span>
+                         </a>
+                         <button
+                           onClick={() => setDeleteConfirmation({ 
+                             show: true, 
+                             transcriptionId: transcription._id, 
+                             videoTitle: transcription.videoTitle 
+                           })}
+                           className="px-3 py-2 text-xs font-medium text-white bg-red-600 hover:bg-red-700 rounded-md transition-all duration-300 relative group border-2 border-transparent hover:border-red-400"
+                         >
+                           <span className="relative z-10">Delete</span>
+                         </button>
+                       </div>
+                     </div>
+                   </div>
+                                       {/* Linear Gradient Separator */}
+                    {index < filteredTranscriptions.length - 1 && (
+                      <div className="h-0.5 bg-gradient-to-r from-transparent via-blue-400 to-transparent opacity-50"></div>
+                    )}
+                 </div>
+               ))}
+             </div>
           ) : (
             <div className="text-center py-12">
               <svg className="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -271,8 +309,36 @@ export default function HistoryPage() {
               )}
             </div>
           )}
-        </div>
-      </main>
-    </div>
-  )
-}
+                 </div>
+       </main>
+
+       {/* Delete Confirmation Modal */}
+       {deleteConfirmation && (
+         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+           <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4 shadow-xl">
+             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+               Delete Transcription
+             </h3>
+             <p className="text-gray-600 dark:text-gray-300 mb-6">
+               Are you sure you want to remove "{deleteConfirmation.videoTitle}"? This action cannot be undone.
+             </p>
+             <div className="flex gap-3">
+               <button
+                 onClick={() => setDeleteConfirmation(null)}
+                 className="flex-1 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors duration-200"
+               >
+                 No, Cancel
+               </button>
+               <button
+                 onClick={() => handleDeleteTranscription(deleteConfirmation.transcriptionId)}
+                 className="flex-1 px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors duration-200"
+               >
+                 Yes, Delete
+               </button>
+             </div>
+           </div>
+         </div>
+       )}
+     </div>
+   )
+ }

@@ -26,6 +26,7 @@ export default function DashboardPage() {
   const [usageData, setUsageData] = useState({ hoursUsed: 0, totalTranscriptions: 0 })
   const [isLoading, setIsLoading] = useState(true)
   const [showDuplicateMessage, setShowDuplicateMessage] = useState(false)
+  const [deleteConfirmation, setDeleteConfirmation] = useState<{ show: boolean; transcriptionId: string; videoTitle: string } | null>(null)
   
   const isAuthenticated = status === 'authenticated' || !!customUser
   const isLoadingAuth = status === 'loading'
@@ -61,21 +62,41 @@ export default function DashboardPage() {
     }
   }
 
-  const fetchUsageData = async () => {
+    const fetchUsageData = async () => {
     try {
       const response = await fetch('/api/usage/stats')
       if (response.ok) {
         const data = await response.json()
                  setUsageData({
-           hoursUsed: data.monthlyHours || 0,
-           totalTranscriptions: data.totalTranscriptions || 0
-         })
+          hoursUsed: data.monthlyHours || 0,
+          totalTranscriptions: data.totalTranscriptions || 0
+        })
         console.log('✅ Usage data fetched:', data)
       } else {
         console.error('❌ Usage API response not ok:', response.status)
       }
     } catch (error) {
       console.error('Failed to fetch usage data:', error)
+    }
+  }
+
+  const handleDeleteTranscription = async (transcriptionId: string) => {
+    try {
+      const response = await fetch(`/api/transcriptions/${transcriptionId}`, {
+        method: 'DELETE',
+      })
+      
+      if (response.ok) {
+        // Remove from local state
+        setRecentTranscriptions(prev => prev.filter(t => t._id !== transcriptionId))
+        // Refresh usage data since total count changed
+        fetchUsageData()
+        setDeleteConfirmation(null)
+      } else {
+        console.error('Failed to delete transcription')
+      }
+    } catch (error) {
+      console.error('Error deleting transcription:', error)
     }
   }
 
@@ -245,58 +266,70 @@ export default function DashboardPage() {
             ) : recentTranscriptions.length > 0 ? (
               <div className="space-y-4">
                                  {recentTranscriptions.slice(0, 5).map((transcription) => (
-                   <div key={transcription._id} className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                     <div className="flex items-center space-x-3">
-                       <div className={`h-10 w-10 rounded-lg flex items-center justify-center ${
-                         transcription.status === 'failed' 
-                           ? 'bg-red-100 dark:bg-red-900/20' 
-                           : 'bg-blue-100 dark:bg-blue-900/20'
-                       }`}>
-                         <Youtube className={`h-5 w-5 ${
-                           transcription.status === 'failed'
-                             ? 'text-red-600 dark:text-red-400'
-                             : 'text-blue-600 dark:text-blue-400'
-                         }`} />
-                       </div>
-                       <div>
-                         <h3 className="font-medium text-gray-900 dark:text-white">
-                           {transcription.videoTitle}
-                         </h3>
-                         <div className="flex items-center space-x-4 text-sm text-gray-500 dark:text-gray-400">
-                           <span className="flex items-center space-x-1">
-                             <Clock className="h-4 w-4" />
-                             <span>{formatDuration(transcription.audioDuration)}</span>
-                           </span>
-                           {(transcription.status === 'completed' || !transcription.status) && (
-                             <span className="flex items-center space-x-1">
-                               <Play className="h-4 w-4" />
-                               <span>{transcription.confidence && !isNaN(transcription.confidence) ? Math.round(transcription.confidence * 100) : 0}% confidence</span>
-                             </span>
-                           )}
-                           <span className={`${
-                             transcription.status === 'failed' ? 'text-red-600 dark:text-red-400' : ''
-                           }`}>
-                             {transcription.status === 'failed' ? 'Failed' : `Transcribed ${formatDate(transcription.createdAt)}`}
-                           </span>
-                         </div>
-                       </div>
-                     </div>
+                                       <div key={transcription._id} className="flex items-center justify-between p-6 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                      <div className="flex items-center space-x-4">
+                        <div className={`h-16 w-16 rounded-lg flex items-center justify-center ${
+                          transcription.status === 'failed' 
+                            ? 'bg-red-100 dark:bg-red-900/20' 
+                            : 'bg-blue-100 dark:bg-blue-900/20'
+                        }`}>
+                          <Youtube className={`h-8 w-8 ${
+                            transcription.status === 'failed'
+                              ? 'text-red-600 dark:text-red-400'
+                              : 'text-blue-600 dark:text-blue-400'
+                          }`} />
+                        </div>
+                        <div>
+                          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                            {transcription.videoTitle}
+                          </h3>
+                          <div className="flex items-center space-x-6 text-base text-gray-500 dark:text-gray-400">
+                            <span className="flex items-center space-x-2">
+                              <Clock className="h-5 w-5" />
+                              <span>{formatDuration(transcription.audioDuration)}</span>
+                            </span>
+                            {(transcription.status === 'completed' || !transcription.status) && (
+                              <span className="flex items-center space-x-2">
+                                <Play className="h-5 w-5" />
+                                <span>{transcription.confidence && !isNaN(transcription.confidence) ? Math.round(transcription.confidence * 100) : 0}% confidence</span>
+                              </span>
+                            )}
+                            <span className={`${
+                              transcription.status === 'failed' ? 'text-red-600 dark:text-red-400' : ''
+                            }`}>
+                              {transcription.status === 'failed' ? 'Failed' : `Transcribed ${formatDate(transcription.createdAt)}`}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
                      
-                     {(transcription.status === 'failed') ? (
-                       <button
-                         onClick={() => router.push(`/transcribe?retry=${encodeURIComponent(transcription.youtubeUrl)}`)}
-                         className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors duration-200"
-                       >
-                         Retry
-                       </button>
-                     ) : (
-                                               <button
-                          onClick={() => router.push(`/transcription-results?url=${encodeURIComponent(transcription.youtubeUrl)}`)}
-                          className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors duration-200 text-center"
-                        >
-                          Edit
-                        </button>
-                     )}
+                                                                                       <div className="flex gap-2">
+                         {(transcription.status === 'failed') ? (
+                           <button
+                             onClick={() => router.push(`/transcribe?retry=${encodeURIComponent(transcription.youtubeUrl)}`)}
+                             className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-all duration-300 relative group border-2 border-transparent hover:border-red-400"
+                           >
+                             <span className="relative z-10">Retry</span>
+                           </button>
+                         ) : (
+                           <button
+                             onClick={() => router.push(`/transcription-results?url=${encodeURIComponent(transcription.youtubeUrl)}`)}
+                             className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-all duration-300 text-center relative group border-2 border-transparent hover:border-blue-400"
+                           >
+                             <span className="relative z-10">Edit</span>
+                           </button>
+                         )}
+                         <button
+                           onClick={() => setDeleteConfirmation({ 
+                             show: true, 
+                             transcriptionId: transcription._id, 
+                             videoTitle: transcription.videoTitle 
+                           })}
+                           className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-all duration-300 relative group border-2 border-transparent hover:border-red-400"
+                         >
+                           <span className="relative z-10">Delete</span>
+                         </button>
+                       </div>
                    </div>
                  ))}
                 {recentTranscriptions.length > 0 && (
@@ -330,8 +363,36 @@ export default function DashboardPage() {
               </div>
             )}
           </div>
-        </div>
-      </main>
-    </div>
-  )
-}
+                 </div>
+       </main>
+
+       {/* Delete Confirmation Modal */}
+       {deleteConfirmation && (
+         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+           <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4 shadow-xl">
+             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+               Delete Transcription
+             </h3>
+             <p className="text-gray-600 dark:text-gray-300 mb-6">
+               Are you sure you want to remove "{deleteConfirmation.videoTitle}"? This action cannot be undone.
+             </p>
+             <div className="flex gap-3">
+               <button
+                 onClick={() => setDeleteConfirmation(null)}
+                 className="flex-1 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors duration-200"
+               >
+                 No, Cancel
+               </button>
+               <button
+                 onClick={() => handleDeleteTranscription(deleteConfirmation.transcriptionId)}
+                 className="flex-1 px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors duration-200"
+               >
+                 Yes, Delete
+               </button>
+             </div>
+           </div>
+         </div>
+       )}
+     </div>
+   )
+ }
