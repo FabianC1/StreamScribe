@@ -22,6 +22,7 @@ export default function DashboardPage() {
   const { user: customUser } = useAuth()
   const router = useRouter()
   const [recentTranscriptions, setRecentTranscriptions] = useState<Transcription[]>([])
+  const [usageData, setUsageData] = useState({ hoursUsed: 0, totalTranscriptions: 0 })
   const [isLoading, setIsLoading] = useState(true)
   const [showDuplicateMessage, setShowDuplicateMessage] = useState(false)
   
@@ -31,6 +32,7 @@ export default function DashboardPage() {
   useEffect(() => {
     if (isAuthenticated) {
       fetchRecentTranscriptions()
+      fetchUsageData()
       
       // Check if user was redirected from duplicate URL attempt
       const urlParams = new URLSearchParams(window.location.search)
@@ -44,7 +46,7 @@ export default function DashboardPage() {
 
   const fetchRecentTranscriptions = async () => {
     try {
-      const response = await fetch('/api/transcriptions/recent')
+      const response = await fetch('/api/dashboard/transcriptions?limit=5')
       if (response.ok) {
         const data = await response.json()
         setRecentTranscriptions(data.transcriptions || [])
@@ -55,6 +57,21 @@ export default function DashboardPage() {
       console.error('Failed to fetch recent transcriptions:', error)
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  const fetchUsageData = async () => {
+    try {
+      const response = await fetch('/api/usage/stats')
+      if (response.ok) {
+        const data = await response.json()
+        setUsageData({
+          hoursUsed: data.monthlyHours || 0,
+          totalTranscriptions: data.totalTranscriptions || 0
+        })
+      }
+    } catch (error) {
+      console.error('Failed to fetch usage data:', error)
     }
   }
 
@@ -146,7 +163,7 @@ export default function DashboardPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Transcriptions</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">{recentTranscriptions.length}</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">{usageData.totalTranscriptions}</p>
               </div>
               <div className="h-12 w-12 bg-blue-100 dark:bg-blue-900/20 rounded-lg flex items-center justify-center">
                 <Youtube className="h-6 w-6 text-blue-600 dark:text-blue-400" />
@@ -162,8 +179,8 @@ export default function DashboardPage() {
                   <span className="hidden group-hover:inline">Minutes Used</span>
                 </p>
                 <p className="text-2xl font-bold text-gray-900 dark:text-white group-hover:text-green-700 dark:group-hover:text-green-300 transition-colors duration-200">
-                  <span className="group-hover:hidden">{customUser ? customUser.hoursUsed : 0}</span>
-                  <span className="hidden group-hover:inline">{customUser ? Math.round((customUser.hoursUsed || 0) * 60) : 0}</span>
+                  <span className="group-hover:hidden">{usageData.hoursUsed.toFixed(2)}</span>
+                  <span className="hidden group-hover:inline">{Math.round(usageData.hoursUsed * 60)}</span>
                 </p>
               </div>
               <div className="h-12 w-12 bg-green-100 dark:bg-green-900/20 rounded-lg flex items-center justify-center group-hover:bg-green-200 dark:group-hover:bg-green-800/30 transition-colors duration-200">
@@ -181,7 +198,9 @@ export default function DashboardPage() {
                 </p>
               </div>
               <div className="h-12 w-12 bg-purple-100 dark:bg-purple-900/20 rounded-lg flex items-center justify-center">
-                <TrendingUp className="h-6 w-6 text-purple-600 dark:text-purple-400" />
+                <svg className="h-6 w-6 text-purple-600 dark:text-purple-400" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                </svg>
               </div>
             </div>
           </div>

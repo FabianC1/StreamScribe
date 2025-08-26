@@ -1,30 +1,41 @@
 'use client'
 
-import { useSession, signOut } from 'next-auth/react'
+import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { Menu, X, LogOut, Youtube, Clock, FileText, Search, Filter, ArrowLeft } from 'lucide-react'
-import ThemeToggle from '../../../components/ThemeToggle'
+import { Youtube, Clock, FileText, Search, Filter, ArrowLeft } from 'lucide-react'
+import Header from '../../../components/Header'
 
 interface Transcription {
   _id: string
   videoTitle: string
   youtubeUrl: string
+  videoId?: string
   audioDuration: number
   cachedAt: string
-  highlights: string[]
+  createdAt?: string
+  highlights: Array<string | { text: string; rank?: number; count?: number; timestamps?: any; _id?: string }>
 }
 
 export default function HistoryPage() {
   const { data: session, status } = useSession()
   const router = useRouter()
-  const [isMenuOpen, setIsMenuOpen] = useState(false)
-  const [isScrolled, setIsScrolled] = useState(false)
   const [transcriptions, setTranscriptions] = useState<Transcription[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [filteredTranscriptions, setFilteredTranscriptions] = useState<Transcription[]>([])
+
+  // Helper function to extract YouTube video ID from URL
+  const getVideoId = (url: string): string => {
+    const match = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\n?#]+)/)
+    return match ? match[1] : ''
+  }
+
+  // Helper function to get YouTube thumbnail URL
+  const getThumbnailUrl = (videoId: string): string => {
+    return `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`
+  }
 
   useEffect(() => {
     if (status === 'loading') return
@@ -47,22 +58,17 @@ export default function HistoryPage() {
     setFilteredTranscriptions(filtered)
   }, [searchTerm, transcriptions])
 
-  useEffect(() => {
-    const handleScroll = () => {
-      const scrollTop = window.scrollY
-      setIsScrolled(scrollTop > 10)
-    }
-
-    window.addEventListener('scroll', handleScroll)
-    return () => window.removeEventListener('scroll', handleScroll)
-  }, [])
-
   const fetchTranscriptions = async () => {
     try {
       const response = await fetch('/api/dashboard/transcriptions?limit=50')
       if (response.ok) {
         const data = await response.json()
-        setTranscriptions(data.transcriptions || [])
+        // Add videoId to each transcription if not already present
+        const transcriptionsWithVideoId = (data.transcriptions || []).map((transcription: Transcription) => ({
+          ...transcription,
+          videoId: transcription.videoId || getVideoId(transcription.youtubeUrl)
+        }))
+        setTranscriptions(transcriptionsWithVideoId)
       }
     } catch (error) {
       console.error('Error fetching transcriptions:', error)
@@ -71,17 +77,22 @@ export default function HistoryPage() {
     }
   }
 
-  const handleSignOut = () => {
-    signOut({ callbackUrl: '/' })
-  }
-
   const formatDuration = (seconds: number) => {
-    const minutes = Math.floor(seconds / 60)
+    const hours = Math.floor(seconds / 3600)
+    const minutes = Math.floor((seconds % 3600) / 60)
     const remainingSeconds = Math.floor(seconds % 60)
-    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`
+    
+    if (hours > 0) {
+      return `${hours}h ${minutes}m ${remainingSeconds}s`
+    } else if (minutes > 0) {
+      return `${minutes}m ${remainingSeconds}s`
+    } else {
+      return `${remainingSeconds}s`
+    }
   }
 
-  const formatDate = (dateString: string) => {
+  const formatDate = (transcription: Transcription) => {
+    const dateString = transcription.createdAt || transcription.cachedAt
     return new Date(dateString).toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
@@ -103,121 +114,9 @@ export default function HistoryPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-700 transition-colors duration-200">
-      <style jsx>{`
-        .nav-link {
-          @apply text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-500 transition-all duration-200;
-        }
-      `}</style>
+      <Header />
       
-      {/* Header - Matching Main Page Design */}
-      <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-200 ${
-        isScrolled 
-          ? 'bg-white/85 dark:bg-gray-900/85 backdrop-blur-md shadow-lg rounded-b-2xl' 
-          : 'bg-white dark:bg-gray-900 shadow-sm rounded-b-2xl'
-      } border-b border-gray-100 dark:border-gray-800`}>
-        <div className="container mx-auto px-4">
-          <div className="flex items-center justify-between h-16">
-            {/* Logo */}
-            <div className={`flex items-center gap-2 transition-all duration-200 ${
-              isScrolled ? 'scale-95' : 'scale-100'
-            }`}>
-              <Link href="/" className="flex items-center gap-2">
-                <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center">
-                  <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M2.5 17a24.12 24.12 0 0 1 0-10 2 2 0 0 1 1.4-1.4 49.56 49.56 0 0 1 16.2 0A2 2 0 0 1 21.5 7a24.12 24.12 0 0 1 0 10 2 2 0 0 1-1.4 1.4 49.55 49.55 0 0 1-16.2 0A2 2 0 0 1 2.5 17" fill="white"/>
-                    <path d="m10 15 5-3-5-3z" fill="#2563EB"/>
-                  </svg>
-                </div>
-                <span className="text-xl font-bold text-gray-900 dark:text-white">StreamScribe</span>
-              </Link>
-            </div>
-
-            {/* Desktop Navigation - User Info & Sign Out */}
-            <nav className={`hidden md:flex items-center gap-6 transition-all duration-200 ${
-              isScrolled ? 'gap-5' : 'gap-6'
-            }`}>
-              {/* User Info */}
-              <div className="flex items-center space-x-3">
-                {session?.user?.image && (
-                  <img 
-                    src={session.user.image} 
-                    alt={session.user.name || 'User'}
-                    className="h-8 w-8 rounded-full border-2 border-gray-200 dark:border-gray-700"
-                  />
-                )}
-                <span className="text-gray-700 dark:text-gray-300 font-medium">
-                  {session?.user?.name || 'User'}
-                </span>
-              </div>
-              
-              {/* Sign Out Button */}
-              <button
-                onClick={handleSignOut}
-                className={`nav-link text-gray-600 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400 transition-all duration-200 flex items-center gap-2 ${
-                  isScrolled ? 'scale-95 opacity-90' : 'scale-100 opacity-100'
-                }`}
-              >
-                <LogOut className="w-4 h-4" />
-                Sign Out
-              </button>
-
-              {/* Theme Toggle */}
-              <div className={`transition-all duration-200 ${
-                isScrolled ? 'scale-95' : 'scale-100'
-              }`}>
-                <ThemeToggle />
-              </div>
-            </nav>
-
-            {/* Mobile Menu Button and Theme Toggle */}
-            <div className="md:hidden flex items-center gap-3">
-              <ThemeToggle />
-              <button
-                onClick={() => setIsMenuOpen(!isMenuOpen)}
-                className="p-2 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 transition-all duration-200 mobile-menu-container"
-                aria-label="Toggle mobile menu"
-              >
-                {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-              </button>
-            </div>
-          </div>
-
-          {/* Mobile Menu */}
-          {isMenuOpen && (
-            <div className="md:hidden border-t border-gray-200 dark:border-gray-700 mobile-menu-container">
-              <nav className="py-4 px-4 space-y-3">
-                {/* User Info Mobile */}
-                <div className="flex items-center space-x-3 py-3 px-4">
-                  {session?.user?.image && (
-                    <img 
-                      src={session.user.image} 
-                      alt={session.user.name || 'User'}
-                      className="h-8 w-8 rounded-full border-2 border-gray-200 dark:border-gray-700"
-                    />
-                  )}
-                  <span className="text-gray-700 dark:text-gray-300 font-medium">
-                    {session?.user?.name || 'User'}
-                  </span>
-                </div>
-                
-                {/* Sign Out Mobile */}
-                <button 
-                  onClick={() => {
-                    handleSignOut()
-                    setIsMenuOpen(false)
-                  }}
-                  className="w-full text-left py-3 px-4 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-200 text-gray-600 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400 flex items-center gap-2"
-                >
-                  <LogOut className="w-4 h-4" />
-                  Sign Out
-                </button>
-              </nav>
-            </div>
-          )}
-        </div>
-      </header>
-
-      {/* Main Content - Adjusted for Fixed Header */}
+      {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pt-28">
         {/* Page Header */}
         <div className="mb-8">
@@ -272,7 +171,23 @@ export default function HistoryPage() {
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <div className="flex items-start space-x-3">
-                        <div className="h-12 w-12 bg-blue-100 dark:bg-blue-900/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                        {transcription.videoId ? (
+                          <img 
+                            src={getThumbnailUrl(transcription.videoId)} 
+                            alt={transcription.videoTitle}
+                            className="h-12 w-12 rounded-lg object-cover flex-shrink-0 border border-gray-200 dark:border-gray-600"
+                            onError={(e) => {
+                              // Fallback to YouTube icon if image fails to load
+                              const target = e.target as HTMLImageElement
+                              target.style.display = 'none'
+                              const fallback = target.nextElementSibling as HTMLElement
+                              if (fallback) fallback.style.display = 'flex'
+                            }}
+                          />
+                        ) : null}
+                        <div className={`h-12 w-12 bg-blue-100 dark:bg-blue-900/20 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                          transcription.videoId ? 'hidden' : ''
+                        }`}>
                           <Youtube className="h-6 w-6 text-blue-600 dark:text-blue-400" />
                         </div>
                         <div className="flex-1 min-w-0">
@@ -280,15 +195,17 @@ export default function HistoryPage() {
                             {transcription.videoTitle}
                           </h3>
                           <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500 dark:text-gray-400 mb-3">
-                            <span className="flex items-center space-x-1">
+                            <span className="flex items-center space-x-1 group relative">
                               <Clock className="h-4 w-4" />
-                              <span>{formatDuration(transcription.audioDuration)}</span>
+                              <span className="cursor-help" title={`${transcription.audioDuration} seconds`}>
+                                {formatDuration(transcription.audioDuration)}
+                              </span>
                             </span>
                             <span className="flex items-center space-x-1">
                               <FileText className="h-4 w-4" />
                               <span>{transcription.highlights.length} highlights</span>
                             </span>
-                            <span>Transcribed {formatDate(transcription.cachedAt)}</span>
+                            <span>Transcribed {formatDate(transcription)}</span>
                           </div>
                           <div className="flex flex-wrap gap-2">
                             {transcription.highlights.slice(0, 3).map((highlight, index) => (
@@ -296,7 +213,7 @@ export default function HistoryPage() {
                                 key={index}
                                 className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-900/20 text-blue-800 dark:text-blue-200"
                               >
-                                {highlight}
+                                {typeof highlight === 'string' ? highlight : highlight.text || 'Highlight'}
                               </span>
                             ))}
                             {transcription.highlights.length > 3 && (
@@ -310,7 +227,7 @@ export default function HistoryPage() {
                     </div>
                     <div className="flex flex-col gap-2 ml-4">
                       <Link
-                        href={`/transcription-results?id=${transcription._id}`}
+                        href={`/transcription-results?url=${encodeURIComponent(transcription.youtubeUrl)}&fromHistory=true`}
                         className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors duration-200"
                       >
                         View Details

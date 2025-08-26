@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import connectDB from '../../../../lib/mongodb'
+import { Transcription } from '@/models'
+import mongoose from 'mongoose'
 
 export async function GET(request: NextRequest) {
   try {
@@ -22,36 +24,45 @@ export async function GET(request: NextRequest) {
     }
 
     if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      // For development, allow a fallback user ID
+      if (process.env.NODE_ENV === 'development') {
+        userId = '507f1f77bcf86cd799439011' // Fallback for development
+        console.log('🔧 Development mode: Using fallback user ID:', userId)
+      } else {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      }
     }
 
     // Connect to database
-    const mongoose = await connectDB()
-    const db = mongoose.connection.db
-
-    if (!db) {
-      throw new Error('Failed to connect to database')
-    }
+    await connectDB()
 
     // Get limit from query params
     const { searchParams } = new URL(request.url)
     const limit = parseInt(searchParams.get('limit') || '10')
     
-    // Fetch user's transcriptions
-    const transcriptions = await db.collection('transcriptions')
-      .find({ userId: userId })
-      .sort({ cachedAt: -1 }) // Most recent first
+    // Convert string userId to ObjectId if it's a valid ObjectId string
+    let queryUserId: string | mongoose.Types.ObjectId = userId
+    if (mongoose.Types.ObjectId.isValid(userId)) {
+      queryUserId = new mongoose.Types.ObjectId(userId)
+      console.log('🔧 Converted userId to ObjectId:', queryUserId)
+    }
+    
+    // Fetch user's transcriptions using Mongoose model
+    const transcriptions = await Transcription.find({ userId: queryUserId })
+      .sort({ createdAt: -1, cachedAt: -1 }) // Most recent first, fallback to cachedAt
       .limit(limit)
-      .toArray()
+      .lean()
 
     return NextResponse.json({
       success: true,
-      transcriptions: transcriptions.map(t => ({
+      transcriptions: transcriptions.map((t: any) => ({
         _id: t._id.toString(),
         videoTitle: t.videoTitle,
         youtubeUrl: t.youtubeUrl,
+        videoId: t.videoId,
         audioDuration: t.audioDuration,
         cachedAt: t.cachedAt,
+        createdAt: t.createdAt,
         highlights: t.highlights || []
       }))
     })
