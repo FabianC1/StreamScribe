@@ -214,21 +214,58 @@ async function processTranscription(youtubeUrl: string, mockUserId: string) {
   try {
     audioFile = path.join(tempDir, `audio_${Date.now()}.mp3`)
     
-    // Extract audio using yt-dlp
-    console.log('📥 Extracting audio...')
-    updateProgress('🎵 Extracting audio from video...')
-    
-    try {
-      await execAsync(`yt-dlp -f bestaudio[ext=m4a]/bestaudio[ext=mp3]/bestaudio -o "${audioFile}" "${youtubeUrl}"`)
-    } catch (ytdlpError) {
-      console.error('❌ yt-dlp error:', ytdlpError)
-      throw new Error(`Failed to extract audio: ${ytdlpError}`)
-    }
-    
-    // Check if audio file was created
-    if (!await fs.pathExists(audioFile)) {
-      throw new Error('Audio file was not created by yt-dlp')
-    }
+         // Extract audio using yt-dlp
+     console.log('📥 Extracting audio...')
+     updateProgress('🎵 Extracting audio from video...')
+     
+     try {
+       await execAsync(`yt-dlp -f bestaudio[ext=m4a]/bestaudio[ext=mp3]/bestaudio -o "${audioFile}" "${youtubeUrl}"`)
+     } catch (ytdlpError) {
+       console.error('❌ yt-dlp error:', ytdlpError)
+       
+       // Mark as failed without using AssemblyAI credits
+       const transcription = new Transcription({
+         userId: mockUserId,
+         youtubeUrl: youtubeUrl,
+         videoTitle: videoTitle,
+         videoId: videoId,
+         transcript: '',
+         confidence: 0,
+         audioDuration: 0,
+         status: 'failed',
+         errorMessage: `Failed to extract audio: ${ytdlpError}`
+       })
+       await transcription.save()
+       
+       return NextResponse.json({ 
+         success: false, 
+         error: `Failed to extract audio: ${ytdlpError}`,
+         status: 'failed'
+       })
+     }
+     
+     // Check if audio file was created
+     if (!await fs.pathExists(audioFile)) {
+       // Mark as failed without using AssemblyAI credits
+       const transcription = new Transcription({
+         userId: mockUserId,
+         youtubeUrl: youtubeUrl,
+         videoTitle: videoTitle,
+         videoId: videoId,
+         transcript: '',
+         confidence: 0,
+         audioDuration: 0,
+         status: 'failed',
+         errorMessage: 'Audio file was not created by yt-dlp'
+       })
+       await transcription.save()
+       
+       return NextResponse.json({ 
+         success: false, 
+         error: 'Audio file was not created by yt-dlp',
+         status: 'failed'
+       })
+     }
     
     console.log('✅ Audio extracted successfully:', audioFile)
     

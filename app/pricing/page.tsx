@@ -276,31 +276,7 @@ export default function PricingPage() {
           </div>
         </section>
 
-        {/* CTA Section */}
-        <section className="py-20 px-4 text-center">
-          <div className="max-w-4xl mx-auto">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-6">
-              Ready to Get Started?
-            </h2>
-            <p className="text-xl text-gray-600 dark:text-gray-300 mb-8">
-              Join thousands of users who trust StreamScribe for their transcription needs.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link
-                href={isAuthenticated ? '/dashboard' : '/register'}
-                className="inline-flex items-center justify-center px-8 py-4 bg-primary-600 hover:bg-primary-700 text-white font-semibold rounded-lg transition-colors duration-200"
-              >
-                {isAuthenticated ? 'Go to Dashboard' : 'Create Account'}
-              </Link>
-              <Link
-                href="/"
-                className="inline-flex items-center justify-center px-8 py-4 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-semibold rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200"
-              >
-                Learn More
-              </Link>
-            </div>
-          </div>
-        </section>
+
       </main>
 
       <Footer />
