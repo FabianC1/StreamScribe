@@ -60,7 +60,6 @@ const TranscriptionSchema = new Schema<ITranscription>({
     type: Schema.Types.ObjectId,
     ref: 'User',
     required: true,
-    index: true,
   },
   youtubeUrl: {
     type: String,

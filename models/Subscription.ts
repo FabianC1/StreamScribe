@@ -22,7 +22,6 @@ const SubscriptionSchema = new Schema<ISubscription>({
     ref: 'User',
     required: true,
     unique: true, // One subscription per user
-    index: true,
   },
   stripeSubscriptionId: {
     type: String,

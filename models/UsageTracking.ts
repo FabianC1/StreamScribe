@@ -15,7 +15,6 @@ const UsageTrackingSchema = new Schema<IUsageTracking>({
     type: Schema.Types.ObjectId,
     ref: 'User',
     required: true,
-    index: true,
   },
   date: {
     type: Date,

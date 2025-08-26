@@ -132,6 +132,19 @@ export default function Header() {
                       <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary-400 via-secondary-500 to-primary-600 animate-gradient-border"></div>
                     )}
                   </Link>
+                  {session?.user?.email === 'galaselfabian@gmail.com' && (
+                    <Link 
+                      href="/admin/business-intelligence" 
+                      className={`nav-link text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-500 transition-all duration-200 relative ${
+                        isScrolled ? 'scale-95 opacity-90' : 'scale-100 opacity-100'
+                      }`}
+                    >
+                      Business Intelligence
+                      {pathname === '/admin/business-intelligence' && (
+                        <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary-400 via-secondary-500 to-primary-600 animate-gradient-border"></div>
+                      )}
+                    </Link>
+                  )}
                   <div className="flex items-center gap-3">
                     <div className="flex items-center gap-2">
                       {session?.user?.image ? (

@@ -239,7 +239,7 @@ export default function DashboardPage() {
                           <span>Transcribed {formatDate(transcription.createdAt)}</span>
                         </div>
                       </div>
-                    </div>
+                    </div> 
                     <button
                       onClick={() => router.push(`/transcription-results?url=${encodeURIComponent(transcription.youtubeUrl)}`)}
                       className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors duration-200"

@@ -15,13 +15,11 @@ const UserNoteSchema = new Schema<IUserNote>({
     type: Schema.Types.ObjectId,
     ref: 'User',
     required: true,
-    index: true,
   },
   transcriptionId: {
     type: Schema.Types.ObjectId,
     ref: 'Transcription',
     required: true,
-    index: true,
   },
   sectionId: {
     type: String,

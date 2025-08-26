@@ -182,6 +182,8 @@ export async function POST(request: NextRequest) {
 
 // Separate function to handle the actual transcription processing
 async function processTranscription(youtubeUrl: string, mockUserId: string) {
+  const startTime = Date.now() // Track processing time for credit usage
+  
   // Real AssemblyAI processing for actual YouTube URLs
   console.log('🚀 Starting transcription for:', youtubeUrl)
   updateProgress('🚀 Starting transcription...')
@@ -398,35 +400,9 @@ async function processTranscription(youtubeUrl: string, mockUserId: string) {
         
         const fallbackData = generateFallbackData(transcriptionResult.text || '')
         
-        // Cache the result
-        const cacheKey = `transcription_${youtubeUrl}`
-        const resultData = {
-          transcript: transcriptionResult.text,
-          confidence: transcriptionResult.confidence || 0.95,
-          audio_duration: transcriptionResult.audio_duration || 0,
-          words: transcriptionResult.words || [],
-          highlights: transcriptionResult.auto_highlights_result?.results?.length > 0 
-            ? transcriptionResult.auto_highlights_result.results.map((h: any) => ({
-                ...h,
-                rank: Math.max(1, Math.round(h.rank * 10)) // Convert decimal rank to integer 1-10
-              }))
-            : fallbackData.highlights,
-          sentiment: transcriptionResult.sentiment_analysis?.results?.length > 0 
-            ? transcriptionResult.sentiment_analysis.results 
-            : fallbackData.sentiment,
-          chapters: transcriptionResult.auto_chapters_result?.results?.length > 0 
-            ? transcriptionResult.auto_chapters_result.results 
-            : fallbackData.chapters,
-          entities: transcriptionResult.entities || [],
-          speaker_labels: transcriptionResult.speaker_labels || [],
-          language_code: transcriptionResult.language_code || 'en',
-          youtube_url: youtubeUrl
-        }
-        
-        transcriptionCache.set(cacheKey, { data: resultData, timestamp: Date.now() })
-        
         // Save to database
         let transcriptionId = null
+        let resultData: any = null
         try {
           await connectDB()
           
@@ -503,6 +479,61 @@ async function processTranscription(youtubeUrl: string, mockUserId: string) {
             hoursUsed: usageDoc.hoursUsed,
             transcriptionsCount: usageDoc.transcriptionsCount
           })
+          
+          // Create result data with transcription ID
+          const resultData = {
+            id: transcriptionId,
+            transcriptionId: transcriptionId,
+            transcript: transcriptionResult.text,
+            confidence: transcriptionResult.confidence || 0.95,
+            audio_duration: transcriptionResult.audio_duration || 0,
+            words: transcriptionResult.words || [],
+            highlights: (transcriptionResult.auto_highlights_result?.results || []).map((h: any) => ({
+              ...h,
+              rank: Math.max(1, Math.round(h.rank * 10))
+            })).length > 0 
+              ? (transcriptionResult.auto_highlights_result?.results || []).map((h: any) => ({
+                  ...h,
+                  rank: Math.max(1, Math.round(h.rank * 10))
+                }))
+              : fallbackData.highlights,
+            sentiment: transcriptionResult.sentiment_analysis?.results || [],
+            chapters: transcriptionResult.auto_chapters_result?.results || [],
+            entities: transcriptionResult.entities || [],
+            speaker_labels: transcriptionResult.speaker_labels || [],
+            language_code: transcriptionResult.language_code || 'en',
+            youtube_url: youtubeUrl
+          }
+          
+          // Cache the result
+          const cacheKey = `transcription_${youtubeUrl}`
+          transcriptionCache.set(cacheKey, { data: resultData, timestamp: Date.now() })
+          
+          // Track credit usage for business intelligence
+          try {
+            const axios = require('axios')
+            await axios.post(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/credits/track`, {
+              transcriptionId: transcriptionId,
+              youtubeUrl: youtubeUrl,
+              videoId: videoId,
+              audioDuration: transcriptionResult.audio_duration || 0,
+              processingTime: Date.now() - startTime, // Calculate processing time
+              fileSize: 0, // Could be calculated from audio file size
+              quality: 'best',
+              language: transcriptionResult.language_code || 'en',
+              speakerCount: transcriptionResult.speaker_labels?.length || 1,
+              wordCount: transcriptionResult.words?.length || 0
+            }, {
+              headers: {
+                'Content-Type': 'application/json',
+                // Note: This will need proper authentication when we have real sessions
+              }
+            })
+            console.log('💰 Credit usage tracked successfully')
+          } catch (creditError) {
+            console.error('❌ Failed to track credit usage:', creditError)
+            // Don't fail the transcription if credit tracking fails
+          }
           
         } catch (dbError: any) {
           console.error('❌ Database error during save:', dbError)

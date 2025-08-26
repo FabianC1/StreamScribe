@@ -19,13 +19,11 @@ const ExportHistorySchema = new Schema<IExportHistory>({
     type: Schema.Types.ObjectId,
     ref: 'User',
     required: true,
-    index: true,
   },
   transcriptionId: {
     type: Schema.Types.ObjectId,
     ref: 'Transcription',
     required: true,
-    index: true,
   },
   format: {
     type: String,

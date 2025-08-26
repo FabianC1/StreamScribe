@@ -84,6 +84,9 @@ interface TranscriptionData {
   youtube_url: string
   isCached?: boolean
   cachedAt?: number
+  // Database fields for notes functionality
+  transcriptionId?: string
+  id?: string
 }
 
 interface Note {
@@ -102,6 +105,8 @@ export default function TranscriptionResultsPage() {
   const [transcriptionData, setTranscriptionData] = useState<TranscriptionData | null>(null)
   const [currentVideoTime, setCurrentVideoTime] = useState(0)
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null)
+  const [editingText, setEditingText] = useState('')
+  const [editingSectionId, setEditingSectionId] = useState<string | null>(null)
   const [noteInput, setNoteInput] = useState('')
   const [copiedSectionId, setCopiedSectionId] = useState<string | null>(null)
   const [notes, setNotes] = useState<Note[]>([])
@@ -129,6 +134,29 @@ export default function TranscriptionResultsPage() {
       console.log('Loading from history...')
     }
   }, [searchParams])
+
+  // Load notes after transcription data is available
+  useEffect(() => {
+    if (transcriptionData && !isLoading) {
+      console.log('🔄 Transcription data loaded, now loading notes...')
+      console.log('📝 Current transcription data:', {
+        transcriptionId: transcriptionData.transcriptionId,
+        id: transcriptionData.id,
+        youtubeUrl: transcriptionData.youtube_url
+      })
+      loadNotesForTranscription()
+    }
+  }, [transcriptionData, isLoading, youtubeUrl])
+  
+  // Monitor notes state changes
+  useEffect(() => {
+    console.log('📝 Notes state changed:', notes)
+    console.log('📝 Notes length:', notes.length)
+    if (notes.length > 0) {
+      console.log('📝 First note details:', notes[0])
+      console.log('📝 All note sectionIds:', notes.map(n => n.sectionId))
+    }
+  }, [notes])
 
   const getCachedTranscription = (url: string) => {
     try {
@@ -183,6 +211,9 @@ export default function TranscriptionResultsPage() {
             cacheTranscription(url, parsedResult)
             // Clear the stored result to avoid confusion
             localStorage.removeItem('transcriptionResult')
+            
+                         // Notes will be loaded by useEffect after transcription data is set
+            
             setIsLoading(false)
             return
           }
@@ -196,6 +227,9 @@ export default function TranscriptionResultsPage() {
       if (cachedData) {
         console.log('📚 Using cached transcription for:', url)
         setTranscriptionData(cachedData)
+        
+                 // Notes will be loaded by useEffect after transcription data is set
+        
         setIsLoading(false)
         return
       }
@@ -285,22 +319,489 @@ export default function TranscriptionResultsPage() {
     setNoteInput('')
   }
 
-  const handleSaveNote = () => {
+  const handleSaveNote = async () => {
     if (noteInput.trim() && editingNoteId) {
       const newNote: Note = {
-        id: Date.now().toString(),
+        id: crypto.randomUUID(),
         sectionId: editingNoteId,
         text: noteInput.trim(),
         timestamp: new Date().toLocaleTimeString()
       }
+      
+      // Add note to local state
       setNotes(prev => [...prev, newNote])
       setEditingNoteId(null)
       setNoteInput('')
+      
+      // Save notes to database
+      try {
+        const videoId = getYouTubeVideoId(youtubeUrl)
+        if (!videoId) return
+        
+        // Get transcription ID from the current transcription data (this works for ALL transcriptions)
+        let transcriptionId = null
+        
+        // First try to get from current transcription data
+        if (transcriptionData) {
+          transcriptionId = transcriptionData.transcriptionId || transcriptionData.id
+          console.log('📝 Found transcription ID from current data:', transcriptionId)
+        }
+        
+        // If not found in current data, try localStorage as fallback
+        if (!transcriptionId) {
+          const storedResult = localStorage.getItem('transcriptionResult')
+          if (storedResult) {
+            try {
+              const parsed = JSON.parse(storedResult)
+              transcriptionId = parsed.transcriptionId || parsed.id
+              console.log('📝 Found transcription ID from localStorage:', transcriptionId)
+            } catch (e) {
+              console.error('Error parsing stored result:', e)
+            }
+          }
+        }
+        
+        // If still no transcription ID, try to find it in the database by YouTube URL
+        if (!transcriptionId) {
+          console.log('🔍 No transcription ID found, searching database by YouTube URL...')
+          try {
+            const searchResponse = await fetch(`/api/transcriptions/search?youtubeUrl=${encodeURIComponent(youtubeUrl)}`)
+            if (searchResponse.ok) {
+              const searchResult = await searchResponse.json()
+              if (searchResult.success && searchResult.transcription) {
+                transcriptionId = searchResult.transcription._id
+                console.log('✅ Found transcription ID from database search:', transcriptionId)
+              }
+            }
+          } catch (searchError) {
+            console.error('Error searching for transcription:', searchError)
+          }
+        }
+        
+        if (transcriptionId) {
+          // Prepare notes data for database
+          const notesData = {
+            transcriptionId,
+            youtubeUrl,
+            videoId,
+            videoNotes: editingNoteId === 'video' ? [newNote] : [],
+            sentenceNotes: editingNoteId.startsWith('sentence-') ? [newNote] : [],
+            highlightNotes: editingNoteId.startsWith('highlight-') ? [newNote] : [],
+            chapterNotes: editingNoteId.startsWith('chapter-') ? [newNote] : [],
+            customAnnotations: editingNoteId.startsWith('custom-') ? [newNote] : []
+          }
+          
+          console.log('💾 Saving note to database:', {
+            transcriptionId,
+            editingNoteId,
+            noteText: newNote.text,
+            notesData
+          })
+          
+          // Save to database
+          const response = await fetch('/api/notes/save', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(notesData)
+          })
+          
+          if (response.ok) {
+            const result = await response.json()
+            console.log('✅ Note saved to database:', result)
+          } else {
+            const errorText = await response.text()
+            console.error('❌ Failed to save note to database:', response.status, errorText)
+          }
+        } else {
+          console.error('❌ No transcription ID available for saving note - this transcription may not be in the database')
+          // Show user-friendly error
+          alert('Unable to save note. This transcription may not be properly linked to your account. Please try transcribing the video again.')
+        }
+      } catch (error) {
+        console.error('Error saving note to database:', error)
+        alert('Failed to save note. Please try again.')
+      }
     }
   }
 
-  const handleDeleteNote = (noteId: string) => {
-    setNotes(prev => prev.filter(note => note.id !== noteId))
+  const handleDeleteNote = async (noteId: string) => {
+    try {
+      // Get transcription ID for database operation
+      let transcriptionId = null
+      
+      // First try to get from current transcription data
+      if (transcriptionData) {
+        transcriptionId = transcriptionData.transcriptionId || transcriptionData.id
+      }
+      
+      // If not found in current data, try localStorage as fallback
+      if (!transcriptionId) {
+        const storedResult = localStorage.getItem('transcriptionResult')
+        if (storedResult) {
+          try {
+            const parsed = JSON.parse(storedResult)
+            transcriptionId = parsed.transcriptionId || parsed.id
+          } catch (e) {
+            console.error('Error parsing stored result:', e)
+          }
+        }
+      }
+      
+      // If still no transcription ID, try to find it in the database by YouTube URL
+      if (!transcriptionId) {
+        console.log('🔍 No transcription ID found, searching database by YouTube URL...')
+        try {
+          const searchResponse = await fetch(`/api/transcriptions/search?youtubeUrl=${encodeURIComponent(youtubeUrl)}`)
+          if (searchResponse.ok) {
+            const searchResult = await searchResponse.json()
+            if (searchResult.success && searchResult.transcription) {
+              transcriptionId = searchResult.transcription._id
+              console.log('✅ Found transcription ID from database search:', transcriptionId)
+            }
+          }
+        } catch (searchError) {
+          console.error('Error searching for transcription:', searchError)
+        }
+      }
+      
+      if (transcriptionId) {
+        // Find the note to get its details for deletion
+        const noteToDelete = notes.find(note => note.id === noteId)
+        if (!noteToDelete) {
+          console.error('Note not found for deletion')
+          return
+        }
+        
+        console.log('🗑️ Deleting note from database:', {
+          transcriptionId,
+          noteId,
+          sectionId: noteToDelete.sectionId,
+          noteText: noteToDelete.text
+        })
+        
+        // Delete from database
+        const response = await fetch('/api/notes/delete', {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            transcriptionId,
+            noteId,
+            sectionId: noteToDelete.sectionId,
+            youtubeUrl,
+            videoId: getYouTubeVideoId(youtubeUrl)
+          })
+        })
+        
+        if (response.ok) {
+          const result = await response.json()
+          console.log('✅ Note deleted from database:', result)
+          
+          // Remove from frontend state
+          setNotes(prev => prev.filter(note => note.id !== noteId))
+        } else {
+          const errorText = await response.text()
+          console.error('❌ Failed to delete note from database:', response.status, errorText)
+          alert('Failed to delete note. Please try again.')
+        }
+      } else {
+        console.error('❌ No transcription ID available for deleting note')
+        alert('Unable to delete note. This transcription may not be properly linked to your account.')
+      }
+    } catch (error) {
+      console.error('Error deleting note from database:', error)
+      alert('Failed to delete note. Please try again.')
+    }
+  }
+
+  const handleEditNote = async (noteId: string, sectionId: string, currentText: string) => {
+    try {
+      setEditingNoteId(noteId)
+      setEditingSectionId(sectionId)
+      setEditingText(currentText)
+    } catch (error) {
+      console.error('Error starting note edit:', error)
+    }
+  }
+
+  const handleSaveEdit = async () => {
+    try {
+      if (!editingNoteId || !editingSectionId || !editingText.trim()) {
+        console.error('Missing required fields for editing')
+        return
+      }
+
+      // Get transcription ID for database operation
+      let transcriptionId = null
+
+      if (transcriptionData) {
+        transcriptionId = transcriptionData.transcriptionId || transcriptionData.id
+      }
+
+      if (!transcriptionId) {
+        const storedResult = localStorage.getItem('transcriptionResult')
+        if (storedResult) {
+          try {
+            const parsed = JSON.parse(storedResult)
+            transcriptionId = parsed.transcriptionId || parsed.id
+          } catch (e) {
+            console.error('Error parsing stored result:', e)
+          }
+        }
+      }
+
+      if (!transcriptionId && youtubeUrl) {
+        try {
+          const searchResponse = await fetch(`/api/transcriptions/search?youtubeUrl=${encodeURIComponent(youtubeUrl)}`)
+          if (searchResponse.ok) {
+            const searchResult = await searchResponse.json()
+            if (searchResult.success && searchResult.transcription) {
+              transcriptionId = searchResult.transcription._id
+            }
+          }
+        } catch (searchError) {
+          console.error('Error searching for transcription for editing:', searchError)
+        }
+      }
+
+      if (transcriptionId) {
+        // Update the specific note in the database using PUT endpoint
+        const response = await fetch('/api/notes/save', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            transcriptionId,
+            noteId: editingNoteId,
+            sectionId: editingSectionId,
+            newText: editingText.trim(),
+            youtubeUrl,
+            videoId: getYouTubeVideoId(youtubeUrl)
+          })
+        })
+
+        if (response.ok) {
+          const result = await response.json()
+          console.log('✅ Note edited successfully:', result)
+
+          // Update frontend state
+          setNotes(prev => prev.map(note => 
+            note.id === editingNoteId 
+              ? { ...note, text: editingText.trim(), timestamp: new Date().toLocaleTimeString() }
+              : note
+          ))
+
+          // Clear editing state
+          setEditingNoteId(null)
+          setEditingSectionId(null)
+          setEditingText('')
+        } else {
+          const errorText = await response.text()
+          console.error('❌ Failed to edit note:', response.status, errorText)
+          alert('Failed to edit note. Please try again.')
+        }
+      } else {
+        console.error('❌ No transcription ID available for editing note')
+        alert('Unable to edit note. This transcription may not be properly linked to your account.')
+      }
+    } catch (error) {
+      console.error('Error editing note:', error)
+      alert('Failed to edit note. Please try again.')
+    }
+  }
+
+  const handleCancelEdit = () => {
+    setEditingNoteId(null)
+    setEditingSectionId(null)
+    setEditingText('')
+  }
+
+  const loadExistingNotes = async (transcriptionId: string) => {
+    try {
+      console.log('📚 Loading existing notes for transcription:', transcriptionId)
+      
+      const response = await fetch(`/api/notes/save?transcriptionId=${transcriptionId}`)
+      console.log('📚 Notes API response status:', response.status)
+      
+      if (response.ok) {
+        const result = await response.json()
+        console.log('📚 Notes API result:', result)
+        
+        if (result.success && result.data) {
+          // Combine all notes from different sections
+          const allNotes: Note[] = []
+          
+          console.log('📚 Processing notes data:', {
+            videoNotes: result.data.videoNotes?.length || 0,
+            sentenceNotes: result.data.sentenceNotes?.length || 0,
+            highlightNotes: result.data.highlightNotes?.length || 0,
+            chapterNotes: result.data.chapterNotes?.length || 0,
+            customAnnotations: result.data.customAnnotations?.length || 0
+          })
+          
+                     // Add video notes
+           if (result.data.videoNotes && Array.isArray(result.data.videoNotes)) {
+             result.data.videoNotes.forEach((note: any) => {
+               allNotes.push({
+                 id: note.id || note._id || crypto.randomUUID(),
+                 sectionId: 'video',
+                 text: note.text,
+                 timestamp: new Date(note.timestamp || note.createdAt || Date.now()).toLocaleTimeString()
+               })
+             })
+           }
+           
+           // Add sentence notes
+           if (result.data.sentenceNotes && Array.isArray(result.data.sentenceNotes)) {
+             console.log('📚 Processing sentence notes:', result.data.sentenceNotes)
+             result.data.sentenceNotes.forEach((note: any) => {
+               const sectionId = `sentence-${note.sentenceIndex || 0}`
+               console.log('📚 Generated sectionId:', sectionId, 'for note:', note)
+               allNotes.push({
+                 id: note.id || note._id || crypto.randomUUID(),
+                 sectionId: sectionId,
+                 text: note.text,
+                 timestamp: new Date(note.timestamp || note.createdAt || Date.now()).toLocaleTimeString()
+               })
+             })
+           }
+           
+           // Add highlight notes
+           if (result.data.highlightNotes && Array.isArray(result.data.highlightNotes)) {
+             result.data.highlightNotes.forEach((note: any) => {
+               allNotes.push({
+                 id: note.id || note._id || crypto.randomUUID(),
+                 sectionId: `highlight-${note.highlightIndex || 0}`,
+                 text: note.text,
+                 timestamp: new Date(note.timestamp || note.createdAt || Date.now()).toLocaleTimeString()
+               })
+             })
+           }
+           
+           // Add chapter notes
+           if (result.data.chapterNotes && Array.isArray(result.data.chapterNotes)) {
+             result.data.chapterNotes.forEach((note: any) => {
+               allNotes.push({
+                 id: note.id || note._id || crypto.randomUUID(),
+                 sectionId: `chapter-${note.chapterIndex || 0}`,
+                 text: note.text,
+                 timestamp: new Date(note.timestamp || note.createdAt || Date.now()).toLocaleTimeString()
+               })
+             })
+           }
+           
+           // Add custom annotations
+           if (result.data.customAnnotations && Array.isArray(result.data.customAnnotations)) {
+             result.data.customAnnotations.forEach((note: any) => {
+               allNotes.push({
+                 id: note.id || note._id || crypto.randomUUID(),
+                 sectionId: note.sectionId || 'custom',
+                 text: note.text,
+                 timestamp: new Date(note.timestamp || note.createdAt || Date.now()).toLocaleTimeString()
+               })
+             })
+           }
+          
+          console.log('✅ About to set notes with:', allNotes)
+          setNotes(allNotes)
+          console.log('✅ Loaded', allNotes.length, 'existing notes')
+          console.log('✅ Notes details:', allNotes)
+          
+          // Test getSectionNotes immediately
+          console.log('🔍 getSectionNotes("video"):', getSectionNotes('video'))
+          console.log('🔍 getSectionNotes("sentence-0"):', getSectionNotes('sentence-0'))
+          
+        } else {
+          console.log('📝 No notes data in response')
+          setNotes([])
+        }
+      } else {
+        const errorText = await response.text()
+        console.log('📝 Notes API error:', response.status, errorText)
+        setNotes([])
+      }
+    } catch (error) {
+      console.error('❌ Error loading existing notes:', error)
+      setNotes([])
+    }
+  }
+
+  // Enhanced function to load notes for any transcription (new, old, or current)
+  const loadNotesForTranscription = async () => {
+    try {
+      console.log('🔍 Starting loadNotesForTranscription...')
+      console.log('🔍 Current youtubeUrl:', youtubeUrl)
+      console.log('🔍 Current transcriptionData:', transcriptionData)
+      
+      let transcriptionId: string | null = null
+      
+      // First try to get from current transcription data
+      if (transcriptionData) {
+        transcriptionId = transcriptionData.transcriptionId || transcriptionData.id || null
+        console.log('📝 Found transcription ID from current data:', transcriptionId)
+      }
+      
+      // If not found in current data, try localStorage as fallback
+      if (!transcriptionId) {
+        const storedResult = localStorage.getItem('transcriptionResult')
+        if (storedResult) {
+          try {
+            const parsed = JSON.parse(storedResult)
+            transcriptionId = parsed.transcriptionId || parsed.id || null
+            console.log('📝 Found transcription ID from localStorage:', transcriptionId)
+          } catch (e) {
+            console.error('Error parsing stored result:', e)
+          }
+        }
+      }
+      
+      // If still no transcription ID, try to find it in the database by YouTube URL
+      if (!transcriptionId) {
+        console.log('🔍 No transcription ID found, searching database by YouTube URL...')
+        try {
+          const searchResponse = await fetch(`/api/transcriptions/search?youtubeUrl=${encodeURIComponent(youtubeUrl)}`)
+          console.log('🔍 Search response status:', searchResponse.status)
+          
+          if (searchResponse.ok) {
+            const searchResult = await searchResponse.json()
+            console.log('🔍 Search result:', searchResult)
+            
+            if (searchResult.success && searchResult.transcription) {
+              transcriptionId = searchResult.transcription._id
+              console.log('✅ Found transcription ID from database search:', transcriptionId)
+              
+              // Update the transcription data with the found ID
+              if (transcriptionData) {
+                setTranscriptionData(prev => ({
+                  ...prev!,
+                  transcriptionId: transcriptionId!,
+                  id: transcriptionId!
+                }))
+              }
+            }
+          } else {
+            const errorText = await searchResponse.text()
+            console.error('🔍 Search failed:', errorText)
+          }
+        } catch (searchError) {
+          console.error('Error searching for transcription:', searchError)
+        }
+      }
+      
+      if (transcriptionId) {
+        console.log('📚 Loading notes for transcription ID:', transcriptionId)
+        await loadExistingNotes(transcriptionId)
+      } else {
+        console.log('📝 No transcription ID available for loading notes')
+        console.log('📝 This might happen for new transcriptions that haven\'t been saved to the database yet')
+      }
+    } catch (error) {
+      console.error('Error loading notes for transcription:', error)
+    }
   }
 
   const jumpToTime = (startTime: number) => {
@@ -384,6 +885,42 @@ export default function TranscriptionResultsPage() {
       
       // Show success feedback
       console.log(`✅ Successfully exported ${format} file: ${filename}`)
+      
+      // Track export in database
+      try {
+        const videoId = getYouTubeVideoId(data.youtube_url)
+        if (videoId) {
+          const storedResult = localStorage.getItem('transcriptionResult')
+          let transcriptionId = null
+          if (storedResult) {
+            try {
+              const parsed = JSON.parse(storedResult)
+              transcriptionId = parsed.transcriptionId || parsed.id
+            } catch (e) {
+              console.error('Error parsing stored result:', e)
+            }
+          }
+          
+          if (transcriptionId) {
+            await fetch('/api/notes/save', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                transcriptionId,
+                youtubeUrl: data.youtube_url,
+                videoId,
+                exportFormat: format
+              })
+            })
+            console.log('📊 Export tracked in database')
+          }
+        }
+      } catch (error) {
+        console.error('Error tracking export:', error)
+        // Don't fail the export if tracking fails
+      }
       
     } catch (error) {
       console.error(`❌ Failed to export ${format}:`, error)
@@ -550,68 +1087,125 @@ export default function TranscriptionResultsPage() {
                   </div>
                 </div>
                 
-                {/* Notes Section */}
-                {showNotes && (
-                  <div className="mt-auto pt-4 border-t border-gray-200 dark:border-gray-700 flex-1">
-                    <div className="flex items-center justify-between mb-3">
-                      <h4 className="font-medium text-gray-900 dark:text-white text-sm sm:text-base flex items-center gap-2">
-                        <MessageSquare className="w-3 h-3 sm:h-4 text-primary-600" />
-                        Video Notes
-                      </h4>
-                      <button
-                        onClick={() => handleAddNote('video')}
-                        className="text-xs sm:text-sm text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 transition-colors"
-                      >
-                        + Add Note
-                      </button>
-                    </div>
-                    
-                    <div className="space-y-2 overflow-y-auto max-h-32 sm:max-h-40 custom-scrollbar">
-                      {editingNoteId === 'video' && (
-                        <div className="p-2 sm:p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                          <textarea
-                            value={noteInput}
-                            onChange={(e) => setNoteInput(e.target.value)}
-                            placeholder="Add a note about this video..."
-                            className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-xs sm:text-sm resize-none"
-                            rows={3}
-                          />
-                          <div className="flex gap-2 mt-2">
-                            <button
-                              onClick={handleSaveNote}
-                              className="px-2 sm:px-3 py-1 bg-primary-600 text-white text-xs rounded-lg hover:bg-primary-700 transition-colors flex items-center gap-1"
-                            >
-                              <Save className="w-3 h-3" />
-                              Save
-                            </button>
-                            <button
-                              onClick={() => setEditingNoteId(null)}
-                              className="px-2 sm:px-3 py-1 bg-gray-500 text-white text-xs rounded-lg hover:bg-gray-600 transition-colors flex items-center gap-1"
-                            >
-                              <X className="w-3 h-3" />
-                              Cancel
-                            </button>
-                          </div>
-                        </div>
-                      )}
-                      
-                      {getSectionNotes('video').map(note => (
-                        <div key={note.id} className="p-2 sm:p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                          <div className="flex items-start justify-between gap-2">
-                            <p className="text-xs sm:text-sm text-gray-700 dark:text-gray-300 flex-1">{note.text}</p>
-                            <button
-                              onClick={() => handleDeleteNote(note.id)}
-                              className="text-red-500 hover:text-red-700 transition-colors p-1"
-                            >
-                              <Trash2 className="w-3 h-3" />
-                            </button>
-                          </div>
-                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{note.timestamp}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
+                                 {/* Notes Section */}
+                 {showNotes && (
+                   <div className="mt-auto pt-4 border-t border-gray-200 dark:border-gray-700 flex-1">
+                     <div className="flex items-center justify-between mb-3">
+                       <h4 className="font-medium text-gray-900 dark:text-white text-sm sm:text-base flex items-center gap-2">
+                         <MessageSquare className="w-3 h-3 sm:h-4 text-primary-600" />
+                         Video Notes
+                       </h4>
+                       <button
+                         onClick={() => handleAddNote('video')}
+                         className="text-xs sm:text-sm text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 transition-colors flex items-center gap-1"
+                       >
+                         {getSectionNotes('video').length === 0 ? (
+                           <>
+                             <Edit3 className="w-3 h-3" />
+                             Add Note
+                           </>
+                         ) : (
+                           <>
+                             <Plus className="w-3 h-3" />
+                             Add Note
+                           </>
+                         )}
+                       </button>
+                     </div>
+                     
+                     {/* Debug Info */}
+                     <div className="mb-2 p-2 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded text-xs">
+                       <strong>Debug:</strong> Notes count: {notes.length} | 
+                       Video notes: {getSectionNotes('video').length} | 
+                       All sectionIds: {notes.map(n => n.sectionId).join(', ')}
+                     </div>
+                     
+                     <div className="space-y-2 overflow-y-auto max-h-32 sm:max-h-40 custom-scrollbar">
+                       {editingNoteId === 'video' && (
+                         <div className="p-2 sm:p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                           <textarea
+                             value={noteInput}
+                             onChange={(e) => setNoteInput(e.target.value)}
+                             placeholder="Add a note about this video..."
+                             className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-xs sm:text-sm resize-none"
+                             rows={3}
+                           />
+                           <div className="flex gap-2 mt-2">
+                             <button
+                               onClick={handleSaveNote}
+                               className="px-2 sm:px-3 py-1 bg-primary-600 text-white text-xs rounded-lg hover:bg-primary-700 transition-colors flex items-center gap-1"
+                             >
+                               <Save className="w-3 h-3" />
+                               Save
+                             </button>
+                             <button
+                               onClick={() => setEditingNoteId(null)}
+                               className="px-2 sm:px-3 py-1 bg-gray-500 text-white text-xs rounded-lg hover:bg-gray-600 transition-colors flex items-center gap-1"
+                             >
+                               <X className="w-3 h-3" />
+                               Cancel
+                             </button>
+                           </div>
+                         </div>
+                       )}
+                       
+                       {getSectionNotes('video').map(note => (
+                         <div key={note.id} className="p-2 sm:p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                           {editingNoteId === note.id ? (
+                             <div className="space-y-2">
+                               <textarea
+                                 value={editingText}
+                                 onChange={(e) => setEditingText(e.target.value)}
+                                 placeholder="Edit your note..."
+                                 className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-xs sm:text-sm resize-none"
+                                 rows={3}
+                               />
+                               <div className="flex gap-2">
+                                 <button
+                                   onClick={handleSaveEdit}
+                                   className="px-2 py-1 bg-primary-600 text-white text-xs rounded-lg hover:bg-primary-700 transition-colors flex items-center gap-1"
+                                 >
+                                   <Save className="w-3 h-3" />
+                                   Save
+                                 </button>
+                                 <button
+                                   onClick={handleCancelEdit}
+                                   className="px-2 py-1 bg-gray-500 text-white text-xs rounded-lg hover:bg-gray-600 transition-colors flex items-center gap-1"
+                                 >
+                                   <X className="w-3 h-3" />
+                                   Cancel
+                                 </button>
+                               </div>
+                             </div>
+                           ) : (
+                             <>
+                               <div className="flex items-start justify-between gap-2">
+                                 <p className="text-xs sm:text-sm text-gray-700 dark:text-gray-300 flex-1">{note.text}</p>
+                                 <div className="flex items-center gap-1">
+                                   <button
+                                     onClick={() => handleEditNote(note.id, note.sectionId, note.text)}
+                                     className="text-blue-500 hover:text-blue-700 transition-colors p-1"
+                                     title="Edit note"
+                                   >
+                                     <Edit3 className="w-3 h-3" />
+                                   </button>
+                                   <button
+                                     onClick={() => handleDeleteNote(note.id)}
+                                     className="text-red-500 hover:text-red-700 transition-colors p-1"
+                                     title="Delete note"
+                                   >
+                                     <Trash2 className="w-3 h-3" />
+                                   </button>
+                                 </div>
+                               </div>
+                               <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{note.timestamp}</p>
+                             </>
+                           )}
+                         </div>
+                       ))}
+                     </div>
+                   </div>
+                 )}
               </div>
             </div>
 
@@ -653,9 +1247,13 @@ export default function TranscriptionResultsPage() {
                           <button
                             onClick={() => handleAddNote(`sentence-${index}`)}
                             className="p-1.5 sm:p-2 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600 hover:scale-105 transition-all duration-300"
-                            title="Add note"
+                            title={getSectionNotes(`sentence-${index}`).length === 0 ? "Add note" : "Add another note"}
                           >
-                            <Edit3 className="w-3 h-3 sm:h-4" />
+                            {getSectionNotes(`sentence-${index}`).length === 0 ? (
+                              <Edit3 className="w-3 h-3 sm:h-4" />
+                            ) : (
+                              <Plus className="w-3 h-3 sm:h-4" />
+                            )}
                           </button>
                         </div>
                       </div>
@@ -693,16 +1291,56 @@ export default function TranscriptionResultsPage() {
                       {/* Notes for this section */}
                       {getSectionNotes(`sentence-${index}`).map(note => (
                         <div key={note.id} className="mt-3 p-2 sm:p-3 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-600">
-                          <div className="flex items-start justify-between gap-2">
-                            <p className="text-xs sm:text-sm text-gray-700 dark:text-gray-300 flex-1">{note.text}</p>
-                            <button
-                              onClick={() => handleDeleteNote(note.id)}
-                              className="text-red-500 hover:text-red-700 transition-colors p-1"
-                            >
-                              <Trash2 className="w-3 h-3" />
-                            </button>
-                          </div>
-                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{note.timestamp}</p>
+                          {editingNoteId === note.id ? (
+                            <div className="space-y-2">
+                              <textarea
+                                value={editingText}
+                                onChange={(e) => setEditingText(e.target.value)}
+                                placeholder="Edit your note..."
+                                className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-xs sm:text-sm resize-none"
+                                rows={3}
+                              />
+                              <div className="flex gap-2">
+                                <button
+                                  onClick={handleSaveEdit}
+                                  className="px-2 py-1 bg-primary-600 text-white text-xs rounded-lg hover:bg-primary-700 transition-colors flex items-center gap-1"
+                                >
+                                  <Save className="w-3 h-3" />
+                                  Save
+                                </button>
+                                <button
+                                  onClick={handleCancelEdit}
+                                  className="px-2 py-1 bg-gray-500 text-white text-xs rounded-lg hover:bg-gray-600 transition-colors flex items-center gap-1"
+                                >
+                                  <X className="w-3 h-3" />
+                                  Cancel
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <>
+                              <div className="flex items-start justify-between gap-2">
+                                <p className="text-xs sm:text-sm text-gray-700 dark:text-gray-300 flex-1">{note.text}</p>
+                                <div className="flex items-center gap-1">
+                                  <button
+                                    onClick={() => handleEditNote(note.id, note.sectionId, note.text)}
+                                    className="text-blue-500 hover:text-blue-700 transition-colors p-1"
+                                    title="Edit note"
+                                  >
+                                    <Edit3 className="w-3 h-3" />
+                                  </button>
+                                  <button
+                                    onClick={() => handleDeleteNote(note.id)}
+                                    className="text-red-500 hover:text-red-700 transition-colors p-1"
+                                    title="Delete note"
+                                  >
+                                    <Trash2 className="w-3 h-3" />
+                                  </button>
+                                </div>
+                              </div>
+                              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{note.timestamp}</p>
+                            </>
+                          )}
                         </div>
                       ))}
                     </div>
