@@ -226,12 +226,12 @@ export default function HistoryPage() {
                       </div>
                     </div>
                     <div className="flex flex-col gap-2 ml-4">
-                      <Link
-                        href={`/transcription-results?url=${encodeURIComponent(transcription.youtubeUrl)}&fromHistory=true`}
-                        className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors duration-200"
-                      >
-                        View Details
-                      </Link>
+                                             <Link
+              href={`/transcription-results?url=${encodeURIComponent(transcription.youtubeUrl)}&fromHistory=true`}
+              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors duration-200 text-center"
+            >
+              Edit
+            </Link>
                       <a
                         href={transcription.youtubeUrl}
                         target="_blank"

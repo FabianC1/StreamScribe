@@ -106,8 +106,8 @@ export default function LoadingPage() {
       } else {
         const errorData = await response.json()
         
-        if (errorData.error === 'DUPLICATE_URL') {
-          // Handle duplicate URL - redirect to dashboard
+        if (errorData.error === 'DUPLICATE_URL' || errorData.error === 'DUPLICATE_VIDEO') {
+          // Handle duplicate video - redirect to dashboard
           setLoadingText('🚫 You have already transcribed this video!')
           setIsCompleted(true)
           

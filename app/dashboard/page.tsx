@@ -267,7 +267,7 @@ export default function DashboardPage() {
                              <Clock className="h-4 w-4" />
                              <span>{formatDuration(transcription.audioDuration)}</span>
                            </span>
-                           {transcription.status === 'completed' && (
+                           {(transcription.status === 'completed' || !transcription.status) && (
                              <span className="flex items-center space-x-1">
                                <Play className="h-4 w-4" />
                                <span>{transcription.confidence && !isNaN(transcription.confidence) ? Math.round(transcription.confidence * 100) : 0}% confidence</span>
@@ -282,7 +282,7 @@ export default function DashboardPage() {
                        </div>
                      </div>
                      
-                     {transcription.status === 'failed' ? (
+                     {(transcription.status === 'failed') ? (
                        <button
                          onClick={() => router.push(`/transcribe?retry=${encodeURIComponent(transcription.youtubeUrl)}`)}
                          className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors duration-200"
@@ -290,12 +290,12 @@ export default function DashboardPage() {
                          Retry
                        </button>
                      ) : (
-                       <button
-                         onClick={() => router.push(`/transcription-results?url=${encodeURIComponent(transcription.youtubeUrl)}`)}
-                         className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors duration-200"
-                       >
-                         View Details
-                       </button>
+                                               <button
+                          onClick={() => router.push(`/transcription-results?url=${encodeURIComponent(transcription.youtubeUrl)}`)}
+                          className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors duration-200 text-center"
+                        >
+                          Edit
+                        </button>
                      )}
                    </div>
                  ))}

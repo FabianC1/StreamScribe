@@ -137,30 +137,55 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    // Check for duplicate URL in database before processing
-    try {
-      await connectDB()
-      
-      // Check if this user has already transcribed this exact URL
-      const existingTranscription = await Transcription.findOne({
-        userId: mockUserId,
-        youtubeUrl: youtubeUrl
-      })
-      
-      if (existingTranscription) {
-        console.log('🚫 Duplicate URL detected for user:', mockUserId, 'URL:', youtubeUrl)
-        return NextResponse.json({
-          success: false,
-          error: 'DUPLICATE_URL',
-          message: 'You have already transcribed this video. Check your dashboard for the results.',
-          existingTranscriptionId: existingTranscription._id
-        }, { status: 409 }) // 409 Conflict
-      }
-      
-    } catch (dbError: any) {
-      console.error('❌ Database error during duplicate check:', dbError)
-      // Continue with transcription if duplicate check fails
-    }
+         // Check for duplicate URL in database before processing
+     try {
+       await connectDB()
+       
+       // Extract video ID from URL for duplicate checking
+       const videoIdMatch = youtubeUrl.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\n?#]+)/)
+       const videoId = videoIdMatch ? videoIdMatch[1] : 'unknown'
+       
+       // Clean up any failed transcriptions for this video (to prevent accumulation of failed attempts)
+       try {
+         const failedTranscriptions = await Transcription.find({
+           userId: mockUserId,
+           videoId: videoId,
+           status: 'failed'
+         })
+         
+         if (failedTranscriptions.length > 0) {
+           console.log(`🧹 Cleaning up ${failedTranscriptions.length} failed transcriptions for video: ${videoId}`)
+           await Transcription.deleteMany({
+             userId: mockUserId,
+             videoId: videoId,
+             status: 'failed'
+           })
+         }
+       } catch (cleanupError) {
+         console.warn('⚠️ Failed to cleanup failed transcriptions:', cleanupError)
+       }
+       
+       // Check if this user has already successfully transcribed this video ID
+       const existingTranscription = await Transcription.findOne({
+         userId: mockUserId,
+         videoId: videoId,
+         status: 'completed' // Only block if it was actually completed successfully
+       })
+       
+       if (existingTranscription) {
+         console.log('🚫 Duplicate completed video detected for user:', mockUserId, 'Video ID:', videoId, 'URL:', youtubeUrl)
+         return NextResponse.json({
+           success: false,
+           error: 'DUPLICATE_VIDEO',
+           message: 'You have already successfully transcribed this video. Check your dashboard for the results.',
+           existingTranscriptionId: existingTranscription._id
+         }, { status: 409 }) // 409 Conflict
+       }
+       
+     } catch (dbError: any) {
+       console.error('❌ Database error during duplicate check:', dbError)
+       // Continue with transcription if duplicate check fails
+     }
 
     // Create a promise for this transcription and store it
     const transcriptionPromise = processTranscription(youtubeUrl, mockUserId)
@@ -439,40 +464,41 @@ async function processTranscription(youtubeUrl: string, mockUserId: string) {
         
         // Save to database
         let transcriptionId = null
-        let resultData: any = null
+        
         try {
           await connectDB()
           
-          // Create transcription document with proper field mapping
-          const transcriptionDoc = new Transcription({
-            userId: mockUserId,
-            youtubeUrl: youtubeUrl,
-            videoTitle: videoTitle, // Use fetched video title
-            videoId: videoId,
-            transcript: transcriptionResult.text || '',
-            confidence: transcriptionResult.confidence || 0.95,
-            audioDuration: transcriptionResult.audio_duration || 0,
-            languageCode: transcriptionResult.language_code || 'en',
-            words: transcriptionResult.words || [],
-            highlights: (transcriptionResult.auto_highlights_result?.results || []).map((h: any) => ({
-              count: h.count || 1,
-              rank: Math.max(1, Math.round(h.rank * 10)), // Convert decimal rank to integer 1-10
-              text: h.text || '',
-              timestamps: h.timestamps || []
-            })),
-            sentiment: transcriptionResult.sentiment_analysis?.results || [],
-            chapters: transcriptionResult.auto_chapters_result?.results || [],
-            entities: (transcriptionResult.entities || []).map((e: any) => ({
-              text: e.text || '',
-              entityType: e.entity_type || 'unknown', // Map entity_type to entityType
-              start: e.start || 0,
-              end: e.end || 0
-            })),
-            speakerLabels: Array.isArray(transcriptionResult.speaker_labels) ? transcriptionResult.speaker_labels : [],
-            isCached: false,
-            cachedAt: new Date(),
-            createdAt: new Date() // Add this field for dashboard compatibility
-          })
+                     // Create transcription document with proper field mapping
+           const transcriptionDoc = new Transcription({
+             userId: mockUserId,
+             youtubeUrl: youtubeUrl,
+             videoTitle: videoTitle, // Use fetched video title
+             videoId: videoId,
+             transcript: transcriptionResult.text || '',
+             confidence: transcriptionResult.confidence || 0.95,
+             audioDuration: transcriptionResult.audio_duration || 0,
+             languageCode: transcriptionResult.language_code || 'en',
+             words: transcriptionResult.words || [],
+             highlights: (transcriptionResult.auto_highlights_result?.results || []).map((h: any) => ({
+               count: h.count || 1,
+               rank: h.rank && !isNaN(h.rank) ? Math.max(1, Math.round(h.rank * 10)) : 1, // Convert decimal rank to integer 1-10, fallback to 1 if NaN
+               text: h.text || '',
+               timestamps: h.timestamps || []
+             })),
+             sentiment: transcriptionResult.sentiment_analysis?.results || [],
+             chapters: transcriptionResult.auto_chapters_result?.results || [],
+             entities: (transcriptionResult.entities || []).map((e: any) => ({
+               text: e.text || '',
+               entityType: e.entity_type || 'unknown', // Map entity_type to entityType
+               start: e.start || 0,
+               end: e.end || 0
+             })),
+             speakerLabels: Array.isArray(transcriptionResult.speaker_labels) ? transcriptionResult.speaker_labels : [],
+             isCached: false,
+             cachedAt: new Date(),
+             createdAt: new Date(), // Add this field for dashboard compatibility
+             status: 'completed' // Explicitly set status to completed
+           })
           
           console.log('💾 Attempting to save transcription document:', {
             userId: transcriptionDoc.userId,
@@ -517,61 +543,6 @@ async function processTranscription(youtubeUrl: string, mockUserId: string) {
             transcriptionsCount: usageDoc.transcriptionsCount
           })
           
-          // Create result data with transcription ID
-          const resultData = {
-            id: transcriptionId,
-            transcriptionId: transcriptionId,
-            transcript: transcriptionResult.text,
-            confidence: transcriptionResult.confidence || 0.95,
-            audio_duration: transcriptionResult.audio_duration || 0,
-            words: transcriptionResult.words || [],
-            highlights: (transcriptionResult.auto_highlights_result?.results || []).map((h: any) => ({
-              ...h,
-              rank: Math.max(1, Math.round(h.rank * 10))
-            })).length > 0 
-              ? (transcriptionResult.auto_highlights_result?.results || []).map((h: any) => ({
-                  ...h,
-                  rank: Math.max(1, Math.round(h.rank * 10))
-                }))
-              : fallbackData.highlights,
-            sentiment: transcriptionResult.sentiment_analysis?.results || [],
-            chapters: transcriptionResult.auto_chapters_result?.results || [],
-            entities: transcriptionResult.entities || [],
-            speaker_labels: transcriptionResult.speaker_labels || [],
-            language_code: transcriptionResult.language_code || 'en',
-            youtube_url: youtubeUrl
-          }
-          
-          // Cache the result
-          const cacheKey = `transcription_${youtubeUrl}`
-          transcriptionCache.set(cacheKey, { data: resultData, timestamp: Date.now() })
-          
-          // Track credit usage for business intelligence
-          try {
-            const axios = require('axios')
-            await axios.post(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/credits/track`, {
-              transcriptionId: transcriptionId,
-              youtubeUrl: youtubeUrl,
-              videoId: videoId,
-              audioDuration: transcriptionResult.audio_duration || 0,
-              processingTime: Date.now() - startTime, // Calculate processing time
-              fileSize: 0, // Could be calculated from audio file size
-              quality: 'best',
-              language: transcriptionResult.language_code || 'en',
-              speakerCount: transcriptionResult.speaker_labels?.length || 1,
-              wordCount: transcriptionResult.words?.length || 0
-            }, {
-              headers: {
-                'Content-Type': 'application/json',
-                // Note: This will need proper authentication when we have real sessions
-              }
-            })
-            console.log('💰 Credit usage tracked successfully')
-          } catch (creditError) {
-            console.error('❌ Failed to track credit usage:', creditError)
-            // Don't fail the transcription if credit tracking fails
-          }
-          
         } catch (dbError: any) {
           console.error('❌ Database error during save:', dbError)
           console.error('❌ Error details:', {
@@ -580,6 +551,66 @@ async function processTranscription(youtubeUrl: string, mockUserId: string) {
             stack: dbError.stack
           })
           // Don't fail the transcription if database save fails, but log it
+        }
+        
+        // Create result data with transcription ID (outside try block to ensure it's always defined)
+        const resultData = {
+          id: transcriptionId,
+          transcriptionId: transcriptionId,
+          transcript: transcriptionResult.text,
+          confidence: transcriptionResult.confidence || 0.95,
+          audio_duration: transcriptionResult.audio_duration || 0,
+          words: transcriptionResult.words || [],
+          highlights: (transcriptionResult.auto_highlights_result?.results || []).map((h: any) => ({
+            ...h,
+            rank: h.rank && !isNaN(h.rank) ? Math.max(1, Math.round(h.rank * 10)) : 1
+          })).length > 0 
+            ? (transcriptionResult.auto_highlights_result?.results || []).map((h: any) => ({
+                ...h,
+                rank: h.rank && !isNaN(h.rank) ? Math.max(1, Math.round(h.rank * 10)) : 1
+              }))
+            : fallbackData.highlights,
+          sentiment: transcriptionResult.sentiment_analysis?.results || [],
+          chapters: transcriptionResult.auto_chapters_result?.results || [],
+          entities: transcriptionResult.entities || [],
+          speaker_labels: transcriptionResult.speaker_labels || [],
+          language_code: transcriptionResult.language_code || 'en',
+          youtube_url: youtubeUrl,
+          // Add these fields that the frontend expects
+          videoTitle: videoTitle,
+          videoId: videoId,
+          status: 'completed'
+        }
+        
+        // Cache the result
+        const cacheKey = `transcription_${youtubeUrl}`
+        transcriptionCache.set(cacheKey, { data: resultData, timestamp: Date.now() })
+        
+        // Track credit usage for business intelligence (optional - don't block transcription if it fails)
+        try {
+          const axios = require('axios')
+          await axios.post(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/credits/track`, {
+            transcriptionId: transcriptionId,
+            youtubeUrl: youtubeUrl,
+            videoId: videoId,
+            audioDuration: transcriptionResult.audio_duration || 0,
+            processingTime: Date.now() - startTime, // Calculate processing time
+            fileSize: 0, // Could be calculated from audio file size
+            quality: 'best',
+            language: transcriptionResult.language_code || 'en',
+            speakerCount: transcriptionResult.speaker_labels?.length || 1,
+            wordCount: transcriptionResult.words?.length || 0
+          }, {
+            headers: {
+              'Content-Type': 'application/json',
+              // Note: This will need proper authentication when we have real sessions
+            }
+          })
+          console.log('💰 Credit usage tracked successfully')
+        } catch (creditError) {
+          console.error('❌ Failed to track credit usage:', creditError)
+          console.log('⚠️ Credit tracking failed, but transcription completed successfully')
+          // Don't fail the transcription if credit tracking fails - this is optional
         }
         
         return NextResponse.json({
