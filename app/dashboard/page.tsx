@@ -6,7 +6,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { useRouter } from 'next/navigation'
 import Header from '../../components/Header'
 import Footer from '../../components/Footer'
-import { Youtube, Clock, Play, Download, History, TrendingUp, Zap } from 'lucide-react'
+import { Youtube, Clock, Play, Download, History, TrendingUp, Zap, Star, Crown } from 'lucide-react'
 
 interface Transcription {
   _id: string
@@ -15,6 +15,7 @@ interface Transcription {
   audioDuration: number
   createdAt: string
   confidence: number
+  status: string
 }
 
 export default function DashboardPage() {
@@ -65,10 +66,13 @@ export default function DashboardPage() {
       const response = await fetch('/api/usage/stats')
       if (response.ok) {
         const data = await response.json()
-        setUsageData({
-          hoursUsed: data.monthlyHours || 0,
-          totalTranscriptions: data.totalTranscriptions || 0
-        })
+                 setUsageData({
+           hoursUsed: data.monthlyHours || 0,
+           totalTranscriptions: data.totalTranscriptions || 0
+         })
+        console.log('✅ Usage data fetched:', data)
+      } else {
+        console.error('❌ Usage API response not ok:', response.status)
       }
     } catch (error) {
       console.error('Failed to fetch usage data:', error)
@@ -158,7 +162,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border border-gray-200 dark:border-gray-700">
             <div className="flex items-center justify-between">
               <div>
@@ -175,12 +179,12 @@ export default function DashboardPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600 dark:text-gray-400 group-hover:text-green-700 dark:group-hover:text-green-300 transition-colors duration-200">
-                  <span className="group-hover:hidden">Hours Used</span>
-                  <span className="hidden group-hover:inline">Minutes Used</span>
+                  <span className="group-hover:hidden">This Month</span>
+                  <span className="hidden group-hover:inline">Minutes</span>
                 </p>
                 <p className="text-2xl font-bold text-gray-900 dark:text-white group-hover:text-green-700 dark:group-hover:text-green-300 transition-colors duration-200">
-                  <span className="group-hover:hidden">{usageData.hoursUsed.toFixed(2)}</span>
-                  <span className="hidden group-hover:inline">{Math.round(usageData.hoursUsed * 60)}</span>
+                  <span className="group-hover:hidden">{usageData.hoursUsed.toFixed(2)}h</span>
+                  <span className="hidden group-hover:inline">{Math.round(usageData.hoursUsed * 60)}m</span>
                 </p>
               </div>
               <div className="h-12 w-12 bg-green-100 dark:bg-green-900/20 rounded-lg flex items-center justify-center group-hover:bg-green-200 dark:group-hover:bg-green-800/30 transition-colors duration-200">
@@ -189,7 +193,7 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border border-gray-200 dark:border-gray-700">
+                     <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border border-gray-200 dark:border-gray-700">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Subscription</p>
@@ -197,11 +201,15 @@ export default function DashboardPage() {
                   {customUser ? customUser.subscriptionTier : 'Basic'}
                 </p>
               </div>
-              <div className="h-12 w-12 bg-purple-100 dark:bg-purple-900/20 rounded-lg flex items-center justify-center">
-                <svg className="h-6 w-6 text-purple-600 dark:text-purple-400" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
-                </svg>
-              </div>
+                             <div className="h-12 w-12 bg-purple-100 dark:bg-purple-900/20 rounded-lg flex items-center justify-center">
+                 {customUser?.subscriptionTier === 'premium' ? (
+                   <Crown className="h-6 w-6 text-purple-600 dark:text-purple-400" />
+                 ) : customUser?.subscriptionTier === 'standard' ? (
+                   <Star className="h-6 w-6 text-purple-600 dark:text-purple-400" />
+                 ) : (
+                   <Zap className="h-6 w-6 text-purple-600 dark:text-purple-400" />
+                 )}
+               </div>
             </div>
           </div>
         </div>
@@ -251,20 +259,29 @@ export default function DashboardPage() {
                             <Clock className="h-4 w-4" />
                             <span>{formatDuration(transcription.audioDuration)}</span>
                           </span>
-                          <span className="flex items-center space-x-1">
-                            <Play className="h-4 w-4" />
-                            <span>{Math.round(transcription.confidence * 100)}% confidence</span>
-                          </span>
+                                                     <span className="flex items-center space-x-1">
+                             <Play className="h-4 w-4" />
+                             <span>{transcription.confidence && !isNaN(transcription.confidence) ? Math.round(transcription.confidence * 100) : 0}% confidence</span>
+                           </span>
                           <span>Transcribed {formatDate(transcription.createdAt)}</span>
                         </div>
                       </div>
                     </div> 
-                    <button
-                      onClick={() => router.push(`/transcription-results?url=${encodeURIComponent(transcription.youtubeUrl)}`)}
-                      className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors duration-200"
-                    >
-                      View Details
-                    </button>
+                                         {transcription.status === 'failed' ? (
+                       <button
+                         onClick={() => router.push(`/transcribe?retry=${encodeURIComponent(transcription.youtubeUrl)}`)}
+                         className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors duration-200"
+                       >
+                         Retry
+                       </button>
+                     ) : (
+                       <button
+                         onClick={() => router.push(`/transcription-results?url=${encodeURIComponent(transcription.youtubeUrl)}`)}
+                         className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors duration-200"
+                       >
+                         View Details
+                       </button>
+                     )}
                   </div>
                 ))}
                 {recentTranscriptions.length > 5 && (

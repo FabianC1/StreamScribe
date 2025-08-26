@@ -63,7 +63,9 @@ export async function GET(request: NextRequest) {
         audioDuration: t.audioDuration,
         cachedAt: t.cachedAt,
         createdAt: t.createdAt,
-        highlights: t.highlights || []
+        highlights: t.highlights || [],
+        confidence: t.confidence || 0,
+        status: t.status || 'completed'
       }))
     })
 

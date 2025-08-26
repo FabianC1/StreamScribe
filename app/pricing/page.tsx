@@ -5,12 +5,13 @@ import { useSession } from 'next-auth/react'
 import { useAuth } from '../contexts/AuthContext'
 import Header from '../../components/Header'
 import Footer from '../../components/Footer'
-import InternationalPricing from '../../components/InternationalPricing'
+
 import { 
   Check, 
   X, 
   Star,
   Zap,
+  Crown,
   Shield,
   Clock,
   Download,
@@ -152,6 +153,15 @@ export default function PricingPage() {
                   )}
 
                   <div className="text-center mb-8">
+                    <div className="w-16 h-16 bg-primary-100 dark:bg-primary-900/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                      {plan.id === 'premium' ? (
+                        <Crown className="w-8 h-8 text-primary-600 dark:text-primary-400" />
+                      ) : plan.id === 'standard' ? (
+                        <Star className="w-8 h-8 text-primary-600 dark:text-primary-400" />
+                      ) : (
+                        <Zap className="w-8 h-8 text-primary-600 dark:text-primary-400" />
+                      )}
+                    </div>
                     <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
                       {plan.name}
                     </h3>
@@ -209,24 +219,13 @@ export default function PricingPage() {
                   {/* CTA Button */}
                   <button
                     onClick={() => handlePlanSelect(plan.id)}
-                    className={`w-full py-4 px-6 rounded-lg font-semibold transition-colors duration-200 ${
-                      plan.popular
-                        ? 'bg-primary-600 hover:bg-primary-700 text-white'
-                        : 'bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-900 dark:text-white'
-                    }`}
+                    className="w-full py-4 px-6 rounded-lg font-semibold transition-colors duration-200 bg-primary-600 hover:bg-primary-700 text-white"
                   >
                     {isAuthenticated ? 'Select Plan' : 'Get Started'}
                   </button>
                 </div>
               ))}
             </div>
-          </div>
-        </section>
-
-        {/* International Pricing Section */}
-        <section className="py-20 px-4 bg-gray-50 dark:bg-gray-900">
-          <div className="max-w-6xl mx-auto">
-            <InternationalPricing />
           </div>
         </section>
 

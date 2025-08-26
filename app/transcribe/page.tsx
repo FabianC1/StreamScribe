@@ -2,7 +2,7 @@
 
 import { useSession } from 'next-auth/react'
 import { useAuth } from '../contexts/AuthContext'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Header from '../../components/Header'
 import Footer from '../../components/Footer'
 import TranscriptionForm from '../../components/TranscriptionForm'
@@ -13,7 +13,11 @@ export default function TranscribePage() {
   const { data: session, status } = useSession()
   const { user: customUser } = useAuth()
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [isTranscribing, setIsTranscribing] = useState(false)
+  
+  // Check for retry URL parameter
+  const retryUrl = searchParams.get('retry')
   
   const isAuthenticated = status === 'authenticated' || !!customUser
   const isLoading = status === 'loading'
@@ -69,6 +73,7 @@ export default function TranscribePage() {
               isLoading={isTranscribing}
               transcription={''} // transcription is removed
               disabled={false}
+              retryUrl={retryUrl}
             />
           </div>
         </section>

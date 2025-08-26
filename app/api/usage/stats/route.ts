@@ -1,66 +1,49 @@
 import { NextRequest, NextResponse } from 'next/server'
 import connectDB from '@/lib/mongodb'
-import { UsageTracking, Transcription } from '@/models'
+import { Transcription } from '@/models'
+import mongoose from 'mongoose'
 
 export async function GET(request: NextRequest) {
   try {
     await connectDB()
     
-    // TODO: Get actual user ID from session/auth
-    const mockUserId = '507f1f77bcf86cd799439011'
+    // For now, use the development fallback user ID
+    // In production, this should come from the authenticated session
+    const userId = process.env.NODE_ENV === 'development' 
+      ? '507f1f77bcf86cd799439011' 
+      : '507f1f77bcf86cd799439011' // TODO: Get from session
     
-    // Get current month usage
+    const objectId = new mongoose.Types.ObjectId(userId)
+    
+    // Get current month usage from transcriptions
     const now = new Date()
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
     const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0)
     
-    const monthlyUsage = await UsageTracking.aggregate([
-      {
-        $match: {
-          userId: mockUserId,
-          date: { $gte: startOfMonth, $lte: endOfMonth }
-        }
-      },
-      {
-        $group: {
-          _id: null,
-          totalHours: { $sum: '$hoursUsed' },
-          totalTranscriptions: { $sum: '$transcriptionsCount' },
-          totalExports: { $sum: '$exportsCount' }
-        }
-      }
-    ])
-    
-    // Get total transcriptions count
-    const totalTranscriptions = await Transcription.countDocuments({ userId: mockUserId })
-    
-    // Get today's usage
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-    
-    const todayUsage = await UsageTracking.findOne({
-      userId: mockUserId,
-      date: today
+    // Calculate monthly hours from transcriptions
+    const monthlyTranscriptions = await Transcription.find({
+      userId: objectId,
+      createdAt: { $gte: startOfMonth, $lte: endOfMonth }
     })
     
-    const stats = {
-      monthly: {
-        hours: monthlyUsage[0]?.totalHours || 0,
-        transcriptions: monthlyUsage[0]?.totalTranscriptions || 0,
-        exports: monthlyUsage[0]?.totalExports || 0
-      },
-      total: {
-        transcriptions: totalTranscriptions
-      },
-      today: {
-        hours: todayUsage?.hoursUsed || 0,
-        transcriptions: todayUsage?.transcriptionsCount || 0
-      }
-    }
+    const monthlyHours = monthlyTranscriptions.reduce((total, transcription) => {
+      return total + (transcription.audioDuration / 3600) // Convert seconds to hours
+    }, 0)
+    
+    // Get total transcriptions count
+    const totalTranscriptions = await Transcription.countDocuments({ userId: objectId })
+    
+    // Calculate total hours from all transcriptions
+    const allTranscriptions = await Transcription.find({ userId: objectId })
+    const totalHours = allTranscriptions.reduce((total, transcription) => {
+      return total + (transcription.audioDuration / 3600) // Convert seconds to hours
+    }, 0)
     
     return NextResponse.json({
       success: true,
-      stats
+      monthlyHours: monthlyHours,
+      totalHours: totalHours,
+      totalTranscriptions: totalTranscriptions
     })
     
   } catch (error) {

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Youtube, Loader2, CheckCircle, AlertCircle } from 'lucide-react'
 
 interface TranscriptionFormProps {
@@ -9,13 +9,22 @@ interface TranscriptionFormProps {
   transcription: string
   onInputFocus?: () => void
   disabled?: boolean
+  retryUrl?: string | null
 }
 
-export default function TranscriptionForm({ onTranscribe, isLoading, transcription, onInputFocus, disabled = false }: TranscriptionFormProps) {
-  const [youtubeUrl, setYoutubeUrl] = useState('')
+export default function TranscriptionForm({ onTranscribe, isLoading, transcription, onInputFocus, disabled = false, retryUrl }: TranscriptionFormProps) {
+  const [youtubeUrl, setYoutubeUrl] = useState(retryUrl || '')
   const [isProcessing, setIsProcessing] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [isCached, setIsCached] = useState(false)
+
+  // Handle retry URL
+  useEffect(() => {
+    if (retryUrl) {
+      setYoutubeUrl(retryUrl)
+      checkIfCached(retryUrl)
+    }
+  }, [retryUrl])
 
   // YouTube URL validation function
   const isValidYouTubeUrl = (url: string): boolean => {
@@ -113,11 +122,18 @@ export default function TranscriptionForm({ onTranscribe, isLoading, transcripti
             </svg>
           </div>
           <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4 transition-colors duration-200">
-            YouTube Video Transcription
+            {retryUrl ? 'Retry Transcription' : 'YouTube Video Transcription'}
           </h2>
           <p className="text-lg text-gray-600 dark:text-gray-300 transition-colors duration-200 max-w-2xl mx-auto">
-            Get accurate, timestamped transcripts in seconds with our advanced AI technology
+            {retryUrl ? 'Retry transcribing this video with our advanced AI technology' : 'Get accurate, timestamped transcripts in seconds with our advanced AI technology'}
           </p>
+          {retryUrl && (
+            <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+              <p className="text-sm text-blue-700 dark:text-blue-300">
+                🔄 Retrying transcription for: {retryUrl}
+              </p>
+            </div>
+          )}
         </div>
 
         <form onSubmit={handleSubmit} className="mb-10">
@@ -161,7 +177,7 @@ export default function TranscriptionForm({ onTranscribe, isLoading, transcripti
               ) : (
                 <>
                   <CheckCircle className="w-6 h-6" />
-                  Transcribe
+                  {retryUrl ? 'Retry' : 'Transcribe'}
                 </>
               )}
             </button>
