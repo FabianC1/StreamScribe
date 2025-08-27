@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import connectDB from '@/lib/mongodb'
 import { User } from '@/models'
 import crypto from 'crypto'
+import { sendPasswordResetEmail } from '@/lib/email'
 
 export async function POST(request: NextRequest) {
   try {
@@ -69,13 +70,19 @@ export async function POST(request: NextRequest) {
     // Create reset URL
     const resetUrl = `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/reset-password/${resetToken}`
 
-    // TODO: Send email with reset link
-    // For now, we'll just log it and return success
-    console.log('📧 Password reset email would be sent to:', email)
-    console.log('🔗 Reset URL:', resetUrl)
-
-    // In production, you would send an actual email here
-    // await sendPasswordResetEmail(email, resetUrl)
+    // Send real password reset email
+    try {
+      await sendPasswordResetEmail({
+        email: user.email,
+        resetUrl,
+        firstName: user.firstName
+      })
+      console.log('📧 Password reset email sent successfully to:', email)
+    } catch (emailError) {
+      console.error('❌ Failed to send email:', emailError)
+      // Don't fail the request if email fails, just log it
+      // User can still use the reset link from console for testing
+    }
 
     return NextResponse.json({ 
       success: true, 

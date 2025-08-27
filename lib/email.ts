@@ -1,217 +1,154 @@
-import nodemailer from 'nodemailer'
+import { Resend } from 'resend'
 
-// Email configuration
-const transporter = nodemailer.createTransport({
-  service: 'gmail', // You can use Gmail, SendGrid, or any other service
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASSWORD,
-  },
-})
+const resend = new Resend(process.env.RESEND_API_KEY)
 
-export interface EmailOptions {
-  to: string
-  subject: string
-  html: string
-  from?: string
+export interface SendPasswordResetEmailParams {
+  email: string
+  resetUrl: string
+  firstName: string
 }
 
-export async function sendEmail(options: EmailOptions) {
+export async function sendPasswordResetEmail({
+  email,
+  resetUrl,
+  firstName
+}: SendPasswordResetEmailParams) {
   try {
-    const mailOptions = {
-      from: options.from || process.env.EMAIL_USER,
-      to: options.to,
-      subject: options.subject,
-      html: options.html,
+    const { data, error } = await resend.emails.send({
+      from: 'StreamScribe <noreply@resend.dev>',
+      to: [email],
+      subject: 'Reset Your StreamScribe Password',
+      html: `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Reset Your Password</title>
+          <style>
+            body {
+              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+              line-height: 1.6;
+              color: #333;
+              max-width: 600px;
+              margin: 0 auto;
+              padding: 20px;
+              background-color: #f8fafc;
+            }
+            .container {
+              background-color: white;
+              border-radius: 12px;
+              padding: 40px;
+              box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            }
+            .header {
+              text-align: center;
+              margin-bottom: 30px;
+            }
+            .logo {
+              font-size: 28px;
+              font-weight: bold;
+              color: #3b82f6;
+              margin-bottom: 10px;
+            }
+            .title {
+              font-size: 24px;
+              font-weight: 600;
+              color: #1f2937;
+              margin-bottom: 20px;
+            }
+            .message {
+              font-size: 16px;
+              color: #6b7280;
+              margin-bottom: 30px;
+              line-height: 1.7;
+            }
+            .button {
+              display: inline-block;
+              background-color: #3b82f6;
+              color: white;
+              text-decoration: none;
+              padding: 14px 28px;
+              border-radius: 8px;
+              font-weight: 600;
+              font-size: 16px;
+              margin: 20px 0;
+              text-align: center;
+            }
+            .button:hover {
+              background-color: #2563eb;
+            }
+            .warning {
+              background-color: #fef3c7;
+              border: 1px solid #f59e0b;
+              border-radius: 8px;
+              padding: 16px;
+              margin: 20px 0;
+              color: #92400e;
+            }
+            .footer {
+              text-align: center;
+              margin-top: 40px;
+              padding-top: 20px;
+              border-top: 1px solid #e5e7eb;
+              color: #9ca3af;
+              font-size: 14px;
+            }
+            .link {
+              color: #3b82f6;
+              text-decoration: none;
+            }
+            .link:hover {
+              text-decoration: underline;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <div class="logo">StreamScribe</div>
+              <div class="title">Reset Your Password</div>
+            </div>
+            
+            <div class="message">
+              Hi ${firstName},<br><br>
+              We received a request to reset your password for your StreamScribe account. 
+              Click the button below to create a new password:
+            </div>
+            
+            <div style="text-align: center;">
+              <a href="${resetUrl}" class="button">Reset Password</a>
+            </div>
+            
+            <div class="warning">
+              <strong>⚠️ Security Notice:</strong> This link will expire in 24 hours. 
+              If you didn't request this password reset, please ignore this email.
+            </div>
+            
+            <div class="message">
+              If the button above doesn't work, you can copy and paste this link into your browser:<br>
+              <a href="${resetUrl}" class="link">${resetUrl}</a>
+            </div>
+            
+            <div class="footer">
+              <p>This email was sent from StreamScribe</p>
+              <p>If you have any questions, please contact our support team</p>
+            </div>
+          </div>
+        </body>
+        </html>
+      `
+    })
+
+    if (error) {
+      console.error('❌ Resend email error:', error)
+      throw new Error(`Failed to send email: ${error.message}`)
     }
 
-    const info = await transporter.sendMail(mailOptions)
-    console.log('Email sent successfully:', info.messageId)
-    return { success: true, messageId: info.messageId }
+    console.log('✅ Password reset email sent successfully:', data?.id)
+    return data
   } catch (error) {
-    console.error('Error sending email:', error)
+    console.error('❌ Email sending failed:', error)
     throw error
   }
-}
-
-// Email templates for different notification types
-export function getEmailTemplate(type: string, data: any): string {
-  switch (type) {
-    case 'billingReminder':
-      return getBillingReminderTemplate(data)
-    case 'usageAlert':
-      return getUsageAlertTemplate(data)
-    case 'securityAlert':
-      return getSecurityAlertTemplate(data)
-    case 'emailUpdates':
-      return getEmailUpdatesTemplate(data)
-    default:
-      return getDefaultTemplate(data)
-  }
-}
-
-function getBillingReminderTemplate(data: any): string {
-  return `
-    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-      <h2 style="color: #2563eb;">💰 Billing Reminder</h2>
-      <p>Hello ${data.name},</p>
-      <p>This is a friendly reminder that your StreamScribe subscription will be renewed on <strong>${data.renewalDate}</strong>.</p>
-      <p><strong>Current Plan:</strong> ${data.plan}</p>
-      <p><strong>Amount:</strong> ${data.amount}</p>
-      <p>If you have any questions about your subscription, please don't hesitate to contact our support team.</p>
-      <p>Best regards,<br>The StreamScribe Team</p>
-    </div>
-  `
-}
-
-function getUsageAlertTemplate(data: any): string {
-  return `
-    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-      <h2 style="color: #dc2626;">⚠️ Usage Alert</h2>
-      <p>Hello ${data.name},</p>
-      <p>You're approaching your transcription limit for this month.</p>
-      <p><strong>Current Usage:</strong> ${data.usedHours} hours</p>
-      <p><strong>Monthly Limit:</strong> ${data.totalHours} hours</p>
-      <p><strong>Remaining:</strong> ${data.remainingHours} hours</p>
-      <p>Consider upgrading your plan to get more transcription hours, or wait until next month for your limit to reset.</p>
-      <p>Best regards,<br>The StreamScribe Team</p>
-    </div>
-  `
-}
-
-function getSecurityAlertTemplate(data: any): string {
-  return `
-    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-      <h2 style="color: #dc2626;">🔒 Security Alert</h2>
-      <p>Hello ${data.name},</p>
-      <p>We detected a new login to your StreamScribe account.</p>
-      <p><strong>Login Time:</strong> ${data.loginTime}</p>
-      <p><strong>Location:</strong> ${data.location}</p>
-      <p><strong>Device:</strong> ${data.device}</p>
-      <p>If this was you, no action is needed. If you don't recognize this login, please change your password immediately.</p>
-      <p>Best regards,<br>The StreamScribe Team</p>
-    </div>
-  `
-}
-
-function getEmailUpdatesTemplate(data: any): string {
-  return `
-    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-      <h2 style="color: #059669;">📧 Account Update</h2>
-      <p>Hello ${data.name},</p>
-      <p>Here's an update about your StreamScribe account:</p>
-      <p>${data.message}</p>
-      <p>Best regards,<br>The StreamScribe Team</p>
-    </div>
-  `
-}
-
-function getDefaultTemplate(data: any): string {
-  return `
-    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-      <h2 style="color: #2563eb;">StreamScribe Notification</h2>
-      <p>Hello ${data.name},</p>
-      <p>${data.message}</p>
-      <p>Best regards,<br>The StreamScribe Team</p>
-    </div>
-  `
-}
-
-// Email automation functions
-export async function sendBillingReminder(user: any) {
-  if (!user.notifications?.billingReminders) return
-
-  const data = {
-    name: user.name || 'User',
-    renewalDate: new Date(user.subscriptionEndDate).toLocaleDateString(),
-    plan: user.subscriptionTier,
-    amount: getPlanPrice(user.subscriptionTier),
-  }
-
-  await sendEmail({
-    to: user.email,
-    subject: '💰 StreamScribe Billing Reminder',
-    html: getEmailTemplate('billingReminder', data),
-  })
-}
-
-export async function sendUsageAlert(user: any) {
-  if (!user.notifications?.usageAlerts) return
-
-  const usedHours = user.hoursUsed || 0
-  const totalHours = user.hoursLimit || 30
-  const remainingHours = totalHours - usedHours
-
-  if (remainingHours <= 5) { // Send alert when 5 hours or less remaining
-    const data = {
-      name: user.name || 'User',
-      usedHours,
-      totalHours,
-      remainingHours,
-    }
-
-    await sendEmail({
-      to: user.email,
-      subject: '⚠️ StreamScribe Usage Alert',
-      html: getEmailTemplate('usageAlert', data),
-    })
-  }
-}
-
-export async function sendSecurityAlert(user: any, loginData: any) {
-  if (!user.notifications?.securityAlerts) return
-
-  const data = {
-    name: user.name || 'User',
-    loginTime: new Date().toLocaleString(),
-    location: loginData.location || 'Unknown',
-    device: loginData.device || 'Unknown',
-  }
-
-  await sendEmail({
-    to: user.email,
-    subject: '🔒 StreamScribe Security Alert',
-    html: getEmailTemplate('securityAlert', data),
-  })
-}
-
-export async function sendEmailUpdate(user: any, message: string) {
-  if (!user.notifications?.emailUpdates) return
-
-  const data = {
-    name: user.name || 'User',
-    message,
-  }
-
-  await sendEmail({
-    to: user.email,
-    subject: '📧 StreamScribe Account Update',
-    html: getEmailTemplate('emailUpdates', data),
-  })
-}
-
-// Helper function to get plan price
-function getPlanPrice(tier: string): string {
-  const prices = {
-    basic: '$6.99',
-    standard: '$12.99',
-    premium: '$19.99',
-  }
-  return prices[tier as keyof typeof prices] || '$0.00'
-}
-
-// Batch email sending for multiple users
-export async function sendBatchEmails(users: any[], template: string, data: any) {
-  const promises = users.map(user => {
-    if (user.notifications?.[template]) {
-      return sendEmail({
-        to: user.email,
-        subject: `StreamScribe ${template.charAt(0).toUpperCase() + template.slice(1)}`,
-        html: getEmailTemplate(template, { name: user.name, ...data }),
-      })
-    }
-    return Promise.resolve()
-  })
-
-  await Promise.all(promises)
 }
