@@ -104,7 +104,32 @@ export default function DashboardPage() {
         console.error('Failed to delete transcription')
       }
     } catch (error) {
-      console.error('Error deleting transcription:', error)
+        console.error('Error deleting transcription:', error)
+      }
+    }
+
+  const handleCleanup = async () => {
+    if (!confirm('⚠️ This will DELETE ALL test data and reset everything to 0. Are you sure?')) {
+      return
+    }
+
+    try {
+      const response = await fetch('/api/cleanup', {
+        method: 'POST',
+      })
+      
+      if (response.ok) {
+        const result = await response.json()
+        alert(`✅ Cleanup completed!\n\nDeleted:\n- ${result.deleted.transcriptions} transcriptions\n- ${result.deleted.processedVideos} ProcessedVideos\n- ${result.deleted.usageTracking} UsageTracking\n- Reset ${result.deleted.usersReset} users`)
+        
+        // Refresh the page to show clean state
+        window.location.reload()
+      } else {
+        alert('❌ Cleanup failed. Check console for details.')
+      }
+    } catch (error) {
+      console.error('Cleanup error:', error)
+      alert('❌ Cleanup failed. Check console for details.')
     }
   }
 
@@ -191,6 +216,18 @@ export default function DashboardPage() {
                 </div>
               )}
             </div>
+
+            {/* Cleanup Button (Admin Only) */}
+            {(customUser?.email === 'galaselfabian@gmail.com' || session?.user?.email === 'galaselfabian@gmail.com') && (
+              <div className="mb-6">
+                <button
+                  onClick={handleCleanup}
+                  className="px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg transition-colors duration-200 flex items-center gap-2"
+                >
+                  🧹 Cleanup Test Data (Admin Only)
+                </button>
+              </div>
+            )}
 
             {/* Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">

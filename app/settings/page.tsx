@@ -82,7 +82,7 @@ export default function SettingsPage() {
     emailUpdates: true,
     billingReminders: true,
     usageAlerts: true,
-    securityAlerts: true
+    newFeatures: true
   })
 
   const [profileUpdateMessage, setProfileUpdateMessage] = useState('')
@@ -220,6 +220,31 @@ export default function SettingsPage() {
     }))
   }
 
+  const handleCleanup = async () => {
+    if (!confirm('⚠️ This will DELETE ALL test data and reset everything to 0. Are you sure?')) {
+      return
+    }
+
+    try {
+      const response = await fetch('/api/cleanup', {
+        method: 'POST',
+      })
+      
+      if (response.ok) {
+        const result = await response.json()
+        alert(`✅ Cleanup completed!\n\nDeleted:\n- ${result.deleted.transcriptions} transcriptions\n- ${result.deleted.processedVideos} ProcessedVideos\n- ${result.deleted.usageTracking} UsageTracking\n- Reset ${result.deleted.usersReset} users`)
+        
+        // Refresh the page to show clean state
+        window.location.reload()
+      } else {
+        alert('❌ Cleanup failed. Check console for details.')
+      }
+    } catch (error) {
+      console.error('Cleanup error:', error)
+      alert('❌ Cleanup failed. Check console for details.')
+    }
+  }
+
   const getTierIcon = (tier: string) => {
     switch (tier.toLowerCase()) {
       case 'premium':
@@ -272,6 +297,18 @@ export default function SettingsPage() {
             <p className="text-lg text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
               Manage your subscription, profile, and preferences
             </p>
+            
+            {/* Cleanup Button (Admin Only) */}
+            {(customUser?.email === 'galaselfabian@gmail.com' || session?.user?.email === 'galaselfabian@gmail.com') && (
+              <div className="mt-6">
+                <button
+                  onClick={handleCleanup}
+                  className="px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg transition-colors duration-200 flex items-center gap-2"
+                >
+                  🧹 Cleanup Test Data (Admin Only)
+                </button>
+              </div>
+            )}
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
@@ -416,12 +453,12 @@ export default function SettingsPage() {
                         <h3 className="font-medium text-gray-900 dark:text-white capitalize">
                           {key.replace(/([A-Z])/g, ' $1').trim()}
                         </h3>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">
-                          {key === 'emailUpdates' && 'Receive updates about your account and service'}
-                          {key === 'billingReminders' && 'Receive billing and payment reminders'}
-                          {key === 'usageAlerts' && 'Get notified when approaching transcription limits'}
-                          {key === 'securityAlerts' && 'Receive security notifications and login alerts'}
-                        </p>
+                                                 <p className="text-sm text-gray-600 dark:text-gray-400">
+                           {key === 'emailUpdates' && 'Receive updates about your account and service'}
+                           {key === 'billingReminders' && 'Receive billing and payment reminders'}
+                           {key === 'usageAlerts' && 'Get notified when approaching transcription limits'}
+                           {key === 'newFeatures' && 'Get notified about new features and updates'}
+                         </p>
                       </div>
                       <button
                         onClick={() => handleNotificationToggle(key as keyof typeof notifications)}
