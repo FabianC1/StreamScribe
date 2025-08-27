@@ -1,8 +1,8 @@
 import NextAuth from 'next-auth'
 import GoogleProvider from 'next-auth/providers/google'
 import CredentialsProvider from 'next-auth/providers/credentials'
-import connectDB from '../../../../lib/mongodb'
-import User from '../../../../models/User'
+import connectDB from '@/lib/mongodb'
+import { User } from '@/models'
 import bcrypt from 'bcryptjs'
 
 // Extend NextAuth types
@@ -33,7 +33,7 @@ declare module 'next-auth/jwt' {
   }
 }
 
-const handler = NextAuth({
+export const authOptions: any = {
   providers: [
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID!,
@@ -47,19 +47,32 @@ const handler = NextAuth({
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
+          console.log('❌ Missing credentials:', { email: !!credentials?.email, password: !!credentials?.password })
           return null
         }
 
         try {
+          console.log('🔐 Attempting to authenticate:', credentials.email)
           await connectDB()
           
           const user = await User.findOne({ email: credentials.email })
-          if (!user || !user.password) {
+          console.log('👤 User found:', user ? 'Yes' : 'No')
+          
+          if (!user) {
+            console.log('❌ No user found with email:', credentials.email)
+            return null
+          }
+          
+          if (!user.passwordHash) {
+            console.log('❌ User has no password (Google account)')
             return null
           }
 
-          const isPasswordValid = await bcrypt.compare(credentials.password, user.password)
+          const isPasswordValid = await bcrypt.compare(credentials.password, user.passwordHash)
+          console.log('🔑 Password valid:', isPasswordValid)
+          
           if (!isPasswordValid) {
+            console.log('❌ Invalid password for user:', credentials.email)
             return null
           }
 
@@ -67,6 +80,7 @@ const handler = NextAuth({
           user.lastLoginAt = new Date()
           await user.save()
 
+          console.log('✅ Authentication successful for:', credentials.email)
           return {
             id: user._id.toString(),
             email: user.email,
@@ -74,7 +88,7 @@ const handler = NextAuth({
             image: user.avatar
           }
         } catch (error) {
-          console.error('Credentials auth error:', error)
+          console.error('❌ Credentials auth error:', error)
           return null
         }
       }
@@ -84,7 +98,7 @@ const handler = NextAuth({
     strategy: 'jwt',
   },
   callbacks: {
-    async signIn({ user, account, profile }) {
+    async signIn({ user, account, profile }: any) {
       if (account?.provider === 'google') {
         try {
           await connectDB()
@@ -132,7 +146,7 @@ const handler = NextAuth({
       }
       return true
     },
-    async jwt({ token, user, account }) {
+    async jwt({ token, user, account }: any) {
       if (user) {
         token.userId = user.id
         token.email = user.email
@@ -141,7 +155,7 @@ const handler = NextAuth({
       }
       return token
     },
-    async session({ session, token }) {
+    async session({ session, token }: any) {
       if (token) {
         session.user.id = token.userId
         session.user.email = token.email
@@ -152,6 +166,8 @@ const handler = NextAuth({
     },
   },
   secret: process.env.NEXTAUTH_SECRET,
-})
+}
+
+const handler = NextAuth(authOptions)
 
 export { handler as GET, handler as POST }

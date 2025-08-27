@@ -5,11 +5,10 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { Chrome, Mail, Lock, Eye, EyeOff, AlertCircle, CheckCircle } from 'lucide-react'
-import { useAuth } from '../contexts/AuthContext'
+
 
 export default function LoginPage() {
   const { data: session, status } = useSession()
-  const { login } = useAuth()
   const router = useRouter()
   const searchParams = useSearchParams()
   const [showPassword, setShowPassword] = useState(false)

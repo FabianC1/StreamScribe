@@ -227,7 +227,7 @@ export default function SettingsPage() {
       case 'standard':
         return <Star className="w-5 h-5 text-blue-500" />
       case 'basic':
-        return <Zap className="w-5 h-5 text-green-500" />
+        return <Zap className="w-5 h-5 text-purple-500" />
       default:
         return <Shield className="w-5 h-5 text-gray-500" />
     }

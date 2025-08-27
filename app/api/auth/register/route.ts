@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import connectDB from '../../../../lib/mongodb'
+import { User } from '@/models'
 import bcrypt from 'bcryptjs'
 
 export async function POST(request: NextRequest) {
@@ -22,15 +23,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Connect to database
-    const mongoose = await connectDB()
-    const db = mongoose.connection.db
-
-    if (!db) {
-      throw new Error('Failed to connect to database')
-    }
+    await connectDB()
 
     // Check if user already exists
-    const existingUser = await db.collection('users').findOne({ email: email.toLowerCase() })
+    const existingUser = await User.findOne({ email: email.toLowerCase() })
     if (existingUser) {
       return NextResponse.json(
         { error: 'User with this email already exists' },
@@ -42,32 +38,31 @@ export async function POST(request: NextRequest) {
     const saltRounds = 12
     const hashedPassword = await bcrypt.hash(password, saltRounds)
 
-    // Create user
-    const userData = {
+    // Create user using User model
+    const newUser = new User({
       firstName,
       lastName,
       email: email.toLowerCase(),
-      password: hashedPassword,
+      passwordHash: hashedPassword,
       subscriptionTier: 'basic',
       subscriptionStatus: 'active',
+      subscriptionStartDate: new Date(),
+      subscriptionEndDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
       hoursUsed: 0,
       hoursLimit: 30,
       emailVerified: false,
       lastLoginAt: new Date(),
       createdAt: new Date(),
       updatedAt: new Date()
-    }
+    })
 
-    const result = await db.collection('users').insertOne(userData)
+    await newUser.save()
 
     // Return success (don't return the password)
-    const { password: _, ...userWithoutPassword } = userData
+    const { passwordHash: _, ...userWithoutPassword } = newUser.toObject()
     return NextResponse.json({
       success: true,
-      user: {
-        _id: result.insertedId,
-        ...userWithoutPassword
-      }
+      user: userWithoutPassword
     })
 
   } catch (error) {

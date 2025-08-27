@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { getServerSession } from 'next-auth'
 import axios from 'axios'
 import fs from 'fs-extra'
 import path from 'path'
@@ -7,6 +8,7 @@ import { promisify } from 'util'
 import { updateProgress, setCompleted } from '../../../lib/progress'
 import connectDB from '@/lib/mongodb'
 import { Transcription, User, UsageTracking, ProcessedVideos } from '@/models'
+import { authOptions } from '../auth/[...nextauth]/route'
 
 const execAsync = promisify(exec)
 
@@ -103,14 +105,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing youtubeUrl parameter' }, { status: 400 })
     }
     
-    // TODO: Add proper authentication check here
-    // For now, we'll use a mock user ID for testing
-    const mockUserId = '507f1f77bcf86cd799439011' // This should come from session/auth
+    // Get authenticated user from session
+    const session = await getServerSession(authOptions) as any
+    if (!session?.user?.id) {
+      console.error('❌ No authenticated user found')
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+    }
     
-    console.log('📝 Received transcription request for:', youtubeUrl)
+    const userId = session.user.id
+    console.log('📝 Received transcription request for:', youtubeUrl, 'from user:', userId)
     
     // Check if this transcription is already in progress
-    const transcriptionKey = `${mockUserId}_${youtubeUrl}`
+    const transcriptionKey = `${userId}_${youtubeUrl}`
     if (ongoingTranscriptions.has(transcriptionKey)) {
       console.log('🔄 Transcription already in progress for:', youtubeUrl)
       return NextResponse.json({ 
@@ -148,7 +154,7 @@ export async function POST(request: NextRequest) {
        // Clean up any failed transcriptions for this video (to prevent accumulation of failed attempts)
        try {
          const failedTranscriptions = await Transcription.find({
-           userId: mockUserId,
+           userId: userId,
            videoId: videoId,
            status: 'failed'
          })
@@ -156,7 +162,7 @@ export async function POST(request: NextRequest) {
          if (failedTranscriptions.length > 0) {
            console.log(`🧹 Cleaning up ${failedTranscriptions.length} failed transcriptions for video: ${videoId}`)
            await Transcription.deleteMany({
-             userId: mockUserId,
+             userId: userId,
              videoId: videoId,
              status: 'failed'
            })
@@ -166,19 +172,19 @@ export async function POST(request: NextRequest) {
        }
        
        // Check if this user has already processed this video (even if deleted)
-       console.log('🔍 Checking for processed video - userId:', mockUserId, 'videoId:', videoId)
+       console.log('🔍 Checking for processed video - userId:', userId, 'videoId:', videoId)
        
        // Debug: Show all ProcessedVideos records for this user
-       const allUserRecords = await ProcessedVideos.find({ userId: mockUserId })
+       const allUserRecords = await ProcessedVideos.find({ userId: userId })
        console.log('📋 All ProcessedVideos records for user:', allUserRecords.map(r => ({ videoId: r.videoId, youtubeUrl: r.youtubeUrl })))
        
        const processedVideo = await ProcessedVideos.findOne({
-         userId: mockUserId,
+         userId: userId,
          videoId: videoId
        })
        
        if (processedVideo) {
-         console.log('🚫 Video already processed by user:', mockUserId, 'Video ID:', videoId, 'URL:', youtubeUrl)
+         console.log('🚫 Video already processed by user:', userId, 'Video ID:', videoId, 'URL:', youtubeUrl)
          console.log('📋 ProcessedVideos record:', processedVideo)
          
          return NextResponse.json({
@@ -195,7 +201,7 @@ export async function POST(request: NextRequest) {
      }
 
     // Create a promise for this transcription and store it
-    const transcriptionPromise = processTranscription(youtubeUrl, mockUserId)
+    const transcriptionPromise = processTranscription(youtubeUrl, userId)
     ongoingTranscriptions.set(transcriptionKey, transcriptionPromise)
     
     try {
@@ -213,7 +219,7 @@ export async function POST(request: NextRequest) {
 }
 
 // Separate function to handle the actual transcription processing
-async function processTranscription(youtubeUrl: string, mockUserId: string) {
+async function processTranscription(youtubeUrl: string, userId: string) {
   const startTime = Date.now() // Track processing time for credit usage
   
   // Real AssemblyAI processing for actual YouTube URLs
@@ -257,7 +263,7 @@ async function processTranscription(youtubeUrl: string, mockUserId: string) {
        
        // Mark as failed without using AssemblyAI credits
        const transcription = new Transcription({
-         userId: mockUserId,
+         userId: userId,
          youtubeUrl: youtubeUrl,
          videoTitle: videoTitle,
          videoId: videoId,
@@ -280,7 +286,7 @@ async function processTranscription(youtubeUrl: string, mockUserId: string) {
      if (!await fs.pathExists(audioFile)) {
        // Mark as failed without using AssemblyAI credits
        const transcription = new Transcription({
-         userId: mockUserId,
+         userId: userId,
          youtubeUrl: youtubeUrl,
          videoTitle: videoTitle,
          videoId: videoId,
@@ -477,7 +483,7 @@ async function processTranscription(youtubeUrl: string, mockUserId: string) {
           
                      // Create transcription document with proper field mapping
            const transcriptionDoc = new Transcription({
-             userId: mockUserId,
+             userId: userId,
              youtubeUrl: youtubeUrl,
              videoTitle: videoTitle, // Use fetched video title
              videoId: videoId,
@@ -521,9 +527,9 @@ async function processTranscription(youtubeUrl: string, mockUserId: string) {
           
           // Create ProcessedVideos record to prevent future duplicates
           try {
-            console.log('📝 Creating ProcessedVideos record for video:', videoId, 'userId:', mockUserId)
+            console.log('📝 Creating ProcessedVideos record for video:', videoId, 'userId:', userId)
             const processedVideo = new ProcessedVideos({
-              userId: mockUserId,
+              userId: userId,
               videoId: videoId,
               youtubeUrl: youtubeUrl,
               processedAt: new Date(),
@@ -533,7 +539,7 @@ async function processTranscription(youtubeUrl: string, mockUserId: string) {
             console.log('✅ ProcessedVideos record created for video:', videoId, 'with ID:', processedVideo._id)
             
             // Verify it was created
-            const verifyRecord = await ProcessedVideos.findOne({ videoId: videoId, userId: mockUserId })
+            const verifyRecord = await ProcessedVideos.findOne({ videoId: videoId, userId: userId })
             console.log('🔍 Verification - ProcessedVideos record exists after creation:', verifyRecord ? 'Yes' : 'No')
           } catch (processedVideoError) {
             console.warn('⚠️ Failed to create ProcessedVideos record:', processedVideoError)
@@ -548,13 +554,13 @@ async function processTranscription(youtubeUrl: string, mockUserId: string) {
           const hoursUsed = (transcriptionResult.audio_duration || 0) / 3600 // Convert seconds to hours
           
           let usageDoc = await UsageTracking.findOne({
-            userId: mockUserId,
+            userId: userId,
             date: today
           })
           
           if (!usageDoc) {
             usageDoc = new UsageTracking({
-              userId: mockUserId,
+              userId: userId,
               date: today,
               hoursUsed: hoursUsed,
               transcriptionsCount: 1,

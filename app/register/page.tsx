@@ -27,6 +27,7 @@ export default function RegisterPage() {
   })
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
+  const [agreeToTerms, setAgreeToTerms] = useState(false)
   const [passwordStrength, setPasswordStrength] = useState({
     length: false,
     uppercase: false,
@@ -152,6 +153,13 @@ export default function RegisterPage() {
     const isStrongPassword = Object.values(passwordStrength).every(Boolean)
     if (!isStrongPassword) {
       setError('Please ensure your password meets all requirements')
+      setIsLoading(false)
+      return
+    }
+
+    // Validate terms agreement
+    if (!agreeToTerms) {
+      setError('You must agree to the Terms of Service and Privacy Policy')
       setIsLoading(false)
       return
     }
@@ -458,6 +466,8 @@ export default function RegisterPage() {
                 id="terms"
                 name="terms"
                 type="checkbox"
+                checked={agreeToTerms}
+                onChange={(e) => setAgreeToTerms(e.target.checked)}
                 className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
               />
               <label htmlFor="terms" className="text-sm text-gray-600 dark:text-gray-400">

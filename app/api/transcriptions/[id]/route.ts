@@ -1,12 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { getServerSession } from 'next-auth'
 import connectDB from '@/lib/mongodb'
 import { Transcription, ProcessedVideos } from '@/models'
+import { authOptions } from '../../auth/[...nextauth]/route'
 
 export async function DELETE(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
+    // Get authenticated user from session
+    const session = await getServerSession(authOptions) as any
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+    }
+    
+    const userId = session.user.id
     await connectDB()
     
     const transcriptionId = params.id
@@ -25,9 +34,7 @@ export async function DELETE(
        try {
          const videoId = deletedTranscription.videoId
          if (videoId) {
-           // Use the same mockUserId that's used in the transcribe API
-           const mockUserId = '507f1f77bcf86cd799439011'
-           console.log('🧹 Attempting to remove ProcessedVideos record for video:', videoId, 'userId:', mockUserId)
+           console.log('🧹 Attempting to remove ProcessedVideos record for video:', videoId, 'userId:', userId)
            
            // Check if ProcessedVideos collection exists and has records
            const totalRecords = await ProcessedVideos.countDocuments({})
@@ -36,7 +43,7 @@ export async function DELETE(
            // First check if the record exists
            const existingRecord = await ProcessedVideos.findOne({ 
              videoId: videoId,
-             userId: mockUserId 
+             userId: userId 
            })
            console.log('🔍 Found ProcessedVideos record:', existingRecord ? 'Yes' : 'No')
            
@@ -51,14 +58,14 @@ export async function DELETE(
              // Delete by both videoId and userId to be more specific
              const deleteResult = await ProcessedVideos.deleteOne({ 
                videoId: videoId,
-               userId: mockUserId 
+               userId: userId 
              })
              console.log('✅ ProcessedVideos record removed for video:', videoId, 'Result:', deleteResult)
              
              // Verify deletion
              const verifyRecord = await ProcessedVideos.findOne({ 
                videoId: videoId,
-               userId: mockUserId 
+               userId: userId 
              })
              console.log('🔍 Verification - Record still exists after deletion:', verifyRecord ? 'Yes' : 'No')
            } else {

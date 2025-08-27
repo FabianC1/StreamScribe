@@ -3,13 +3,14 @@ import { getServerSession } from 'next-auth'
 import connectDB from '../../../../lib/mongodb'
 import { Transcription } from '@/models'
 import mongoose from 'mongoose'
+import { authOptions } from '../../auth/[...nextauth]/route'
 
 export async function GET(request: NextRequest) {
   try {
     let userId: string | null = null
 
     // Try NextAuth session first
-    const session = await getServerSession()
+    const session = await getServerSession(authOptions) as any
     if (session?.user?.id) {
       userId = session.user.id
       console.log('✅ Authenticated user ID from session:', userId)

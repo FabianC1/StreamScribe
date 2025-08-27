@@ -3,38 +3,11 @@ import connectDB from '@/lib/mongodb'
 import { getServerSession } from 'next-auth'
 import { ObjectId } from 'mongodb'
 import mongoose from 'mongoose'
-
-// Create auth config for getServerSession that matches NextAuth
-const authOptions = {
-  secret: process.env.NEXTAUTH_SECRET,
-  session: {
-    strategy: 'jwt' as const,
-  },
-  callbacks: {
-    async session({ session, token }: any) {
-      if (token) {
-        session.user.id = token.userId
-        session.user.email = token.email
-        session.user.name = token.name
-        session.user.image = token.image
-      }
-      return session
-    },
-    async jwt({ token, user }: any) {
-      if (user) {
-        token.userId = user.id
-        token.email = user.email
-        token.name = user.name
-        token.image = user.image
-      }
-      return token
-    },
-  },
-}
+import { authOptions } from '../auth/[...nextauth]/route'
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
+    const session = await getServerSession(authOptions) as any
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
