@@ -6,10 +6,11 @@ export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 })
 
 // Product IDs from your Stripe dashboard
+// For now, we'll create products on-the-fly instead of using pre-existing ones
 export const STRIPE_PRODUCTS = {
-  basic: 'prod_basic_id', // Replace with your actual Stripe product ID
-  standard: 'prod_standard_id', // Replace with your actual Stripe product ID
-  premium: 'prod_premium_id', // Replace with your actual Stripe product ID
+  basic: 'basic',
+  standard: 'standard', 
+  premium: 'premium',
 }
 
 // Base prices in USD (Stripe will automatically convert to local currency)
@@ -55,7 +56,7 @@ export async function createCheckoutSession({
       line_items: [
         {
           price_data: {
-            currency: 'usd', // Stripe will automatically convert to local currency
+            currency: 'gbp', // Use GBP since prices are in pounds
             product_data: {
               name: `StreamScribe ${tier.charAt(0).toUpperCase() + tier.slice(1)} Plan`,
               description: getTierDescription(tier),
@@ -76,9 +77,6 @@ export async function createCheckoutSession({
       cancel_url: cancelUrl,
       allow_promotion_codes: true,
       billing_address_collection: 'required',
-      tax_id_collection: {
-        enabled: true,
-      },
       subscription_data: {
         metadata: {
           tier,
@@ -89,16 +87,6 @@ export async function createCheckoutSession({
       customer_update: {
         address: 'auto',
         name: 'auto',
-      },
-      // Enable automatic tax calculation
-      automatic_tax: {
-        enabled: true,
-      },
-      // Enable international payments
-      payment_method_options: {
-        card: {
-          request_three_d_secure: 'automatic',
-        },
       },
     })
 

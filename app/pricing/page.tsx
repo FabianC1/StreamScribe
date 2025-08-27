@@ -5,6 +5,7 @@ import { useSession } from 'next-auth/react'
 import { useAuth } from '../contexts/AuthContext'
 import Header from '../../components/Header'
 import Footer from '../../components/Footer'
+import { loadStripe } from '@stripe/stripe-js'
 
 import { 
   Check, 
@@ -36,24 +37,16 @@ export default function PricingPage() {
       name: 'Basic',
       price: '£6.99',
       period: '/month',
-      description: 'Perfect for individuals and small projects',
+      hours: '30 hours per month',
       features: [
-        '30 hours of transcription per month',
-        'TXT export format',
-        'Timestamps for every word',
-        'Save notes and annotations',
-        'Video history and caching',
-        'Basic analytics',
-        'Email support'
-      ],
-      limitations: [
-        'Ads shown (ad removal not included)',
-        'No DOCX/SRT/VTT export',
-        'No MP3/MP4 download',
-        'No AI highlights',
-        'No advanced analytics',
-        'No custom themes',
-        'No collaboration features'
+        '30 hours transcription',
+        'Standard accuracy',
+        'TXT export only',
+        'Timestamps',
+        'Save notes',
+        'Cached transcripts',
+        'Video history',
+        'Ads shown (ad removal not included)'
       ],
       popular: false
     },
@@ -62,21 +55,15 @@ export default function PricingPage() {
       name: 'Standard',
       price: '£12.99',
       period: '/month',
-      description: 'Ideal for professionals and growing teams',
+      hours: '60 hours per month',
       features: [
         'Everything in Basic',
-        '60 hours of transcription per month',
-        'TXT, DOCX, and SRT export formats',
-        'Advanced analytics with insights',
-        'Enhanced video history',
-        'Priority email support',
-        'No ads'
-      ],
-      limitations: [
-        'No MP3/MP4 download',
-        'No AI highlights & summaries',
-        'No custom themes',
-        'No collaboration features'
+        '60 hours transcription',
+        'High accuracy',
+        'DOCX & SRT exports',
+        'Advanced analytics',
+        'No ads',
+        'Themes'
       ],
       popular: true
     },
@@ -85,33 +72,70 @@ export default function PricingPage() {
       name: 'Premium',
       price: '£19.99',
       period: '/month',
-      description: 'Complete solution for power users and teams',
+      hours: '100 hours per month',
       features: [
         'Everything in Standard',
-        '100 hours of transcription per month',
-        'All export formats (TXT, DOCX, SRT, VTT, MP3, MP4)',
-        'AI-powered highlights & summaries',
-        'Full theme customization',
-        'Team collaboration features',
-        'Advanced organization tools',
-        'Priority phone support',
-        'No ads'
+        '100 hours transcription',
+        'Premium accuracy',
+        'All export formats (VTT, MP3, MP4)',
+        'AI highlights & summaries',
+        'Full customization',
+        'Collaboration features',
+        'Organization tools',
+        'Custom workspace'
       ],
-      limitations: [],
       popular: false
     }
   ]
 
-  const handlePlanSelect = (planId: string) => {
+  const [isLoading, setIsLoading] = useState<string | null>(null)
+
+  const handlePlanSelect = async (planId: string) => {
     if (!isAuthenticated) {
       // Redirect to registration for new users
       window.location.href = '/register'
       return
     }
     
+    setIsLoading(planId)
     setSelectedPlan(planId)
-    // Here you would integrate with Stripe for payment
-    console.log(`Selected plan: ${planId}`)
+    
+    try {
+      // Create Stripe checkout session
+      const response = await fetch('/api/stripe/checkout', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          tier: planId,
+          customerEmail: session?.user?.email,
+          successUrl: `${window.location.origin}/dashboard?success=true`,
+          cancelUrl: `${window.location.origin}/pricing?canceled=true`,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to create checkout session')
+      }
+
+      const { sessionId } = await response.json()
+      
+      // Redirect to Stripe checkout
+      const stripe = await loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!)
+      if (stripe) {
+        const { error } = await stripe.redirectToCheckout({ sessionId })
+        if (error) {
+          console.error('Stripe checkout error:', error)
+          alert('Failed to redirect to checkout. Please try again.')
+        }
+      }
+    } catch (error) {
+      console.error('Error creating checkout session:', error)
+      alert('Failed to create checkout session. Please try again.')
+    } finally {
+      setIsLoading(null)
+    }
   }
 
   return (
@@ -173,17 +197,13 @@ export default function PricingPage() {
                         {plan.period}
                       </span>
                     </div>
-                    <p className="text-gray-600 dark:text-gray-300">
-                      {plan.description}
+                    <p className="text-gray-600 dark:text-gray-300 mb-2">
+                      {plan.hours}
                     </p>
                   </div>
 
                   {/* Features */}
                   <div className="mb-8">
-                    <h4 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
-                      <Check className="w-5 h-5 text-green-500 mr-2" />
-                      What's Included
-                    </h4>
                     <ul className="space-y-3">
                       {plan.features.map((feature, index) => (
                         <li key={index} className="flex items-start">
@@ -196,38 +216,29 @@ export default function PricingPage() {
                     </ul>
                   </div>
 
-                  {/* Limitations */}
-                  {plan.limitations.length > 0 && (
-                    <div className="mb-8">
-                      <h4 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
-                        <X className="w-5 h-5 text-red-500 mr-2" />
-                        Not Included
-                      </h4>
-                      <ul className="space-y-3">
-                        {plan.limitations.map((limitation, index) => (
-                          <li key={index} className="flex items-start">
-                            <X className="w-5 h-5 text-red-500 mr-3 mt-0.5 flex-shrink-0" />
-                            <span className="text-gray-500 dark:text-gray-400 text-sm">
-                              {limitation}
-                            </span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-
                   {/* CTA Button */}
                   <button
                     onClick={() => handlePlanSelect(plan.id)}
-                    className="w-full py-4 px-6 rounded-lg font-semibold transition-colors duration-200 bg-primary-600 hover:bg-primary-700 text-white"
+                    disabled={isLoading === plan.id}
+                    className="w-full py-4 px-6 rounded-lg font-semibold transition-colors duration-200 bg-primary-600 hover:bg-primary-700 text-white disabled:bg-primary-400 disabled:cursor-not-allowed"
                   >
-                    {isAuthenticated ? 'Select Plan' : 'Get Started'}
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
+                                         {isLoading === plan.id ? (
+                       <div className="flex items-center justify-center gap-2">
+                         <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                         Creating Checkout...
+                       </div>
+                     ) : (
+                       isAuthenticated ? 'Select Plan' : 'Get Started'
+                     )}
+                   </button>
+                   <p className="text-center text-sm text-gray-500 dark:text-gray-400 mt-3">
+                     Cancel anytime • No setup fees
+                   </p>
+                 </div>
+               ))}
+             </div>
+           </div>
+         </section>
 
         {/* FAQ Section */}
         <section className="py-20 px-4">
