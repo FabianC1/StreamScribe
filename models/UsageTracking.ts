@@ -50,11 +50,11 @@ const UsageTrackingSchema = new Schema<IUsageTracking>({
 })
 
 // Create indexes for better performance
-UsageTrackingSchema.index({ userId: 1, date: -1 })
+// Note: userId is already covered by the compound unique index below
 UsageTrackingSchema.index({ userId: 1, tier: 1 })
 UsageTrackingSchema.index({ date: 1 })
 
-// Compound index for efficient queries
+// Compound index for efficient queries (this covers userId + date queries)
 UsageTrackingSchema.index({ userId: 1, date: 1 }, { unique: true })
 
 // Virtual for formatted date

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { headers } from 'next/headers'
 import Stripe from 'stripe'
 import connectDB from '@/lib/mongodb'
+import User from '@/models/User'
 import { ObjectId } from 'mongodb'
 import mongoose from 'mongoose'
 
@@ -36,24 +37,31 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Database connection failed' }, { status: 500 })
     }
 
+    console.log(`🔔 Webhook received: ${event.type}`)
+    
     switch (event.type) {
       case 'customer.subscription.created':
+        console.log('📝 Handling subscription created event')
         await handleSubscriptionCreated(event.data.object as Stripe.Subscription, db)
         break
       case 'customer.subscription.updated':
+        console.log('📝 Handling subscription updated event')
         await handleSubscriptionUpdated(event.data.object as Stripe.Subscription, db)
         break
       case 'customer.subscription.deleted':
+        console.log('📝 Handling subscription deleted event')
         await handleSubscriptionDeleted(event.data.object as Stripe.Subscription, db)
         break
       case 'invoice.payment_succeeded':
+        console.log('💰 Handling payment succeeded event')
         await handlePaymentSucceeded(event.data.object as Stripe.Invoice, db)
         break
       case 'invoice.payment_failed':
+        console.log('❌ Handling payment failed event')
         await handlePaymentFailed(event.data.object as Stripe.Invoice, db)
         break
       default:
-        console.log(`Unhandled event type: ${event.type}`)
+        console.log(`⚠️ Unhandled event type: ${event.type}`)
     }
 
     return NextResponse.json({ received: true })
@@ -68,16 +76,21 @@ export async function POST(request: NextRequest) {
 
 async function handleSubscriptionCreated(subscription: Stripe.Subscription, db: any) {
   try {
+    console.log('🔍 Subscription metadata:', subscription.metadata)
+    console.log('🔍 Subscription customer:', subscription.customer)
+    
     const tier = subscription.metadata.tier
     const customerEmail = subscription.metadata.customerEmail
     
     if (!customerEmail) {
-      console.error('No customer email in subscription metadata')
+      console.error('❌ No customer email in subscription metadata')
       return
     }
+    
+    console.log(`📝 Processing subscription for ${customerEmail} with tier ${tier}`)
 
-    // Update user's subscription in database
-    const result = await db.collection('users').updateOne(
+    // Update user's subscription in database using Mongoose
+    const result = await User.updateOne(
       { email: customerEmail },
       {
         $set: {
@@ -94,9 +107,9 @@ async function handleSubscriptionCreated(subscription: Stripe.Subscription, db: 
     )
 
     if (result.matchedCount > 0) {
-      console.log(`Subscription created for ${customerEmail}: ${tier}`)
+      console.log(`✅ Subscription created for ${customerEmail}: ${tier}`)
     } else {
-      console.error(`User not found for subscription: ${customerEmail}`)
+      console.error(`❌ User not found for subscription: ${customerEmail}`)
     }
   } catch (error) {
     console.error('Error handling subscription created:', error)
@@ -113,8 +126,8 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription, db: 
       return
     }
 
-    // Update user's subscription in database
-    const result = await db.collection('users').updateOne(
+    // Update user's subscription in database using Mongoose
+    const result = await User.updateOne(
       { email: customerEmail },
       {
         $set: {
@@ -145,8 +158,8 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription, db: 
       return
     }
 
-    // Update user's subscription status in database
-    const result = await db.collection('users').updateOne(
+    // Update user's subscription status in database using Mongoose
+    const result = await User.updateOne(
       { email: customerEmail },
       {
         $set: {

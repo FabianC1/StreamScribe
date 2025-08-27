@@ -78,8 +78,7 @@ const SubscriptionSchema = new Schema<ISubscription>({
 })
 
 // Create indexes for better performance
-SubscriptionSchema.index({ userId: 1 })
-SubscriptionSchema.index({ stripeSubscriptionId: 1 })
+// Note: userId and stripeSubscriptionId are already indexed via unique: true
 SubscriptionSchema.index({ status: 1 })
 SubscriptionSchema.index({ tier: 1 })
 SubscriptionSchema.index({ currentPeriodEnd: 1 })

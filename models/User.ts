@@ -7,13 +7,14 @@ export interface IUser extends Document {
   firstName: string
   lastName: string
   avatar?: string
-  subscriptionTier: 'basic' | 'standard' | 'premium'
-  subscriptionStatus: 'active' | 'cancelled' | 'expired'
-  subscriptionStartDate: Date
-  subscriptionEndDate: Date
+  subscriptionTier?: 'basic' | 'standard' | 'premium'
+  subscriptionStatus?: 'active' | 'cancelled' | 'expired'
+  subscriptionStartDate?: Date
+  subscriptionEndDate?: Date
   hoursUsed: number
   hoursLimit: number
   stripeCustomerId?: string
+  stripeSubscriptionId?: string
   emailVerified: boolean
   resetPasswordToken?: string
   resetPasswordExpires?: Date
@@ -56,20 +57,20 @@ const UserSchema = new Schema<IUser>({
   subscriptionTier: {
     type: String,
     enum: ['basic', 'standard', 'premium'],
-    default: 'basic',
+    required: false, // No subscription by default
   },
   subscriptionStatus: {
     type: String,
     enum: ['active', 'cancelled', 'expired'],
-    default: 'active',
+    required: false, // No subscription by default
   },
   subscriptionStartDate: {
     type: Date,
-    default: Date.now,
+    required: false, // No subscription by default
   },
   subscriptionEndDate: {
     type: Date,
-    default: () => new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
+    required: false, // No subscription by default
   },
   hoursUsed: {
     type: Number,
@@ -77,7 +78,7 @@ const UserSchema = new Schema<IUser>({
   },
   hoursLimit: {
     type: Number,
-    default: 30, // Basic tier limit
+    default: 0, // No access until subscription
   },
   stripeCustomerId: {
     type: String,
@@ -114,12 +115,22 @@ UserSchema.virtual('fullName').get(function() {
 
 // Virtual for subscription status
 UserSchema.virtual('isSubscriptionActive').get(function() {
-  return this.subscriptionStatus === 'active' && this.subscriptionEndDate > new Date()
+  return this.subscriptionStatus === 'active' && 
+         this.subscriptionEndDate && 
+         this.subscriptionEndDate > new Date()
 })
 
 // Virtual for remaining hours
 UserSchema.virtual('remainingHours').get(function() {
+  if (!this.subscriptionTier || !this.isSubscriptionActive) {
+    return 0 // No access without subscription
+  }
   return Math.max(0, this.hoursLimit - this.hoursUsed)
+})
+
+// Virtual to check if user has any subscription
+UserSchema.virtual('hasSubscription').get(function() {
+  return !!this.subscriptionTier && this.isSubscriptionActive
 })
 
 export default mongoose.models.User || mongoose.model<IUser>('User', UserSchema)

@@ -217,6 +217,32 @@ export default function DashboardPage() {
               )}
             </div>
 
+            {/* Subscription Required Message */}
+            {(!customUser?.subscriptionTier || customUser?.subscriptionStatus !== 'active') && (
+              <div className="mb-8 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border border-blue-200 dark:border-blue-700 rounded-xl p-6">
+                <div className="flex items-start gap-4">
+                  <div className="h-12 w-12 bg-blue-100 dark:bg-blue-800 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <Shield className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-lg font-semibold text-blue-900 dark:text-blue-100 mb-2">
+                      Subscription Required
+                    </h3>
+                    <p className="text-blue-800 dark:text-blue-200 mb-4">
+                      You need an active subscription to access transcription services. Choose a plan that fits your needs.
+                    </p>
+                    <button
+                      onClick={() => router.push('/pricing')}
+                      className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors duration-200"
+                    >
+                      <Star className="h-5 w-5" />
+                      Choose Plan
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Cleanup Button (Admin Only) */}
             {(customUser?.email === 'galaselfabian@gmail.com' || session?.user?.email === 'galaselfabian@gmail.com') && (
               <div className="mb-6">
@@ -266,7 +292,7 @@ export default function DashboardPage() {
                   <div>
                     <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Subscription</p>
                     <p className="text-2xl font-bold text-gray-900 dark:text-white capitalize">
-                      {customUser ? customUser.subscriptionTier : 'Basic'}
+                      {customUser?.subscriptionTier ? customUser.subscriptionTier : 'No Subscription'}
                     </p>
                   </div>
                   <div className="h-12 w-12 bg-purple-100 dark:bg-purple-900/20 rounded-lg flex items-center justify-center">
@@ -274,8 +300,10 @@ export default function DashboardPage() {
                       <Crown className="h-6 w-6 text-purple-600 dark:text-purple-400" />
                     ) : customUser?.subscriptionTier === 'standard' ? (
                       <Star className="h-6 w-6 text-purple-600 dark:text-purple-400" />
-                    ) : (
+                    ) : customUser?.subscriptionTier === 'basic' ? (
                       <Zap className="h-6 w-6 text-purple-600 dark:text-purple-400" />
+                    ) : (
+                      <Shield className="h-6 w-6 text-gray-500 dark:text-gray-400" />
                     )}
                   </div>
                 </div>

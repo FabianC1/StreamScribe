@@ -9,6 +9,7 @@ import { updateProgress, setCompleted } from '../../../lib/progress'
 import connectDB from '@/lib/mongodb'
 import { Transcription, User, UsageTracking, ProcessedVideos } from '@/models'
 import { authOptions } from '../auth/[...nextauth]/route'
+import { requireSubscription } from '@/lib/subscriptionCheck'
 
 const execAsync = promisify(exec)
 
@@ -110,6 +111,19 @@ export async function POST(request: NextRequest) {
     if (!session?.user?.id) {
       console.error('❌ No authenticated user found')
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+    }
+    
+    // Check if user has active subscription
+    try {
+      const user = await requireSubscription()
+      if (!user) {
+        console.error('❌ User does not have active subscription:', session.user.email)
+        return NextResponse.json({ error: 'Active subscription required' }, { status: 403 })
+      }
+      console.log('✅ Subscription check passed for user:', user.email)
+    } catch (subscriptionError) {
+      console.error('❌ Subscription check failed:', subscriptionError)
+      return NextResponse.json({ error: 'Active subscription required' }, { status: 403 })
     }
     
     const userId = session.user.id

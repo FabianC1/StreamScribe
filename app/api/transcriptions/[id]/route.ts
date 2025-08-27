@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import connectDB from '@/lib/mongodb'
 import { Transcription, ProcessedVideos } from '@/models'
 import { authOptions } from '../../auth/[...nextauth]/route'
+import { requireSubscription } from '@/lib/subscriptionCheck'
 
 export async function DELETE(
   request: NextRequest,
@@ -13,6 +14,19 @@ export async function DELETE(
     const session = await getServerSession(authOptions) as any
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+    }
+    
+    // Check if user has active subscription
+    try {
+      const user = await requireSubscription()
+      if (!user) {
+        console.error('❌ User does not have active subscription')
+        return NextResponse.json({ error: 'Active subscription required' }, { status: 403 })
+      }
+      console.log('✅ Subscription check passed for user:', user.email)
+    } catch (subscriptionError) {
+      console.error('❌ Subscription check failed:', subscriptionError)
+      return NextResponse.json({ error: 'Active subscription required' }, { status: 403 })
     }
     
     const userId = session.user.id

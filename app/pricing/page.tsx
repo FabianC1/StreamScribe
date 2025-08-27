@@ -30,6 +30,7 @@ export default function PricingPage() {
   const { user: customUser } = useAuth()
   
   const isAuthenticated = status === 'authenticated' || !!customUser
+  const hasActiveSubscription = customUser?.subscriptionTier && customUser?.subscriptionStatus === 'active'
 
   const plans = [
     {
@@ -213,7 +214,30 @@ export default function PricingPage() {
           </div>
         </section>
 
-                 {/* Promo Code Section */}
+        {/* Subscription Status Message */}
+        {hasActiveSubscription && (
+          <section className="py-8 px-4">
+            <div className="max-w-2xl mx-auto">
+              <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-lg p-6">
+                <div className="flex items-center gap-3">
+                  <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center">
+                    <span className="text-white text-xs">✓</span>
+                  </div>
+                  <div>
+                    <p className="text-green-800 dark:text-green-200 font-medium">
+                      You have an active {customUser?.subscriptionTier} subscription
+                    </p>
+                    <p className="text-green-700 dark:text-green-300 text-sm">
+                      You can upgrade, downgrade, or manage your current plan here.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* Promo Code Section */}
          <section className="py-8 px-4">
            <div className="max-w-2xl mx-auto text-center">
              <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-lg border border-gray-200 dark:border-gray-700">
