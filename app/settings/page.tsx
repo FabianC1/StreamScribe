@@ -34,11 +34,8 @@ export default function SettingsPage() {
   
   const isAuthenticated = status === 'authenticated' || !!customUser
   const [isLoading, setIsLoading] = useState(true)
-  const [usageStats, setUsageStats] = useState({
-    monthly: { hours: 0, transcriptions: 0, exports: 0 },
-    total: { transcriptions: 0 },
-    today: { hours: 0, transcriptions: 0 }
-  })
+  // Use the EXACT same state structure as dashboard
+  const [usageData, setUsageData] = useState({ hoursUsed: 0, totalTranscriptions: 0 })
 
   const currentUser = session?.user || customUser
 
@@ -133,28 +130,30 @@ export default function SettingsPage() {
     }
   }, [isAuthenticated])
 
-  // Fetch stats data from database
+  // Fetch stats data - using the EXACT same API call as dashboard
   useEffect(() => {
-    const fetchStats = async () => {
+    const fetchUsageData = async () => {
       try {
         const response = await fetch('/api/usage/stats')
         if (response.ok) {
           const data = await response.json()
-          setUsageStats(data.stats || {
-            monthly: { hours: 0, transcriptions: 0, exports: 0 },
-            total: { transcriptions: 0 },
-            today: { hours: 0, transcriptions: 0 }
+          setUsageData({
+            hoursUsed: data.monthlyHours || 0,
+            totalTranscriptions: data.totalTranscriptions || 0
           })
+          console.log('✅ Usage data fetched:', data)
+        } else {
+          console.error('❌ Usage API response not ok:', response.status)
         }
       } catch (error) {
-        console.error('Failed to fetch usage stats:', error)
+        console.error('Failed to fetch usage data:', error)
       } finally {
         setIsLoading(false)
       }
     }
 
     if (isAuthenticated) {
-      fetchStats()
+      fetchUsageData()
     }
   }, [isAuthenticated])
 
@@ -242,53 +241,9 @@ export default function SettingsPage() {
     }
   }
 
-  const handleAdminTierChange = async (tier: string) => {
-    try {
-      const response = await fetch('/api/admin/test-subscription', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ tier }),
-      })
 
-      if (response.ok) {
-        const data = await response.json()
-        // Refresh subscription data
-        const subResponse = await fetch('/api/subscription')
-        if (subResponse.ok) {
-          const subData = await subResponse.json()
-          setSubscription(prev => ({ ...prev, ...subData }))
-        }
-        alert(`Subscription tier changed to ${tier}!`)
-      } else {
-        const error = await response.json()
-        alert(`Failed to change tier to ${tier}: ${error.error}`)
-        console.error('Failed to change tier:', error)
-      }
-    } catch (error) {
-      alert('Failed to change tier. Please try again.')
-      console.error('Tier change error:', error)
-    }
-  }
 
-  const fetchUsageStats = async () => {
-    try {
-      const response = await fetch('/api/usage/stats')
-      if (response.ok) {
-        const data = await response.json()
-        setUsageStats(data.stats || {
-          monthly: { hours: 0, transcriptions: 0, exports: 0 },
-          total: { transcriptions: 0 },
-          today: { hours: 0, transcriptions: 0 }
-        })
-      }
-    } catch (error) {
-      console.error('Failed to fetch usage stats:', error)
-    } finally {
-      setIsLoading(false)
-    }
-  }
+
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-700">
@@ -615,16 +570,16 @@ export default function SettingsPage() {
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                         <div className="text-center p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
                           <div className="text-2xl font-bold text-primary-600 dark:text-primary-400">
-                            {usageStats.monthly.transcriptions}
+                            {usageData.totalTranscriptions}
                           </div>
                           <div className="text-xs text-gray-600 dark:text-gray-400">
-                            This Month
+                            Total
                           </div>
                         </div>
                         
                         <div className="text-center p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
                           <div className="text-2xl font-bold text-green-600 dark:text-green-400">
-                            {usageStats.monthly.hours.toFixed(1)}
+                            {usageData.hoursUsed.toFixed(1)}
                           </div>
                           <div className="text-xs text-gray-600 dark:text-gray-400">
                             Hours Used
@@ -633,7 +588,7 @@ export default function SettingsPage() {
                         
                         <div className="text-center p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
                           <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                            {usageStats.total.transcriptions}
+                            {usageData.totalTranscriptions}
                           </div>
                           <div className="text-xs text-gray-600 dark:text-gray-400">
                             Total
@@ -642,7 +597,7 @@ export default function SettingsPage() {
                         
                         <div className="text-center p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
                           <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
-                            {usageStats.today.transcriptions}
+                            {usageData.totalTranscriptions}
                           </div>
                           <div className="text-xs text-gray-600 dark:text-gray-400">
                             Today
@@ -653,43 +608,7 @@ export default function SettingsPage() {
                   </div>
                 </div>
 
-              {/* Admin Panel - Only visible to admin */}
-              {currentUser?.email === 'galaselfabian@gmail.com' && (
-                <div className="card border-2 border-yellow-500">
-                  <div className="flex items-center gap-3 mb-6">
-                    <Shield className="w-6 h-6 text-yellow-500" />
-                    <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-                      🚀 Admin Panel
-                    </h2>
-                  </div>
-                  
-                  <div className="space-y-4">
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                      Test different subscription tiers for development
-                    </p>
-                    
-                    <div className="grid grid-cols-3 gap-2">
-                      {['basic', 'standard', 'premium'].map((tier) => (
-                        <button
-                          key={tier}
-                          onClick={() => handleAdminTierChange(tier)}
-                          className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                            subscription.tier.toLowerCase() === tier
-                              ? 'bg-yellow-500 text-white'
-                              : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-                          }`}
-                        >
-                          {tier.charAt(0).toUpperCase() + tier.slice(1)}
-                        </button>
-                      ))}
-                    </div>
-                    
-                    <div className="text-xs text-gray-500 dark:text-gray-500">
-                      Current: {subscription.tier} • Hours: {subscription.hoursTotal}
-                    </div>
-                  </div>
-                </div>
-              )}
+              
             </div>
           </div>
         </div>
