@@ -19,11 +19,7 @@ import {
   X,
   Crown,
   Star,
-  Zap,
-  Clock,
-  BarChart3,
-  FileText,
-  Download
+  Zap
 } from 'lucide-react'
 
 export default function SettingsPage() {
@@ -241,12 +237,20 @@ export default function SettingsPage() {
     }
   }
 
-
-
-
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-700">
+      <style jsx>{`
+        .card {
+          @apply bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6;
+        }
+        .btn-primary {
+          @apply px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-lg transition-colors duration-200;
+        }
+        .btn-secondary {
+          @apply px-4 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 font-medium rounded-lg transition-colors duration-200;
+        }
+      `}</style>
+      
       <Header />
       
       <main className="pt-28 pb-20">
@@ -498,20 +502,20 @@ export default function SettingsPage() {
                       </span>
                     </div>
                     
-                    <div className="space-y-2">
-                      <div className="flex justify-between items-center">
-                        <span className="text-gray-600 dark:text-gray-400">Hours used:</span>
-                        <span className="font-medium text-gray-900 dark:text-white">
-                          {subscription.hoursUsed} / {subscription.hoursTotal}
-                        </span>
-                      </div>
-                      <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                        <div 
-                          className="bg-primary-600 h-2 rounded-full transition-all duration-300"
-                          style={{ width: `${(subscription.hoursUsed / subscription.hoursTotal) * 100}%` }}
-                        ></div>
-                      </div>
-                    </div>
+                                         <div className="space-y-2">
+                       <div className="flex justify-between items-center">
+                         <span className="text-gray-600 dark:text-gray-400">Hours used:</span>
+                         <span className="font-medium text-gray-900 dark:text-white">
+                           {usageData.hoursUsed.toFixed(1)} / {subscription.hoursTotal}
+                         </span>
+                       </div>
+                       <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                         <div 
+                           className="bg-primary-600 h-2 rounded-full transition-all duration-300"
+                           style={{ width: `${(usageData.hoursUsed / subscription.hoursTotal) * 100}%` }}
+                         ></div>
+                       </div>
+                     </div>
                   </div>
 
                   <button 
@@ -554,67 +558,67 @@ export default function SettingsPage() {
               </div>
 
                {/* Quick Stats */}
-               <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
-                  <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-                    <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Quick Stats</h2>
-                    <p className="text-gray-600 dark:text-gray-400 mt-1">Your transcription activity overview</p>
-                  </div>
-                  
-                  <div className="p-6">
-                    {isLoading ? (
-                      <div className="text-center py-8">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto"></div>
-                        <p className="mt-2 text-gray-500 dark:text-gray-400">Loading stats...</p>
-                      </div>
-                    ) : (
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <div className="text-center p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                          <div className="text-2xl font-bold text-primary-600 dark:text-primary-400">
-                            {usageData.totalTranscriptions}
-                          </div>
-                          <div className="text-xs text-gray-600 dark:text-gray-400">
-                            Total
-                          </div>
-                        </div>
-                        
-                        <div className="text-center p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                          <div className="text-2xl font-bold text-green-600 dark:text-green-400">
-                            {usageData.hoursUsed.toFixed(1)}
-                          </div>
-                          <div className="text-xs text-gray-600 dark:text-gray-400">
-                            Hours Used
-                          </div>
-                        </div>
-                        
-                        <div className="text-center p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                          <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                            {usageData.totalTranscriptions}
-                          </div>
-                          <div className="text-xs text-gray-600 dark:text-gray-400">
-                            Total
-                          </div>
-                        </div>
-                        
-                        <div className="text-center p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                          <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
-                            {usageData.totalTranscriptions}
-                          </div>
-                          <div className="text-xs text-gray-600 dark:text-gray-400">
-                            Today
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
+                <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
+                   <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+                     <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Quick Stats</h2>
+                     <p className="text-gray-600 dark:text-gray-400 mt-1">Your transcription activity overview</p>
+                   </div>
+                   
+                   <div className="p-6">
+                     {isLoading ? (
+                       <div className="text-center py-8">
+                         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto"></div>
+                         <p className="mt-2 text-gray-500 dark:text-gray-400">Loading stats...</p>
+                       </div>
+                     ) : (
+                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                         <div className="text-center p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                           <div className="text-2xl font-bold text-primary-600 dark:text-primary-400">
+                             {usageData.totalTranscriptions}
+                           </div>
+                           <div className="text-xs text-gray-600 dark:text-gray-400">
+                             Total
+                           </div>
+                         </div>
+                         
+                         <div className="text-center p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                           <div className="text-2xl font-bold text-green-600 dark:text-green-400">
+                             {usageData.hoursUsed.toFixed(1)}
+                           </div>
+                           <div className="text-xs text-gray-600 dark:text-gray-400">
+                             Hours Used
+                           </div>
+                         </div>
+                         
+                         <div className="text-center p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                           <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                             {usageData.totalTranscriptions}
+                           </div>
+                           <div className="text-xs text-gray-600 dark:text-gray-400">
+                             Total
+                           </div>
+                         </div>
+                         
+                         <div className="text-center p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                           <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
+                             {usageData.totalTranscriptions}
+                           </div>
+                           <div className="text-xs text-gray-600 dark:text-gray-400">
+                             Today
+                           </div>
+                         </div>
+                       </div>
+                     )}
+                   </div>
+                 </div>
 
               
-            </div>
-          </div>
-        </div>
-      </main>
+             </div>
+           </div>
+         </div>
+       </main>
 
-      <Footer />
-    </div>
-  )
-}
+       <Footer />
+     </div>
+   )
+ }
