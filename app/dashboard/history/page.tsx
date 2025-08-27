@@ -26,6 +26,7 @@ export default function HistoryPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [filteredTranscriptions, setFilteredTranscriptions] = useState<Transcription[]>([])
   const [deleteConfirmation, setDeleteConfirmation] = useState<{ show: boolean; transcriptionId: string; videoTitle: string } | null>(null)
+  const [showAuthModal, setShowAuthModal] = useState(false)
 
   // Helper function to extract YouTube video ID from URL
   const getVideoId = (url: string): string => {
@@ -39,11 +40,11 @@ export default function HistoryPage() {
   }
 
   useEffect(() => {
-    if (status === 'loading') return
+    // Show auth modal if user is not authenticated
     if (status === 'unauthenticated') {
-      router.push('/login')
+      setShowAuthModal(true)
     }
-  }, [status, router])
+  }, [status])
 
   useEffect(() => {
     if (status === 'authenticated' && session?.user?.id) {

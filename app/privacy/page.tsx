@@ -259,12 +259,7 @@ export default function PrivacyPage() {
                       privacy@streamscribe.com
                     </a>
                   </p>
-                  <p className="text-gray-600 dark:text-gray-300">
-                    <strong>Data Protection Officer:</strong>{' '}
-                    <a href="mailto:dpo@streamscribe.com" className="text-primary-600 hover:text-primary-500 dark:text-primary-400 dark:hover:text-primary-300 underline">
-                      dpo@streamscribe.com
-                    </a>
-                  </p>
+
                 </div>
               </section>
 

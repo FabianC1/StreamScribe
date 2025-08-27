@@ -112,11 +112,17 @@ export default function LoginPage() {
     }
     
     try {
-      const success = await login(formData.email, formData.password)
-      if (success) {
-        router.push('/dashboard')
-      } else {
+      // Use NextAuth signIn instead of custom login
+      const result = await signIn('credentials', {
+        email: formData.email,
+        password: formData.password,
+        redirect: false
+      })
+      
+      if (result?.error) {
         setError('Invalid email or password')
+      } else if (result?.ok) {
+        router.push('/dashboard')
       }
     } catch (error) {
       console.error('Login error:', error)

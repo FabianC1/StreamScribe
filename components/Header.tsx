@@ -172,6 +172,15 @@ export default function Header() {
                     <Shield className="w-4 h-4" />
                     Dashboard
                   </button>
+                  <button
+                    onClick={handleSubscriptionsClick}
+                    className={`nav-link text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-500 transition-all duration-200 flex items-center gap-2 ${
+                      isScrolled ? 'scale-95 opacity-90' : 'scale-100 opacity-100'
+                    }`}
+                  >
+                    <Shield className="w-4 h-4" />
+                    Settings
+                  </button>
                   <Link 
                     href="/register" 
                     className={`btn-primary transition-all duration-200 ${
@@ -301,10 +310,17 @@ export default function Header() {
                       <Shield className="w-4 h-4" />
                       Dashboard
                     </button>
+                    <button
+                      onClick={handleSubscriptionsClick}
+                      className="w-full text-left py-3 px-4 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-200 flex items-center gap-2 text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-500"
+                    >
+                      <Shield className="w-4 h-4" />
+                      Settings
+                    </button>
                     <Link 
                       href="/register" 
                       onClick={() => setIsMenuOpen(false)}
-                      className="block w-full text-center py-3 px-4 btn-primary transition-all duration-200 hover:scale-105 active:scale-95"
+                      className="block w-full text-center py-3 px-4 btn-primary transition-all duration-200 hover:scale-105 active:scale-105"
                     >
                       Sign Up
                     </Link>
@@ -328,7 +344,7 @@ export default function Header() {
                 Account Required
               </h3>
               <p className="text-gray-600 dark:text-gray-300">
-                You need to create an account to access your dashboard and manage your subscription.
+                You need to create an account to access your dashboard, settings, and manage your subscription.
               </p>
             </div>
             

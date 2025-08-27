@@ -1,7 +1,9 @@
 import NextAuth from 'next-auth'
 import GoogleProvider from 'next-auth/providers/google'
+import CredentialsProvider from 'next-auth/providers/credentials'
 import connectDB from '../../../../lib/mongodb'
 import User from '../../../../models/User'
+import bcrypt from 'bcryptjs'
 
 // Extend NextAuth types
 declare module 'next-auth' {
@@ -37,6 +39,46 @@ const handler = NextAuth({
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
     }),
+    CredentialsProvider({
+      name: 'credentials',
+      credentials: {
+        email: { label: 'Email', type: 'email' },
+        password: { label: 'Password', type: 'password' }
+      },
+      async authorize(credentials) {
+        if (!credentials?.email || !credentials?.password) {
+          return null
+        }
+
+        try {
+          await connectDB()
+          
+          const user = await User.findOne({ email: credentials.email })
+          if (!user || !user.password) {
+            return null
+          }
+
+          const isPasswordValid = await bcrypt.compare(credentials.password, user.password)
+          if (!isPasswordValid) {
+            return null
+          }
+
+          // Update last login
+          user.lastLoginAt = new Date()
+          await user.save()
+
+          return {
+            id: user._id.toString(),
+            email: user.email,
+            name: `${user.firstName} ${user.lastName}`.trim(),
+            image: user.avatar
+          }
+        } catch (error) {
+          console.error('Credentials auth error:', error)
+          return null
+        }
+      }
+    })
   ],
   session: {
     strategy: 'jwt',

@@ -29,11 +29,20 @@ export default function SettingsPage() {
   const { theme: currentTheme, setTheme } = useTheme()
   
   const isAuthenticated = status === 'authenticated' || !!customUser
+  const isLoadingAuth = status === 'loading'
   const [isLoading, setIsLoading] = useState(true)
+  const [showAuthModal, setShowAuthModal] = useState(false)
   // Use the EXACT same state structure as dashboard
   const [usageData, setUsageData] = useState({ hoursUsed: 0, totalTranscriptions: 0 })
 
   const currentUser = session?.user || customUser
+
+  // Show auth modal if user is not authenticated
+  useEffect(() => {
+    if (!isLoadingAuth && !isAuthenticated) {
+      setShowAuthModal(true)
+    }
+  }, [isAuthenticated, isLoadingAuth])
 
   // Subscription data - will be fetched from database
   const [subscription, setSubscription] = useState({
@@ -617,6 +626,46 @@ export default function SettingsPage() {
            </div>
          </div>
        </main>
+
+       {/* Authentication Required Modal */}
+       {showAuthModal && (
+         <div className="fixed inset-0 bg-black bg-opacity-70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+           <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full transform transition-all duration-300 scale-100 opacity-100 shadow-2xl border border-gray-200 dark:border-gray-700">
+             <div className="text-center mb-6">
+               <div className="w-16 h-16 bg-primary-100 dark:bg-primary-900/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                 <Shield className="w-8 h-8 text-primary-600 dark:text-primary-400" />
+               </div>
+               <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+                 Account Required
+               </h3>
+               <p className="text-gray-600 dark:text-gray-300">
+                 You need to create an account to access your dashboard, settings, and manage your subscription.
+               </p>
+             </div>
+             
+             <div className="space-y-3">
+               <button
+                 onClick={() => router.push('/register')}
+                 className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors duration-200"
+               >
+                 Create Account
+               </button>
+               <button
+                 onClick={() => router.push('/login')}
+                 className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:text-gray-300 font-medium rounded-lg transition-colors duration-200"
+               >
+                 Sign In
+               </button>
+               <button
+                 onClick={() => router.push('/')}
+                 className="w-full text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors duration-200"
+               >
+                 Cancel
+               </button>
+             </div>
+           </div>
+         </div>
+       )}
 
        <Footer />
      </div>
