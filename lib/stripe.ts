@@ -24,12 +24,16 @@ export const BASE_PRICES = {
   premium: 1999, // £19.99 in pence
 }
 
+// Special promo code for testing - gives 100% off any plan
+export const TEST_PROMO_CODE = 'TEST100FREE'
+
 export interface CreateCheckoutSessionParams {
   tier: 'basic' | 'standard' | 'premium'
   customerEmail: string
   successUrl: string
   cancelUrl: string
   customerId?: string
+  promoCode?: string
 }
 
 export async function createCheckoutSession({
@@ -37,7 +41,8 @@ export async function createCheckoutSession({
   customerEmail,
   successUrl,
   cancelUrl,
-  customerId
+  customerId,
+  promoCode
 }: CreateCheckoutSessionParams) {
   try {
     console.log('🔍 Creating checkout session for:', { tier, customerEmail, successUrl, cancelUrl })
@@ -59,10 +64,12 @@ export async function createCheckoutSession({
     
     console.log('✅ Customer ready:', customer.id)
 
-    console.log('🔍 Creating checkout session with amount:', BASE_PRICES[tier], 'pence for', tier)
-    
-    // Create checkout session with automatic currency detection
-    const session = await stripe.checkout.sessions.create({
+         // Apply promo code discount if provided
+     const finalAmount = promoCode === TEST_PROMO_CODE ? 0 : BASE_PRICES[tier]
+     console.log('🔍 Creating checkout session with amount:', finalAmount, 'pence for', tier, promoCode ? `(Promo: ${promoCode})` : '')
+     
+     // Create checkout session with automatic currency detection
+     const session = await stripe.checkout.sessions.create({
       customer: customer.id,
       payment_method_types: ['card'],
       line_items: [
@@ -76,7 +83,7 @@ export async function createCheckoutSession({
                 tier,
               },
             },
-            unit_amount: BASE_PRICES[tier],
+                         unit_amount: finalAmount,
             recurring: {
               interval: 'month',
             },
@@ -89,13 +96,12 @@ export async function createCheckoutSession({
       cancel_url: cancelUrl,
       allow_promotion_codes: true,
       billing_address_collection: 'required',
-      subscription_data: {
-        metadata: {
-          tier,
-          customerEmail,
-        },
-        trial_period_days: 7, // 7-day free trial
-      },
+                subscription_data: {
+            metadata: {
+              tier,
+              customerEmail,
+            },
+          },
       customer_update: {
         address: 'auto',
         name: 'auto',

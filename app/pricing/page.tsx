@@ -89,6 +89,17 @@ export default function PricingPage() {
   ]
 
   const [isLoading, setIsLoading] = useState<string | null>(null)
+  const [promoCode, setPromoCode] = useState('')
+  const [promoCodeApplied, setPromoCodeApplied] = useState(false)
+
+  const handlePromoCodeApply = () => {
+    if (promoCode.trim().toUpperCase() === 'TEST100FREE') {
+      setPromoCodeApplied(true)
+      alert('🎉 Promo code applied! You can now test any plan for free!')
+    } else {
+      alert('❌ Invalid promo code. Try TEST100FREE for testing.')
+    }
+  }
 
   const handlePlanSelect = async (planId: string) => {
     if (!isAuthenticated) {
@@ -101,19 +112,20 @@ export default function PricingPage() {
     setSelectedPlan(planId)
     
     try {
-      // Create Stripe checkout session
-      const response = await fetch('/api/stripe/checkout', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          tier: planId,
-          customerEmail: session?.user?.email,
-          successUrl: `${window.location.origin}/dashboard?success=true`,
-          cancelUrl: `${window.location.origin}/pricing?canceled=true`,
-        }),
-      })
+             // Create Stripe checkout session
+       const response = await fetch('/api/stripe/checkout', {
+         method: 'POST',
+         headers: {
+           'Content-Type': 'application/json',
+         },
+         body: JSON.stringify({
+           tier: planId,
+           customerEmail: session?.user?.email,
+           successUrl: `${window.location.origin}/dashboard?success=true`,
+           cancelUrl: `${window.location.origin}/pricing?canceled=true`,
+           promoCode: promoCodeApplied ? 'TEST100FREE' : undefined,
+         }),
+       })
 
       if (!response.ok) {
         throw new Error('Failed to create checkout session')
@@ -159,15 +171,49 @@ export default function PricingPage() {
             <h1 className="text-5xl md:text-6xl font-bold text-gray-900 dark:text-white mb-6">
               Choose Your Perfect Plan
             </h1>
-            <p className="text-xl md:text-2xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto leading-relaxed">
-              Select the plan that best fits your transcription needs. All plans include our core features and 24/7 support.
-            </p>
+                         <p className="text-xl md:text-2xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto leading-relaxed">
+               Select the plan that best fits your transcription needs. All plans include our core features and 24/7 support.
+             </p>
           </div>
         </section>
 
-        {/* Pricing Cards */}
-        <section className="py-20 px-4">
-          <div className="max-w-7xl mx-auto">
+                 {/* Promo Code Section */}
+         <section className="py-8 px-4">
+           <div className="max-w-2xl mx-auto text-center">
+             <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-lg border border-gray-200 dark:border-gray-700">
+               <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
+                 🧪 Testing Promo Code
+               </h3>
+               <p className="text-gray-600 dark:text-gray-300 mb-4 text-sm">
+                 Use <code className="bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded text-primary-600">TEST100FREE</code> to test any plan for free
+               </p>
+               <div className="flex gap-2 max-w-md mx-auto">
+                 <input
+                   type="text"
+                   placeholder="Enter promo code"
+                   value={promoCode}
+                   onChange={(e) => setPromoCode(e.target.value)}
+                   className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                 />
+                 <button
+                   onClick={handlePromoCodeApply}
+                   className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-medium transition-colors"
+                 >
+                   Apply
+                 </button>
+               </div>
+               {promoCodeApplied && (
+                 <div className="mt-3 text-green-600 dark:text-green-400 text-sm font-medium">
+                   ✅ Promo code applied! All plans are now free for testing.
+                 </div>
+               )}
+             </div>
+           </div>
+         </section>
+
+         {/* Pricing Cards */}
+         <section className="py-20 px-4">
+           <div className="max-w-7xl mx-auto">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
               {plans.map((plan) => (
                 <div
@@ -199,14 +245,27 @@ export default function PricingPage() {
                     <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
                       {plan.name}
                     </h3>
-                    <div className="flex items-baseline justify-center mb-4">
-                      <span className="text-4xl font-bold text-primary-600 dark:text-primary-400">
-                        {plan.price}
-                      </span>
-                      <span className="text-gray-600 dark:text-gray-400 ml-1">
-                        {plan.period}
-                      </span>
-                    </div>
+                                         <div className="flex items-baseline justify-center mb-4">
+                       {promoCodeApplied ? (
+                         <div className="text-center">
+                           <span className="text-4xl font-bold text-green-600 dark:text-green-400">
+                             FREE
+                           </span>
+                           <div className="text-sm text-gray-500 dark:text-gray-400 line-through">
+                             {plan.price}{plan.period}
+                           </div>
+                         </div>
+                       ) : (
+                         <>
+                           <span className="text-4xl font-bold text-primary-600 dark:text-primary-400">
+                             {plan.price}
+                           </span>
+                           <span className="text-gray-600 dark:text-gray-400 ml-1">
+                             {plan.period}
+                           </span>
+                         </>
+                       )}
+                     </div>
                     <p className="text-gray-600 dark:text-gray-300 mb-2">
                       {plan.hours}
                     </p>
@@ -232,14 +291,14 @@ export default function PricingPage() {
                     disabled={isLoading === plan.id}
                     className="w-full py-4 px-6 rounded-lg font-semibold transition-colors duration-200 bg-primary-600 hover:bg-primary-700 text-white disabled:bg-primary-400 disabled:cursor-not-allowed"
                   >
-                                         {isLoading === plan.id ? (
-                       <div className="flex items-center justify-center gap-2">
-                         <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                         Creating Checkout...
-                       </div>
-                     ) : (
-                       isAuthenticated ? 'Select Plan' : 'Get Started'
-                     )}
+                                                               {isLoading === plan.id ? (
+                        <div className="flex items-center justify-center gap-2">
+                          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                          Creating Checkout...
+                        </div>
+                      ) : (
+                        promoCodeApplied ? 'Get Free Plan' : (isAuthenticated ? 'Select Plan' : 'Get Started')
+                      )}
                    </button>
                    <p className="text-center text-sm text-gray-500 dark:text-gray-400 mt-3">
                      Cancel anytime • No setup fees
@@ -276,14 +335,14 @@ export default function PricingPage() {
                 </p>
               </div>
 
-              <div className="bg-white dark:bg-gray-800 rounded-lg p-6">
-                <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">
-                  Is there a free trial?
-                </h3>
-                <p className="text-gray-600 dark:text-gray-300">
-                  We offer a 7-day money-back guarantee. If you're not satisfied with our service, we'll refund your first payment.
-                </p>
-              </div>
+                             <div className="bg-white dark:bg-gray-800 rounded-lg p-6">
+                 <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">
+                   What if I'm not satisfied with the service?
+                 </h3>
+                 <p className="text-gray-600 dark:text-gray-300">
+                   We offer a 7-day money-back guarantee. If you're not satisfied with our service, we'll refund your first payment.
+                 </p>
+               </div>
 
               <div className="bg-white dark:bg-gray-800 rounded-lg p-6">
                 <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">

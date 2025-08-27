@@ -3,7 +3,7 @@ import { createCheckoutSession } from '@/lib/stripe'
 
 export async function POST(request: NextRequest) {
   try {
-    const { tier, customerEmail, successUrl, cancelUrl, customerId } = await request.json()
+    const { tier, customerEmail, successUrl, cancelUrl, customerId, promoCode } = await request.json()
 
     if (!tier || !customerEmail || !successUrl || !cancelUrl) {
       return NextResponse.json(
@@ -25,6 +25,7 @@ export async function POST(request: NextRequest) {
       successUrl,
       cancelUrl,
       customerId,
+      promoCode,
     })
 
     return NextResponse.json({
