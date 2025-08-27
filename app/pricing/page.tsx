@@ -91,13 +91,18 @@ export default function PricingPage() {
   const [isLoading, setIsLoading] = useState<string | null>(null)
   const [promoCode, setPromoCode] = useState('')
   const [promoCodeApplied, setPromoCodeApplied] = useState(false)
+  const [showPromoPopup, setShowPromoPopup] = useState(false)
 
   const handlePromoCodeApply = () => {
     if (promoCode.trim().toUpperCase() === 'TEST100FREE') {
       setPromoCodeApplied(true)
-      alert('🎉 Promo code applied! You can now test any plan for free!')
+      setShowPromoPopup(true)
+      // Auto-hide popup after 3 seconds
+      setTimeout(() => setShowPromoPopup(false), 3000)
     } else {
-      alert('❌ Invalid promo code. Try TEST100FREE for testing.')
+      setShowPromoPopup(true)
+      // Auto-hide popup after 3 seconds
+      setTimeout(() => setShowPromoPopup(false), 3000)
     }
   }
 
@@ -162,9 +167,40 @@ export default function PricingPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-700 transition-colors duration-200">
-      <Header />
-      
-      <main className="pt-28">
+             <Header />
+       
+       {/* Custom Promo Code Popup */}
+       {showPromoPopup && (
+         <div className="fixed top-24 left-1/2 transform -translate-x-1/2 z-50 animate-in slide-in-from-top-2 duration-300">
+                       <div className={`px-6 py-4 rounded-lg shadow-lg border max-w-md mx-auto ${
+              promoCodeApplied 
+                ? 'bg-green-100 border-green-300 text-green-900 dark:bg-green-800 dark:border-green-500 dark:text-green-100' 
+                : 'bg-red-100 border-red-300 text-red-900 dark:bg-red-800 dark:border-red-500 dark:text-red-100'
+            }`}>
+             <div className="flex items-center gap-3">
+               <div className={`text-2xl ${promoCodeApplied ? 'text-green-600' : 'text-red-600'}`}>
+                 {promoCodeApplied ? '🎉' : '❌'}
+               </div>
+               <div className="flex-1">
+                 <p className="font-medium">
+                   {promoCodeApplied 
+                     ? 'Promo code applied! You can now test any plan for free!' 
+                     : 'Invalid promo code. Try TEST100FREE for testing.'
+                   }
+                 </p>
+               </div>
+               <button 
+                 onClick={() => setShowPromoPopup(false)}
+                 className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
+               >
+                 ✕
+               </button>
+             </div>
+           </div>
+         </div>
+       )}
+       
+       <main className="pt-28">
         {/* Hero Section */}
         <section className="text-center py-20 px-4">
           <div className="max-w-4xl mx-auto">
