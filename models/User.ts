@@ -15,6 +15,8 @@ export interface IUser extends Document {
   hoursLimit: number
   stripeCustomerId?: string
   emailVerified: boolean
+  resetPasswordToken?: string
+  resetPasswordExpires?: Date
   createdAt: Date
   updatedAt: Date
   lastLoginAt: Date
@@ -88,6 +90,14 @@ const UserSchema = new Schema<IUser>({
   lastLoginAt: {
     type: Date,
     default: Date.now,
+  },
+  resetPasswordToken: {
+    type: String,
+    required: false,
+  },
+  resetPasswordExpires: {
+    type: Date,
+    required: false,
   },
 }, {
   timestamps: true, // Automatically adds createdAt and updatedAt
