@@ -121,14 +121,24 @@ export default function PricingPage() {
 
       const { sessionId } = await response.json()
       
+      console.log('🔍 Stripe publishable key:', process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ? 'Present' : 'Missing')
+      
       // Redirect to Stripe checkout
       const stripe = await loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!)
+      console.log('🔍 Stripe instance loaded:', !!stripe)
+      
       if (stripe) {
+        console.log('🔍 Redirecting to Stripe checkout with session:', sessionId)
         const { error } = await stripe.redirectToCheckout({ sessionId })
         if (error) {
-          console.error('Stripe checkout error:', error)
+          console.error('❌ Stripe checkout error:', error)
           alert('Failed to redirect to checkout. Please try again.')
+        } else {
+          console.log('✅ Stripe redirect successful')
         }
+      } else {
+        console.error('❌ Failed to load Stripe')
+        alert('Failed to load payment system. Please try again.')
       }
     } catch (error) {
       console.error('Error creating checkout session:', error)

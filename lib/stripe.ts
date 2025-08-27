@@ -1,7 +1,11 @@
 import Stripe from 'stripe'
 
 // Initialize Stripe with your secret key
-export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+if (!process.env.STRIPE_SECRET_KEY) {
+  throw new Error('STRIPE_SECRET_KEY environment variable is not set')
+}
+
+export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
   apiVersion: '2023-10-16',
 })
 
@@ -13,11 +17,11 @@ export const STRIPE_PRODUCTS = {
   premium: 'premium',
 }
 
-// Base prices in USD (Stripe will automatically convert to local currency)
+// Base prices in GBP (pence - smallest currency unit)
 export const BASE_PRICES = {
-  basic: 699, // $6.99 in cents
-  standard: 1299, // $12.99 in cents
-  premium: 1999, // $19.99 in cents
+  basic: 699, // £6.99 in pence
+  standard: 1299, // £12.99 in pence
+  premium: 1999, // £19.99 in pence
 }
 
 export interface CreateCheckoutSessionParams {
@@ -36,11 +40,15 @@ export async function createCheckoutSession({
   customerId
 }: CreateCheckoutSessionParams) {
   try {
+    console.log('🔍 Creating checkout session for:', { tier, customerEmail, successUrl, cancelUrl })
+    
     // Create or retrieve customer
     let customer: Stripe.Customer
     if (customerId) {
+      console.log('🔍 Retrieving existing customer:', customerId)
       customer = await stripe.customers.retrieve(customerId) as Stripe.Customer
     } else {
+      console.log('🔍 Creating new customer for:', customerEmail)
       customer = await stripe.customers.create({
         email: customerEmail,
         metadata: {
@@ -48,7 +56,11 @@ export async function createCheckoutSession({
         },
       })
     }
+    
+    console.log('✅ Customer ready:', customer.id)
 
+    console.log('🔍 Creating checkout session with amount:', BASE_PRICES[tier], 'pence for', tier)
+    
     // Create checkout session with automatic currency detection
     const session = await stripe.checkout.sessions.create({
       customer: customer.id,
@@ -89,6 +101,8 @@ export async function createCheckoutSession({
         name: 'auto',
       },
     })
+    
+    console.log('✅ Checkout session created:', session.id)
 
     return { sessionId: session.id, customerId: customer.id }
   } catch (error) {
