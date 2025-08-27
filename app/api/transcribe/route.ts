@@ -6,7 +6,7 @@ import { exec } from 'child_process'
 import { promisify } from 'util'
 import { updateProgress, setCompleted } from '../../../lib/progress'
 import connectDB from '@/lib/mongodb'
-import { Transcription, User, UsageTracking } from '@/models'
+import { Transcription, User, UsageTracking, ProcessedVideos } from '@/models'
 
 const execAsync = promisify(exec)
 
@@ -165,20 +165,27 @@ export async function POST(request: NextRequest) {
          console.warn('⚠️ Failed to cleanup failed transcriptions:', cleanupError)
        }
        
-       // Check if this user has already successfully transcribed this video ID
-       const existingTranscription = await Transcription.findOne({
+       // Check if this user has already processed this video (even if deleted)
+       console.log('🔍 Checking for processed video - userId:', mockUserId, 'videoId:', videoId)
+       
+       // Debug: Show all ProcessedVideos records for this user
+       const allUserRecords = await ProcessedVideos.find({ userId: mockUserId })
+       console.log('📋 All ProcessedVideos records for user:', allUserRecords.map(r => ({ videoId: r.videoId, youtubeUrl: r.youtubeUrl })))
+       
+       const processedVideo = await ProcessedVideos.findOne({
          userId: mockUserId,
-         videoId: videoId,
-         status: 'completed' // Only block if it was actually completed successfully
+         videoId: videoId
        })
        
-       if (existingTranscription) {
-         console.log('🚫 Duplicate completed video detected for user:', mockUserId, 'Video ID:', videoId, 'URL:', youtubeUrl)
+       if (processedVideo) {
+         console.log('🚫 Video already processed by user:', mockUserId, 'Video ID:', videoId, 'URL:', youtubeUrl)
+         console.log('📋 ProcessedVideos record:', processedVideo)
+         
          return NextResponse.json({
            success: false,
            error: 'DUPLICATE_VIDEO',
-           message: 'You have already successfully transcribed this video. Check your dashboard for the results.',
-           existingTranscriptionId: existingTranscription._id
+           message: 'Video already transcribed! You can view/edit the existing transcription.',
+           existingTranscriptionId: processedVideo.transcriptionId
          }, { status: 409 }) // 409 Conflict
        }
        
@@ -511,6 +518,28 @@ async function processTranscription(youtubeUrl: string, mockUserId: string) {
           await transcriptionDoc.save()
           transcriptionId = transcriptionDoc._id
           console.log('✅ Transcription saved to database with ID:', transcriptionId)
+          
+          // Create ProcessedVideos record to prevent future duplicates
+          try {
+            console.log('📝 Creating ProcessedVideos record for video:', videoId, 'userId:', mockUserId)
+            const processedVideo = new ProcessedVideos({
+              userId: mockUserId,
+              videoId: videoId,
+              youtubeUrl: youtubeUrl,
+              processedAt: new Date(),
+              transcriptionId: transcriptionId
+            })
+            await processedVideo.save()
+            console.log('✅ ProcessedVideos record created for video:', videoId, 'with ID:', processedVideo._id)
+            
+            // Verify it was created
+            const verifyRecord = await ProcessedVideos.findOne({ videoId: videoId, userId: mockUserId })
+            console.log('🔍 Verification - ProcessedVideos record exists after creation:', verifyRecord ? 'Yes' : 'No')
+          } catch (processedVideoError) {
+            console.warn('⚠️ Failed to create ProcessedVideos record:', processedVideoError)
+            console.error('❌ Full error details:', processedVideoError)
+            // Don't fail the transcription if this fails
+          }
           
           // Update usage tracking
           const today = new Date()

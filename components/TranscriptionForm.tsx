@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Youtube, Loader2, CheckCircle, AlertCircle } from 'lucide-react'
+import { Youtube, Loader2, CheckCircle, AlertCircle, Lock } from 'lucide-react'
 
 interface TranscriptionFormProps {
   onTranscribe: (youtubeUrl: string) => void
@@ -17,12 +17,13 @@ export default function TranscriptionForm({ onTranscribe, isLoading, transcripti
   const [isProcessing, setIsProcessing] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [isCached, setIsCached] = useState(false)
+  const [isChecking, setIsChecking] = useState(false)
 
   // Handle retry URL
   useEffect(() => {
     if (retryUrl) {
       setYoutubeUrl(retryUrl)
-      checkIfCached(retryUrl)
+      checkIfAlreadyTranscribed(retryUrl)
     }
   }, [retryUrl])
 
@@ -52,38 +53,55 @@ export default function TranscriptionForm({ onTranscribe, isLoading, transcripti
     }
   }
 
-  // Check if video is already transcribed (cached)
-  const checkIfCached = (url: string) => {
+  // Check if video already has a successful transcription
+  const checkIfAlreadyTranscribed = async (url: string) => {
     if (!url.trim()) {
       setIsCached(false)
+      setIsChecking(false)
       return
     }
     
+    // isChecking is already set to true in handleUrlChange
+    
     try {
-      const cachedData = localStorage.getItem(`transcription_${url}`)
-      if (cachedData) {
-        const data = JSON.parse(cachedData)
-        const cacheAge = Date.now() - data.cachedAt
-        const maxAge = 24 * 60 * 60 * 1000 // 24 hours
+      // Check if there's an existing successful transcription in the database
+      const response = await fetch('/api/dashboard/transcriptions?limit=100')
+      if (response.ok) {
+        const data = await response.json()
+        const existingTranscription = data.transcriptions?.find((t: any) => 
+          t.youtubeUrl === url && t.status !== 'failed'
+        )
         
-        if (cacheAge < maxAge) {
+        if (existingTranscription) {
           setIsCached(true)
+          setIsChecking(false)
           return
-        } else {
-          // Remove expired cache
-          localStorage.removeItem(`transcription_${url}`)
         }
       }
+      
       setIsCached(false)
     } catch (error) {
+      console.warn('Failed to check existing transcriptions:', error)
       setIsCached(false)
+    } finally {
+      setIsChecking(false)
     }
   }
 
   const handleUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const url = e.target.value
     setYoutubeUrl(url)
-    checkIfCached(url)
+    
+    // Immediately show checking state for any URL input
+    if (url.trim()) {
+      setIsChecking(true)
+      // Use setTimeout to debounce the API call
+      setTimeout(() => checkIfAlreadyTranscribed(url), 500)
+    } else {
+      // If URL is empty, reset states
+      setIsChecking(false)
+      setIsCached(false)
+    }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -159,11 +177,11 @@ export default function TranscriptionForm({ onTranscribe, isLoading, transcripti
                 onFocus={onInputFocus}
               />
             </div>
-            <button
-              type="submit"
-              disabled={!isValidYouTubeUrl(youtubeUrl) || isLoading || isProcessing || disabled}
-              className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3 px-8 py-4 text-lg font-semibold hover:scale-105 transition-all duration-200 whitespace-nowrap"
-            >
+                         <button
+               type="submit"
+               disabled={!isValidYouTubeUrl(youtubeUrl) || isLoading || isProcessing || disabled || isCached || isChecking}
+               className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3 px-8 py-4 text-lg font-semibold hover:scale-105 transition-all duration-200 whitespace-nowrap"
+             >
               {isProcessing ? (
                 <>
                   <Loader2 className="w-6 h-6 animate-spin" />
@@ -174,12 +192,22 @@ export default function TranscriptionForm({ onTranscribe, isLoading, transcripti
                   <Loader2 className="w-6 h-6 animate-spin" />
                   Transcribing...
                 </>
-              ) : (
-                <>
-                  <CheckCircle className="w-6 h-6" />
-                  {retryUrl ? 'Retry' : 'Transcribe'}
-                </>
-              )}
+                             ) : isChecking ? (
+                 <>
+                   <Loader2 className="w-6 h-6 animate-spin" />
+                   Checking...
+                 </>
+               ) : isCached ? (
+                 <>
+                   <Lock className="w-6 h-6" />
+                   Already Transcribed
+                 </>
+               ) : (
+                 <>
+                   <CheckCircle className="w-6 h-6" />
+                   {retryUrl ? 'Retry' : 'Transcribe'}
+                 </>
+               )}
             </button>
           </div>
           
@@ -191,10 +219,10 @@ export default function TranscriptionForm({ onTranscribe, isLoading, transcripti
                 Please enter a valid YouTube URL
               </div>
             )}
-            {isCached && (
+                                     {isCached && (
               <div className="absolute top-0 left-0 text-sm text-green-600 dark:text-green-400 flex items-center gap-2">
                 <CheckCircle className="h-4 w-4" />
-                Video already transcribed! No additional credits will be used.
+                You already transcribed this video.
               </div>
             )}
           </div>

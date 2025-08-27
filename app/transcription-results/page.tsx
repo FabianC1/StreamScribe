@@ -1113,12 +1113,6 @@ export default function TranscriptionResultsPage() {
                        </button>
                      </div>
                      
-                     {/* Debug Info */}
-                     <div className="mb-2 p-2 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded text-xs">
-                       <strong>Debug:</strong> Notes count: {notes.length} | 
-                       Video notes: {getSectionNotes('video').length} | 
-                       All sectionIds: {notes.map(n => n.sectionId).join(', ')}
-                     </div>
                      
                      <div className="space-y-2 overflow-y-auto max-h-32 sm:max-h-40 custom-scrollbar">
                        {editingNoteId === 'video' && (
