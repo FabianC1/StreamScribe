@@ -1,33 +1,72 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useSession, signOut } from 'next-auth/react'
+import { useRouter } from 'next/navigation'
 import Header from '../../components/Header'
-import { CreditCard, Calendar, Clock, AlertTriangle, Settings, User, LogOut, Shield } from 'lucide-react'
+import { CreditCard, Calendar, Clock, AlertTriangle, Settings, User, LogOut, Shield, Loader2 } from 'lucide-react'
 import Link from 'next/link'
 
+interface UserData {
+  firstName: string
+  lastName: string
+  email: string
+  subscriptionTier: string
+  subscriptionStatus: string
+  subscriptionStartDate: string
+  subscriptionEndDate: string
+  hoursUsed: number
+  hoursLimit: number
+}
+
 export default function SubscriptionsPage() {
+  const { data: session, status } = useSession()
+  const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
   const [showCancelModal, setShowCancelModal] = useState(false)
-  const [isAuthenticated, setIsAuthenticated] = useState(false) // TODO: Replace with actual auth state
-
-  // Mock subscription data - in real app, this would come from your backend
-  const subscription = {
-    status: 'active',
-    plan: 'Standard',
-    nextBilling: '2024-02-15',
-    hoursRemaining: 42,
-    totalHours: 60,
-    price: 12.99,
-    startDate: '2024-01-15',
-    customerName: 'John Doe',
-    customerEmail: 'john.doe@example.com'
-  }
+  const [userData, setUserData] = useState<UserData | null>(null)
+  const [recentTranscriptions, setRecentTranscriptions] = useState<any[]>([])
+  const [isLoadingData, setIsLoadingData] = useState(true)
 
   useEffect(() => {
-    // TODO: Check actual authentication status
-    // For now, simulate authenticated user
-    setIsAuthenticated(true)
-  }, [])
+    if (status === 'loading') return
+
+    if (status === 'unauthenticated') {
+      router.push('/login')
+      return
+    }
+
+    if (session?.user?.id) {
+      fetchUserData()
+      fetchRecentTranscriptions()
+    }
+  }, [session, status, router])
+
+  const fetchUserData = async () => {
+    try {
+      const response = await fetch('/api/subscription')
+      if (response.ok) {
+        const data = await response.json()
+        setUserData(data)
+      }
+    } catch (error) {
+      console.error('Error fetching user data:', error)
+    } finally {
+      setIsLoadingData(false)
+    }
+  }
+
+  const fetchRecentTranscriptions = async () => {
+    try {
+      const response = await fetch('/api/dashboard/transcriptions')
+      if (response.ok) {
+        const data = await response.json()
+        setRecentTranscriptions(data.transcriptions || [])
+      }
+    } catch (error) {
+      console.error('Error fetching transcriptions:', error)
+    }
+  }
 
   const handleCancelSubscription = async () => {
     setIsLoading(true)
@@ -46,8 +85,32 @@ export default function SubscriptionsPage() {
     })
   }
 
+  const getPlanPrice = (tier: string) => {
+    switch (tier) {
+      case 'basic': return '6.99'
+      case 'standard': return '12.99'
+      case 'premium': return '19.99'
+      default: return '0.00'
+    }
+  }
+
+  // Show loading state
+  if (status === 'loading' || isLoadingData) {
+    return (
+      <>
+        <Header />
+        <main className="pt-28 min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-700 transition-colors duration-200 flex items-center justify-center">
+          <div className="text-center">
+            <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-primary-600" />
+            <p className="text-gray-600 dark:text-gray-300">Loading subscription details...</p>
+          </div>
+        </main>
+      </>
+    )
+  }
+
   // Show authentication required message if not authenticated
-  if (!isAuthenticated) {
+  if (status === 'unauthenticated') {
     return (
       <>
         <Header />
@@ -103,14 +166,21 @@ export default function SubscriptionsPage() {
                     <User className="w-6 h-6 text-primary-600 dark:text-primary-400" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-gray-900 dark:text-white">{subscription.customerName}</h3>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">{subscription.customerEmail}</p>
+                    <h3 className="font-semibold text-gray-900 dark:text-white">
+                      {userData ? `${userData.firstName} ${userData.lastName}` : 'Loading...'}
+                    </h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      {userData?.email || 'Loading...'}
+                    </p>
                   </div>
                 </div>
-                <Link href="/logout" className="btn-secondary flex items-center gap-2">
+                <button 
+                  onClick={() => signOut({ callbackUrl: '/' })}
+                  className="btn-secondary flex items-center gap-2"
+                >
                   <LogOut className="w-4 h-4" />
                   Sign Out
-                </Link>
+                </button>
               </div>
             </div>
           </div>
@@ -123,11 +193,11 @@ export default function SubscriptionsPage() {
                   Current Subscription
                 </h2>
                 <div className={`px-3 py-1 rounded-full text-sm font-medium ${
-                  subscription.status === 'active' 
+                  userData?.subscriptionStatus === 'active' 
                     ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
                     : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
                 }`}>
-                  {subscription.status === 'active' ? 'Active' : 'Inactive'}
+                  {userData?.subscriptionStatus === 'active' ? 'Active' : 'Inactive'}
                 </div>
               </div>
 
@@ -138,7 +208,9 @@ export default function SubscriptionsPage() {
                     <CreditCard className="w-5 h-5 text-primary-600" />
                     <div>
                       <p className="text-sm text-gray-500 dark:text-gray-400">Plan</p>
-                      <p className="font-medium text-gray-900 dark:text-white">{subscription.plan}</p>
+                      <p className="font-medium text-gray-900 dark:text-white">
+                        {userData?.subscriptionTier ? userData.subscriptionTier.charAt(0).toUpperCase() + userData.subscriptionTier.slice(1) : 'Loading...'}
+                      </p>
                     </div>
                   </div>
                   
@@ -147,7 +219,7 @@ export default function SubscriptionsPage() {
                     <div>
                       <p className="text-sm text-gray-500 dark:text-gray-400">Next Billing</p>
                       <p className="font-medium text-gray-900 dark:text-white">
-                        {formatDate(subscription.nextBilling)}
+                        {userData?.subscriptionEndDate ? formatDate(userData.subscriptionEndDate) : 'Loading...'}
                       </p>
                     </div>
                   </div>
@@ -157,7 +229,7 @@ export default function SubscriptionsPage() {
                     <div>
                       <p className="text-sm text-gray-500 dark:text-gray-400">Start Date</p>
                       <p className="font-medium text-gray-900 dark:text-white">
-                        {formatDate(subscription.startDate)}
+                        {userData?.subscriptionStartDate ? formatDate(userData.subscriptionStartDate) : 'Loading...'}
                       </p>
                     </div>
                   </div>
@@ -169,7 +241,9 @@ export default function SubscriptionsPage() {
                     <Settings className="w-5 h-5 text-primary-600" />
                     <div>
                       <p className="text-sm text-gray-500 dark:text-gray-400">Monthly Price</p>
-                      <p className="font-medium text-gray-900 dark:text-white">£{subscription.price}</p>
+                      <p className="font-medium text-gray-900 dark:text-white">
+                        £{userData?.subscriptionTier ? getPlanPrice(userData.subscriptionTier) : '0.00'}
+                      </p>
                     </div>
                   </div>
 
@@ -178,7 +252,7 @@ export default function SubscriptionsPage() {
                     <div>
                       <p className="text-sm text-gray-500 dark:text-gray-400">Hours Remaining</p>
                       <p className="font-medium text-gray-900 dark:text-white">
-                        {subscription.hoursRemaining} / {subscription.totalHours}
+                        {userData ? (userData.hoursLimit - userData.hoursUsed).toFixed(1) : '0'} / {userData?.hoursLimit || '0'}
                       </p>
                     </div>
                   </div>
@@ -187,12 +261,12 @@ export default function SubscriptionsPage() {
                   <div className="mt-4">
                     <div className="flex justify-between text-sm text-gray-500 dark:text-gray-400 mb-2">
                       <span>Usage</span>
-                      <span>{Math.round((subscription.totalHours - subscription.hoursRemaining) / subscription.totalHours * 100)}%</span>
+                      <span>{userData ? Math.round((userData.hoursUsed / userData.hoursLimit) * 100) : 0}%</span>
                     </div>
                     <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                       <div 
                         className="bg-primary-600 h-2 rounded-full transition-all duration-300"
-                        style={{ width: `${(subscription.totalHours - subscription.hoursRemaining) / subscription.totalHours * 100}%` }}
+                        style={{ width: `${userData ? (userData.hoursUsed / userData.hoursLimit) * 100 : 0}%` }}
                       ></div>
                     </div>
                   </div>
@@ -200,58 +274,57 @@ export default function SubscriptionsPage() {
               </div>
             </div>
 
-            {/* Action Buttons */}
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <button className="btn-secondary flex items-center gap-2">
-                <Settings className="w-4 h-4" />
-                Change Plan
-              </button>
-              <button 
-                onClick={() => setShowCancelModal(true)}
-                className="btn-primary bg-red-600 hover:bg-red-700 flex items-center gap-2"
-              >
-                <AlertTriangle className="w-4 h-4" />
-                Cancel Subscription
-              </button>
-            </div>
+                         {/* Action Buttons */}
+             <div className="flex flex-col sm:flex-row gap-4 justify-center">
+               <button 
+                 onClick={() => router.push('/pricing')}
+                 className="btn-secondary flex items-center gap-2"
+               >
+                 <Settings className="w-4 h-4" />
+                 Change Plan
+               </button>
+               <button 
+                 onClick={() => setShowCancelModal(true)}
+                 className="btn-primary bg-red-600 hover:bg-red-700 flex items-center gap-2"
+               >
+                 <AlertTriangle className="w-4 h-4" />
+                 Cancel Subscription
+               </button>
+             </div>
 
             {/* Usage History */}
             <div className="card mt-8">
               <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
                 Recent Usage
               </h3>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between py-2 border-b border-gray-100 dark:border-gray-700">
-                  <div>
-                    <p className="font-medium text-gray-900 dark:text-white">YouTube Video Transcription</p>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Video ID: dQw4w9WgXcQ</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-medium text-gray-900 dark:text-white">2.5 hours</p>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">2 hours ago</p>
-                  </div>
+              {recentTranscriptions.length === 0 ? (
+                <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                  <p>No transcriptions yet</p>
                 </div>
-                <div className="flex items-center justify-between py-2 border-b border-gray-100 dark:border-gray-700">
-                  <div>
-                    <p className="font-medium text-gray-900 dark:text-white">YouTube Video Transcription</p>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Video ID: 9bZkp7q19f0</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-medium text-gray-900 dark:text-white">1.8 hours</p>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">1 day ago</p>
-                  </div>
+              ) : (
+                <div className="space-y-3">
+                  {recentTranscriptions.slice(0, 5).map((transcription, index) => (
+                    <div key={transcription._id || index} className="flex items-center justify-between py-2 border-b border-gray-100 dark:border-gray-700 last:border-b-0">
+                      <div>
+                        <p className="font-medium text-gray-900 dark:text-white">
+                          {transcription.videoTitle || 'Video Transcription'}
+                        </p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                          {transcription.videoUrl ? new URL(transcription.videoUrl).hostname : 'Unknown source'}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-medium text-gray-900 dark:text-white">
+                          {transcription.duration ? (transcription.duration / 3600).toFixed(2) : '0'} hours
+                        </p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                          {transcription.createdAt ? new Date(transcription.createdAt).toLocaleDateString() : 'Unknown date'}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-                <div className="flex items-center justify-between py-2">
-                  <div>
-                    <p className="font-medium text-gray-900 dark:text-white">YouTube Video Transcription</p>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Video ID: kJQP7kiw5Fk</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-medium text-gray-900 dark:text-white">3.2 hours</p>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">3 days ago</p>
-                  </div>
-                </div>
-              </div>
+              )}
             </div>
           </div>
         </div>

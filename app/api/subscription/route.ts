@@ -31,6 +31,18 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
+    console.log('🔍 User data from database:', {
+      firstName: user.firstName,
+      lastName: user.lastName,
+      email: user.email,
+      subscriptionTier: user.subscriptionTier,
+      subscriptionStatus: user.subscriptionStatus,
+      subscriptionStartDate: user.subscriptionStartDate,
+      subscriptionEndDate: user.subscriptionEndDate,
+      hoursUsed: user.hoursUsed,
+      hoursLimit: user.hoursLimit
+    })
+
     // Determine subscription tier and features
     let tier = 'Basic'
     let hoursTotal = 30
@@ -69,14 +81,22 @@ export async function GET(request: NextRequest) {
       ]
     }
 
-    return NextResponse.json({
-      tier,
-      status: user.subscriptionStatus || 'Active',
-      nextBilling: user.subscriptionEndDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+    const responseData = {
+      firstName: user.firstName || 'User',
+      lastName: user.lastName || 'User',
+      email: user.email,
+      subscriptionTier: user.subscriptionTier || 'basic',
+      subscriptionStatus: user.subscriptionStatus || 'active',
+      subscriptionStartDate: user.subscriptionStartDate || new Date(Date.now()),
+      subscriptionEndDate: user.subscriptionEndDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
       hoursUsed: user.hoursUsed || 0,
-      hoursTotal,
+      hoursLimit: user.hoursLimit || hoursTotal,
       features
-    })
+    }
+
+    console.log('📤 Sending response data:', responseData)
+
+    return NextResponse.json(responseData)
   } catch (error) {
     console.error('Subscription fetch error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
