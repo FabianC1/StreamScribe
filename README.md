@@ -37,192 +37,80 @@ StreamScribe automatically detects your location and shows prices in your local 
 - **AI Services**: AssemblyAI for transcription
 - **Deployment**: Vercel, Netlify, or any Node.js hosting
 
-## 🚀 Quick Start
+StreamScribe
 
-### Prerequisites
+A web application for transcribing YouTube videos using external AI transcription services. This README is intentionally minimal for public visibility, while still keeping enough notes for internal reference and future development.
 
-- Node.js 18+ 
-- MongoDB Atlas account
-- Google Cloud Console project
-- Stripe account
-- AssemblyAI API key
+Overview
+StreamScribe retrieves audio from YouTube videos, processes transcriptions through an external transcription API, and provides users with downloadable text formats. The project includes authentication, a usage system, subscription tiers, and backend logic for managing costs and user limits.
 
-### Installation
+Tech Stack
+Next.js (App Router)
+React / TypeScript
+Tailwind CSS
+MongoDB with Mongoose
+NextAuth (Google OAuth + email/password)
+Stripe (optional)
+AssemblyAI (or other provider) for transcription
 
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/yourusername/streamscribe.git
-   cd streamscribe
-   ```
+Project Structure Notes (internal reference)
+Core directories:
+app — Next.js routes and API endpoints
+models — Mongoose schemas (subscription, usage tracking, transcriptions)
+lib — helper utilities, pricing logic, auth config
+services — transcription logic and external API interaction
+components — UI components
 
-2. **Install dependencies**
-   ```bash
-   npm install
-   ```
+Background tasks such as polling transcription status, caching transcripts, and usage tracking are handled in server-side routes.
 
-3. **Set up environment variables**
-   ```bash
-   cp env.example .env.local
-   # Edit .env.local with your actual values
-   ```
+Requirements
+Node.js 18+
+MongoDB Atlas
+Google OAuth credentials (optional)
+Transcription API key
+Stripe keys (only if enabling subscriptions)
 
-4. **Run development server**
-   ```bash
-   npm run dev
-   ```
+Environment Variables
+This is for internal reference. Do not commit real values.
 
-## 🌍 Production Deployment
+NEXTAUTH_URL=
+NEXT_PUBLIC_APP_URL=
+MONGODB_URI=
+NEXTAUTH_SECRET=
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+ASSEMBLYAI_API_KEY=
+STRIPE_PUBLISHABLE_KEY=
+STRIPE_SECRET_KEY=
+STRIPE_WEBHOOK_SECRET=
 
-### 1. Environment Setup
+Running Locally
+Clone repository:
+git clone https://github.com/yourusername/streamscribe.git
+cd streamscribe
 
-Create `.env.local` with production values:
+Install dependencies:
+npm install
 
-```bash
-# Production URLs
-NEXTAUTH_URL=https://yourdomain.com
-NEXT_PUBLIC_APP_URL=https://yourdomain.com
+Setup environment file:
+cp env.example .env.local
 
-# Database
-MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/streamscribe
+Run development:
+npm run dev
 
-# Authentication
-NEXTAUTH_SECRET=your-super-secret-jwt-key-here
-GOOGLE_CLIENT_ID=your-google-client-id
-GOOGLE_CLIENT_SECRET=your-google-client-secret
-
-# AI Services
-ASSEMBLYAI_API_KEY=your-assemblyai-key
-
-# Payments
-STRIPE_PUBLISHABLE_KEY=pk_live_your-stripe-key
-STRIPE_SECRET_KEY=sk_live_your-stripe-key
-STRIPE_WEBHOOK_SECRET=whsec_your-webhook-secret
-```
-
-### 2. Build & Deploy
-
-```bash
-# Production build
+Build production:
 npm run build
 
-# Start production server
+Start production:
 npm start
 
-# Or deploy to Vercel
-vercel --prod
-```
+Deployment Notes (internal reference)
 
-### 3. Database Setup
-
-```bash
-# Seed initial data
-npm run db:seed
-
-# Run migrations (if any)
-npm run db:migrate
-```
-
-## 🔧 Configuration
-
-### International Pricing
-
-The app automatically detects user location and shows appropriate pricing:
-
-- **Currency Detection**: Uses IP geolocation to determine user's country
-- **Exchange Rates**: Built-in exchange rate calculations for 50+ currencies
-- **Local Formatting**: Prices displayed in local currency format
-- **Tax Compliance**: Automatic tax calculation based on location
-
-### Stripe Integration
-
-Configure Stripe for global payments:
-
-1. **Enable international payments** in your Stripe dashboard
-2. **Set up webhooks** for subscription management
-3. **Configure tax rates** for different regions
-4. **Enable local payment methods** (iDEAL, SEPA, etc.)
-
-## 📊 Monitoring & Analytics
-
-### Health Checks
-
-Monitor your application health:
-
-```bash
-# Health check endpoint
-GET /api/health
-
-# Response includes:
-# - Database status
-# - Environment variables
-# - Response time
-# - Uptime
-```
-
-### Performance Metrics
-
-- **Response Time**: Track API performance
-- **Error Rates**: Monitor application health
-- **User Analytics**: Track usage patterns
-- **Revenue Metrics**: Monitor subscription growth
-
-## 🔒 Security Features
-
-- **Rate Limiting**: Prevents abuse and DDoS attacks
-- **Security Headers**: XSS protection, clickjacking prevention
-- **Input Validation**: Sanitized user inputs
-- **JWT Tokens**: Secure session management
-- **CORS Protection**: Controlled cross-origin requests
-
-## 🌍 Localization Support
-
-### Supported Languages
-
-- **Primary**: English
-- **Planned**: Spanish, French, German, Portuguese, Japanese, Korean, Chinese, Arabic, Hindi
-
-### Regional Features
-
-- **Currency**: Automatic detection and conversion
-- **Time Zones**: User preference support
-- **Date Formats**: Localized date/time display
-- **Number Formats**: Regional number formatting
-
-## 📈 Scaling Considerations
-
-### For 1000+ Users
-
-- **Database**: MongoDB Atlas M10+ cluster
-- **Caching**: Redis for session storage
-- **CDN**: Cloudflare or AWS CloudFront
-- **Monitoring**: Sentry for error tracking
-
-### For 10,000+ Users
-
-- **Load Balancing**: Multiple server instances
-- **Database**: MongoDB Atlas M30+ with read replicas
-- **File Storage**: AWS S3 or Google Cloud Storage
-- **Queue System**: Bull/BullMQ for background jobs
-
-## 🚀 Deployment Platforms
-
-### Vercel (Recommended)
-
-```bash
+Vercel deployment:
 npm install -g vercel
 vercel --prod
-```
 
-### Netlify
-
-```bash
-npm run build
-# Deploy dist/ folder to Netlify
-```
-
-### Docker
-
-```dockerfile
+Docker deployment:
 FROM node:18-alpine
 WORKDIR /app
 COPY package*.json ./
@@ -231,13 +119,23 @@ COPY . .
 RUN npm run build
 EXPOSE 3000
 CMD ["npm", "start"]
-```
 
-## 📞 Support
+Database
+MongoDB Atlas free tier is sufficient.
 
-- **Documentation**: [docs.streamscribe.com](https://docs.streamscribe.com)
-- **Email**: support@streamscribe.com
-- **Discord**: [Join our community](https://discord.gg/streamscribe)
+To seed (only if you created scripts):
+npm run db:seed
+
+Internal Notes for the Future
+Transcripts are cached to reduce API usage.
+Usage tracking schema calculates user cost, API cost, profit, ROI, and other metrics.
+Password reset via email is implemented; expected email volume is low, free tier services usually cover it.
+Subscription tiers, pricing rules, and currency localization exist in code but are intentionally not documented publicly.
+Stripe integration supports global subscriptions and payments. Only enable when ready.
+A background job queue may be required later for scaling (BullMQ, etc).
+
+License
+MIT License
 
 ## 📄 License
 
