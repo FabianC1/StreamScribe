@@ -126,7 +126,8 @@ MongoDB Atlas free tier is sufficient.
 To seed (only if you created scripts):
 npm run db:seed
 
-Internal Notes for the Future
+Internal Notes for the Future:
+
 Transcripts are cached to reduce API usage.
 Usage tracking schema calculates user cost, API cost, profit, ROI, and other metrics.
 Password reset via email is implemented; expected email volume is low, free tier services usually cover it.
