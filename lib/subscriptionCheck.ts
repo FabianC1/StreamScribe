@@ -5,7 +5,7 @@ import User from '@/models/User'
 
 export async function checkSubscriptionStatus() {
   try {
-    const session = await getServerSession(authOptions)
+    const session = await getServerSession(authOptions) as any
     
     if (!session?.user?.email) {
       return { hasSubscription: false, error: 'Not authenticated' }

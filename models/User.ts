@@ -122,7 +122,11 @@ UserSchema.virtual('isSubscriptionActive').get(function() {
 
 // Virtual for remaining hours
 UserSchema.virtual('remainingHours').get(function() {
-  if (!this.subscriptionTier || !this.isSubscriptionActive) {
+  const isSubscriptionActive = this.subscriptionStatus === 'active' && 
+         this.subscriptionEndDate && 
+         this.subscriptionEndDate > new Date()
+  
+  if (!this.subscriptionTier || !isSubscriptionActive) {
     return 0 // No access without subscription
   }
   return Math.max(0, this.hoursLimit - this.hoursUsed)
@@ -130,7 +134,10 @@ UserSchema.virtual('remainingHours').get(function() {
 
 // Virtual to check if user has any subscription
 UserSchema.virtual('hasSubscription').get(function() {
-  return !!this.subscriptionTier && this.isSubscriptionActive
+  const isSubscriptionActive = this.subscriptionStatus === 'active' && 
+         this.subscriptionEndDate && 
+         this.subscriptionEndDate > new Date()
+  return !!this.subscriptionTier && isSubscriptionActive
 })
 
 export default mongoose.models.User || mongoose.model<IUser>('User', UserSchema)

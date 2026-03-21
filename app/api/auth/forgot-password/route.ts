@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
     })
     
     // Also check the raw document
-    const rawUser = await User.findOne({ email: email.toLowerCase() }).lean()
+    const rawUser = await User.findOne({ email: email.toLowerCase() }).lean() as any
     console.log('🔍 Raw user document:', {
       hasToken: !!rawUser?.resetPasswordToken,
       tokenExpiry: rawUser?.resetPasswordExpires,
