@@ -13,6 +13,9 @@ import { requireSubscription } from '@/lib/subscriptionCheck'
 
 const execAsync = promisify(exec)
 
+// Use the bundled yt-dlp binary from yt-dlp-exec package (not relying on system PATH)
+const YTDLP_BINARY = path.join(process.cwd(), 'node_modules', 'yt-dlp-exec', 'bin', 'yt-dlp')
+
 if (!process.env.ASSEMBLYAI_API_KEY) {
   throw new Error('ASSEMBLYAI_API_KEY environment variable is not set')
 }
@@ -274,7 +277,7 @@ async function processTranscription(youtubeUrl: string, userId: string) {
      updateProgress('🎵 Extracting audio from video...')
      
      try {
-       await execAsync(`yt-dlp -f bestaudio[ext=m4a]/bestaudio[ext=mp3]/bestaudio -o "${audioFile}" "${youtubeUrl}"`)
+       await execAsync(`"${YTDLP_BINARY}" -f bestaudio[ext=m4a]/bestaudio[ext=mp3]/bestaudio -o "${audioFile}" "${youtubeUrl}"`)
      } catch (ytdlpError) {
        console.error('❌ yt-dlp error:', ytdlpError)
        
