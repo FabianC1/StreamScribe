@@ -30,8 +30,15 @@ export default function SettingsPage() {
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
 
-  const handleSignOut = () => {
-    signOut({ callbackUrl: '/' })
+  const handleSignOut = async () => {
+    try {
+      await signOut({ redirect: false })
+      localStorage.removeItem('authToken')
+      window.location.assign('/')
+    } catch (error) {
+      console.error('Sign out error:', error)
+      window.location.assign('/')
+    }
   }
 
   if (status === 'loading') {

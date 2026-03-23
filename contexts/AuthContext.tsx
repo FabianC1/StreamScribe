@@ -67,10 +67,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const handleSignOut = async () => {
     try {
-      await signOut()
+      await signOut({ redirect: false })
+      localStorage.removeItem('authToken')
+      window.location.assign('/')
       setUser(null)
     } catch (error) {
       console.error('Sign out error:', error)
+      window.location.assign('/')
     }
   }
 

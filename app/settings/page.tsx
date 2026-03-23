@@ -24,6 +24,16 @@ import {
 } from 'lucide-react'
 
 export default function SettingsPage() {
+    const handleSignOut = async () => {
+      try {
+        await signOut({ redirect: false })
+        localStorage.removeItem('authToken')
+        window.location.assign('/')
+      } catch (error) {
+        console.error('Sign out error:', error)
+        window.location.assign('/')
+      }
+    }
   const { data: session, status } = useSession()
   const { user: customUser } = useAuth()
   const router = useRouter()
@@ -333,7 +343,7 @@ export default function SettingsPage() {
                   </div>
 
                   <button
-                    onClick={() => signOut({ callbackUrl: '/' })}
+                    onClick={handleSignOut}
                     className="btn-secondary flex items-center gap-2"
                   >
                     <LogOut className="w-4 h-4" />
