@@ -94,7 +94,10 @@ export default function LoginPage() {
   const handleGoogleSignIn = async () => {
     setIsLoading(true)
     try {
-      await signIn('google', { callbackUrl: '/dashboard' })
+      await signIn('google', {
+        callbackUrl: '/dashboard',
+        prompt: 'select_account'
+      })
     } catch (error) {
       console.error('Google sign-in error:', error)
       setError('Google sign-in failed. Please try again.')
