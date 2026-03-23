@@ -93,7 +93,7 @@ export default function Header() {
               {isAuthenticated ? (
                 <>
                   <nav className={`absolute left-1/2 -translate-x-1/2 flex items-center transition-all duration-200 ${
-                    isScrolled ? 'gap-7' : 'gap-8 lg:gap-10'
+                    isScrolled ? 'gap-9 lg:gap-10' : 'gap-11 lg:gap-14'
                   }`}>
                     <Link 
                       href="/dashboard" 
@@ -188,7 +188,7 @@ export default function Header() {
               ) : (
                 <>
                   <nav className={`absolute left-1/2 -translate-x-1/2 flex items-center transition-all duration-200 ${
-                    isScrolled ? 'gap-7' : 'gap-8 lg:gap-10'
+                    isScrolled ? 'gap-9 lg:gap-10' : 'gap-11 lg:gap-14'
                   }`}>
                     <Link 
                       href="/" 
