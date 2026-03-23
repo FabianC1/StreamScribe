@@ -31,8 +31,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Check password
-    const isPasswordValid = await bcrypt.compare(password, user.password)
+    // Check password (schema stores it as passwordHash)
+    const isPasswordValid = await bcrypt.compare(password, user.passwordHash)
     if (!isPasswordValid) {
       return NextResponse.json(
         { error: 'Invalid email or password' },

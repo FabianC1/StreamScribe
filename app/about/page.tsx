@@ -29,6 +29,12 @@ export default function AboutPage() {
   const isAuthenticated = status === 'authenticated' || !!customUser
   const isLoading = status === 'loading'
 
+  useEffect(() => {
+    if (!isLoading && isAuthenticated) {
+      router.replace('/dashboard')
+    }
+  }, [isAuthenticated, isLoading, router])
+
   // Mock state for transcription form
   const [isTranscribing, setIsTranscribing] = useState(false)
   const [transcription, setTranscription] = useState('')
@@ -46,6 +52,10 @@ export default function AboutPage() {
       setIsTranscribing(false)
       setTranscription('Sample transcription result...')
     }, 2000)
+  }
+
+  if (!isLoading && isAuthenticated) {
+    return null
   }
 
   return (

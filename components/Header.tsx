@@ -1,22 +1,20 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Menu, X, Youtube, User, LogOut, Shield } from 'lucide-react'
+import { Menu, X, User, LogOut, Shield } from 'lucide-react'
 import ThemeToggle from './ThemeToggle'
 import Link from 'next/link'
-import { useRouter, usePathname } from 'next/navigation'
+import { usePathname } from 'next/navigation'
 import { useSession, signOut } from 'next-auth/react'
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isScrolled, setIsScrolled] = useState(false)
   const [showAuthModal, setShowAuthModal] = useState(false)
-  const router = useRouter()
   const pathname = usePathname()
   const { data: session, status } = useSession()
   
   const isAuthenticated = status === 'authenticated'
-  const isLoading = status === 'loading'
 
   useEffect(() => {
     const handleScroll = () => {
@@ -53,8 +51,17 @@ export default function Header() {
     }
   }
 
-  const handleLogout = () => {
-    signOut({ callbackUrl: '/' })
+  const handleLogout = async () => {
+    // Clear legacy local auth token so custom auth state cannot remain stale
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('authToken')
+    }
+
+    // Avoid port/origin mismatches by handling redirect on the current origin.
+    await signOut({ redirect: false })
+    if (typeof window !== 'undefined') {
+      window.location.assign('/')
+    }
   }
 
   return (
@@ -82,32 +89,9 @@ export default function Header() {
             </div>
 
             {/* Desktop Navigation */}
-            <nav className={`hidden md:flex items-center gap-6 transition-all duration-200 ${
-              isScrolled ? 'gap-5' : 'gap-6'
+            <nav className={`hidden md:flex items-center gap-8 transition-all duration-200 ${
+              isScrolled ? 'gap-7' : 'gap-8 lg:gap-10'
             }`}>
-              <Link 
-                href="/"
-                className={`nav-link text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-500 transition-all duration-200 relative ${
-                  isScrolled ? 'scale-95 opacity-90' : 'scale-100 opacity-100'
-                }`}
-              >
-                About
-                {pathname === '/' && (
-                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary-400 via-secondary-500 to-primary-600 animate-gradient-border"></div>
-                )}
-              </Link>
-              <Link 
-                href="/pricing"
-                className={`nav-link text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-500 transition-all duration-200 relative ${
-                  isScrolled ? 'scale-95 opacity-90' : 'scale-100 opacity-100'
-                }`}
-              >
-                Pricing
-                {pathname === '/pricing' && (
-                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary-400 via-secondary-500 to-primary-600 animate-gradient-border"></div>
-                )}
-              </Link>
-               
               {isAuthenticated ? (
                 <>
                   <Link 
@@ -117,7 +101,40 @@ export default function Header() {
                     }`}
                   >
                     Dashboard
-                    {pathname === '/dashboard' && (
+                    {(pathname === '/dashboard' || pathname === '/dashboard/settings') && (
+                      <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary-400 via-secondary-500 to-primary-600 animate-gradient-border"></div>
+                    )}
+                  </Link>
+                  <Link 
+                    href="/transcribe" 
+                    className={`nav-link text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-500 transition-all duration-200 relative ${
+                      isScrolled ? 'scale-95 opacity-90' : 'scale-100 opacity-100'
+                    }`}
+                  >
+                    Transcribe
+                    {pathname === '/transcribe' && (
+                      <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary-400 via-secondary-500 to-primary-600 animate-gradient-border"></div>
+                    )}
+                  </Link>
+                  <Link 
+                    href="/dashboard/history" 
+                    className={`nav-link text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-500 transition-all duration-200 relative ${
+                      isScrolled ? 'scale-95 opacity-90' : 'scale-100 opacity-100'
+                    }`}
+                  >
+                    History
+                    {pathname === '/dashboard/history' && (
+                      <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary-400 via-secondary-500 to-primary-600 animate-gradient-border"></div>
+                    )}
+                  </Link>
+                  <Link 
+                    href="/subscriptions" 
+                    className={`nav-link text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-500 transition-all duration-200 relative ${
+                      isScrolled ? 'scale-95 opacity-90' : 'scale-100 opacity-100'
+                    }`}
+                  >
+                    Subscriptions
+                    {pathname === '/subscriptions' && (
                       <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary-400 via-secondary-500 to-primary-600 animate-gradient-border"></div>
                     )}
                   </Link>
@@ -133,7 +150,7 @@ export default function Header() {
                     )}
                   </Link>
 
-                  <div className="flex items-center gap-3">
+                  <div className="ml-4 pl-4 border-l border-gray-200 dark:border-gray-700 flex items-center gap-4">
                     <div className="flex items-center gap-2">
                       {session?.user?.image ? (
                         <img 
@@ -163,6 +180,28 @@ export default function Header() {
                 </>
               ) : (
                 <>
+                  <Link 
+                    href="/" 
+                    className={`nav-link text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-500 transition-all duration-200 relative ${
+                      isScrolled ? 'scale-95 opacity-90' : 'scale-100 opacity-100'
+                    }`}
+                  >
+                    About
+                    {pathname === '/' && (
+                      <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary-400 via-secondary-500 to-primary-600 animate-gradient-border"></div>
+                    )}
+                  </Link>
+                  <Link 
+                    href="/pricing"
+                    className={`nav-link text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-500 transition-all duration-200 relative ${
+                      isScrolled ? 'scale-95 opacity-90' : 'scale-100 opacity-100'
+                    }`}
+                  >
+                    Pricing
+                    {pathname === '/pricing' && (
+                      <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary-400 via-secondary-500 to-primary-600 animate-gradient-border"></div>
+                    )}
+                  </Link>
                   <button
                     onClick={handleSubscriptionsClick}
                     className={`nav-link text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-500 transition-all duration-200 flex items-center gap-2 ${
@@ -216,31 +255,6 @@ export default function Header() {
           {isMenuOpen && (
             <div className="md:hidden border-t border-gray-200 dark:border-gray-700 mobile-menu-container">
               <nav className="py-4 px-4 space-y-3">
-                <Link 
-                  href="/"
-                  onClick={() => setIsMenuOpen(false)}
-                  className={`w-full text-left py-3 px-4 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-200 text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-500 relative ${
-                    pathname === '/' ? 'text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-900/20' : ''
-                  }`}
-                >
-                  About
-                  {pathname === '/' && (
-                    <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary-400 via-secondary-500 to-primary-600 animate-gradient-border"></div>
-                  )}
-                </Link>
-                <Link 
-                  href="/pricing"
-                  onClick={() => setIsMenuOpen(false)}
-                  className={`w-full text-left py-3 px-4 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-200 text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-500 relative ${
-                    pathname === '/pricing' ? 'text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-900/20' : ''
-                  }`}
-                >
-                  Pricing
-                  {pathname === '/pricing' && (
-                    <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary-400 via-secondary-500 to-primary-600 animate-gradient-border"></div>
-                  )}
-                </Link>
-                 
                 {isAuthenticated ? (
                   <>
                     <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700 mb-3">
@@ -270,11 +284,47 @@ export default function Header() {
                       href="/dashboard" 
                       onClick={() => setIsMenuOpen(false)}
                       className={`block w-full text-left py-3 px-4 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-200 text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-500 relative ${
-                        pathname === '/dashboard' ? 'text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-900/20' : ''
+                        (pathname === '/dashboard' || pathname === '/dashboard/settings') ? 'text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-900/20' : ''
                       }`}
                     >
                       Dashboard
-                      {pathname === '/dashboard' && (
+                      {(pathname === '/dashboard' || pathname === '/dashboard/settings') && (
+                        <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary-400 via-secondary-500 to-primary-600 animate-gradient-border"></div>
+                      )}
+                    </Link>
+                    <Link 
+                      href="/transcribe" 
+                      onClick={() => setIsMenuOpen(false)}
+                      className={`block w-full text-left py-3 px-4 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-200 text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-500 relative ${
+                        pathname === '/transcribe' ? 'text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-900/20' : ''
+                      }`}
+                    >
+                      Transcribe
+                      {pathname === '/transcribe' && (
+                        <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary-400 via-secondary-500 to-primary-600 animate-gradient-border"></div>
+                      )}
+                    </Link>
+                    <Link 
+                      href="/dashboard/history" 
+                      onClick={() => setIsMenuOpen(false)}
+                      className={`block w-full text-left py-3 px-4 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-200 text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-500 relative ${
+                        pathname === '/dashboard/history' ? 'text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-900/20' : ''
+                      }`}
+                    >
+                      History
+                      {pathname === '/dashboard/history' && (
+                        <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary-400 via-secondary-500 to-primary-600 animate-gradient-border"></div>
+                      )}
+                    </Link>
+                    <Link 
+                      href="/subscriptions" 
+                      onClick={() => setIsMenuOpen(false)}
+                      className={`block w-full text-left py-3 px-4 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-200 text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-500 relative ${
+                        pathname === '/subscriptions' ? 'text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-900/20' : ''
+                      }`}
+                    >
+                      Subscriptions
+                      {pathname === '/subscriptions' && (
                         <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary-400 via-secondary-500 to-primary-600 animate-gradient-border"></div>
                       )}
                     </Link>
@@ -303,6 +353,30 @@ export default function Header() {
                   </>
                 ) : (
                   <>
+                    <Link 
+                      href="/"
+                      onClick={() => setIsMenuOpen(false)}
+                      className={`block w-full text-left py-3 px-4 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-200 text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-500 relative ${
+                        pathname === '/' ? 'text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-900/20' : ''
+                      }`}
+                    >
+                      About
+                      {pathname === '/' && (
+                        <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary-400 via-secondary-500 to-primary-600 animate-gradient-border"></div>
+                      )}
+                    </Link>
+                    <Link 
+                      href="/pricing"
+                      onClick={() => setIsMenuOpen(false)}
+                      className={`block w-full text-left py-3 px-4 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-200 text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-500 relative ${
+                        pathname === '/pricing' ? 'text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-900/20' : ''
+                      }`}
+                    >
+                      Pricing
+                      {pathname === '/pricing' && (
+                        <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary-400 via-secondary-500 to-primary-600 animate-gradient-border"></div>
+                      )}
+                    </Link>
                     <button
                       onClick={handleSubscriptionsClick}
                       className="w-full text-left py-3 px-4 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-200 flex items-center gap-2 text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-500"
