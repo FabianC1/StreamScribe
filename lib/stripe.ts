@@ -24,9 +24,6 @@ export const BASE_PRICES = {
   premium: 1999, // £19.99 in pence
 }
 
-// Special promo code for testing - gives 100% off any plan
-export const TEST_PROMO_CODE = 'TEST100FREE'
-
 export interface CreateCheckoutSessionParams {
   tier: 'basic' | 'standard' | 'premium'
   customerEmail: string
@@ -64,9 +61,8 @@ export async function createCheckoutSession({
     
     console.log('✅ Customer ready:', customer.id)
 
-         // Apply promo code discount if provided
-     const finalAmount = promoCode === TEST_PROMO_CODE ? 0 : BASE_PRICES[tier]
-     console.log('🔍 Creating checkout session with amount:', finalAmount, 'pence for', tier, promoCode ? `(Promo: ${promoCode})` : '')
+         const finalAmount = BASE_PRICES[tier]
+     console.log('🔍 Creating checkout session with amount:', finalAmount, 'pence for', tier)
      
      // Create checkout session with automatic currency detection
      const session = await stripe.checkout.sessions.create({

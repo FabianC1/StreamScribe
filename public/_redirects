@@ -3,8 +3,7 @@
 /favicon.ico /icon.png 200
 /icon.ico /icon.png 200
 
-# Handle client-side routing
-/* /index.html 200
+# Next.js on Netlify handles routing via @netlify/plugin-nextjs — no static catch-all needed
 
 # Security headers
 /*

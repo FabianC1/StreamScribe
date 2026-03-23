@@ -44,11 +44,13 @@ export function middleware(request: NextRequest) {
   response.headers.set('Referrer-Policy', 'origin-when-cross-origin')
   response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()')
   
-  // Add CORS headers for API routes
+  // Add CORS headers for API routes — restrict to own origin in production
   if (request.nextUrl.pathname.startsWith('/api/')) {
-    response.headers.set('Access-Control-Allow-Origin', '*')
+    const allowedOrigin = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+    response.headers.set('Access-Control-Allow-Origin', allowedOrigin)
     response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
     response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+    response.headers.set('Vary', 'Origin')
   }
 
   return response

@@ -15,7 +15,7 @@ export async function sendPasswordResetEmail({
 }: SendPasswordResetEmailParams) {
   try {
     const { data, error } = await resend.emails.send({
-      from: 'StreamScribe <noreply@resend.dev>',
+      from: `StreamScribe <noreply@${process.env.RESEND_FROM_DOMAIN || 'resend.dev'}>`,
       to: [email],
       subject: 'Reset Your StreamScribe Password',
       html: `

@@ -1,0 +1,17 @@
+[build]
+  command = "npm run build"
+  publish = ".next"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
+
+[build.environment]
+  NODE_VERSION = "20"
+  NPM_FLAGS = "--legacy-peer-deps"
+
+# Redirect www → apex (update with your real domain)
+[[redirects]]
+  from = "https://www.streamscribe.com/*"
+  to = "https://streamscribe.com/:splat"
+  status = 301
+  force = true

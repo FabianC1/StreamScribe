@@ -13,7 +13,10 @@ import { requireSubscription } from '@/lib/subscriptionCheck'
 
 const execAsync = promisify(exec)
 
-const ASSEMBLYAI_API_KEY = process.env.ASSEMBLYAI_API_KEY || '1e45758686fb49dfbef78cc72e942b2a'
+if (!process.env.ASSEMBLYAI_API_KEY) {
+  throw new Error('ASSEMBLYAI_API_KEY environment variable is not set')
+}
+const ASSEMBLYAI_API_KEY = process.env.ASSEMBLYAI_API_KEY
 const baseUrl = 'https://api.assemblyai.com'
 
 const headers = {

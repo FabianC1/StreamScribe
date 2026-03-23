@@ -95,16 +95,10 @@ export default function PricingPage() {
   const [showPromoPopup, setShowPromoPopup] = useState(false)
 
   const handlePromoCodeApply = () => {
-    if (promoCode.trim().toUpperCase() === 'TEST100FREE') {
-      setPromoCodeApplied(true)
-      setShowPromoPopup(true)
-      // Auto-hide popup after 3 seconds
-      setTimeout(() => setShowPromoPopup(false), 3000)
-    } else {
-      setShowPromoPopup(true)
-      // Auto-hide popup after 3 seconds
-      setTimeout(() => setShowPromoPopup(false), 3000)
-    }
+    // Promo codes are validated by Stripe during checkout
+    setPromoCodeApplied(true)
+    setShowPromoPopup(true)
+    setTimeout(() => setShowPromoPopup(false), 3000)
   }
 
   const handlePlanSelect = async (planId: string) => {
@@ -129,7 +123,7 @@ export default function PricingPage() {
            customerEmail: session?.user?.email,
            successUrl: `${window.location.origin}/dashboard?success=true`,
            cancelUrl: `${window.location.origin}/pricing?canceled=true`,
-           promoCode: promoCodeApplied ? 'TEST100FREE' : undefined,
+           promoCode: promoCodeApplied ? promoCode.trim() : undefined,
          }),
        })
 
@@ -139,20 +133,14 @@ export default function PricingPage() {
 
       const { sessionId } = await response.json()
       
-      console.log('🔍 Stripe publishable key:', process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ? 'Present' : 'Missing')
-      
       // Redirect to Stripe checkout
       const stripe = await loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!)
-      console.log('🔍 Stripe instance loaded:', !!stripe)
       
       if (stripe) {
-        console.log('🔍 Redirecting to Stripe checkout with session:', sessionId)
         const { error } = await stripe.redirectToCheckout({ sessionId })
         if (error) {
-          console.error('❌ Stripe checkout error:', error)
+          console.error('Stripe checkout error:', error)
           alert('Failed to redirect to checkout. Please try again.')
-        } else {
-          console.log('✅ Stripe redirect successful')
         }
       } else {
         console.error('❌ Failed to load Stripe')
@@ -186,7 +174,7 @@ export default function PricingPage() {
                  <p className="font-medium">
                    {promoCodeApplied 
                      ? 'Promo code applied! You can now test any plan for free!' 
-                     : 'Invalid promo code. Try TEST100FREE for testing.'
+                     : 'Invalid promo code. Please check and try again.'
                    }
                  </p>
                </div>
@@ -242,10 +230,10 @@ export default function PricingPage() {
            <div className="max-w-2xl mx-auto text-center">
              <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-lg border border-gray-200 dark:border-gray-700">
                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
-                 🧪 Testing Promo Code
+                 Have a Promo Code?
                </h3>
                <p className="text-gray-600 dark:text-gray-300 mb-4 text-sm">
-                 Use <code className="bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded text-primary-600">TEST100FREE</code> to test any plan for free
+                 Have a promo code? Enter it below to apply a discount.
                </p>
                <div className="flex gap-2 max-w-md mx-auto">
                  <input
