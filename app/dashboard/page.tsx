@@ -24,6 +24,7 @@ export default function DashboardPage() {
   const router = useRouter()
   const [recentTranscriptions, setRecentTranscriptions] = useState<Transcription[]>([])
   const [usageData, setUsageData] = useState({ hoursUsed: 0, totalTranscriptions: 0 })
+  const [subscriptionData, setSubscriptionData] = useState<{ subscriptionTier: string | null; subscriptionStatus: string | null }>({ subscriptionTier: null, subscriptionStatus: null })
   const [isLoading, setIsLoading] = useState(true)
   const [showDuplicateMessage, setShowDuplicateMessage] = useState(false)
   const [deleteConfirmation, setDeleteConfirmation] = useState<{ show: boolean; transcriptionId: string; videoTitle: string } | null>(null)
@@ -43,6 +44,7 @@ export default function DashboardPage() {
     if (isAuthenticated) {
       fetchRecentTranscriptions()
       fetchUsageData()
+      fetchSubscriptionData()
       
       // Check if user was redirected from duplicate URL attempt
       const urlParams = new URLSearchParams(window.location.search)
@@ -53,6 +55,21 @@ export default function DashboardPage() {
       }
     }
   }, [isAuthenticated])
+
+  const fetchSubscriptionData = async () => {
+    try {
+      const response = await fetch('/api/subscription')
+      if (response.ok) {
+        const data = await response.json()
+        setSubscriptionData({
+          subscriptionTier: data.subscriptionTier || null,
+          subscriptionStatus: data.subscriptionStatus || null,
+        })
+      }
+    } catch (error) {
+      console.error('Failed to fetch subscription data:', error)
+    }
+  }
 
   const fetchRecentTranscriptions = async () => {
     try {
@@ -218,7 +235,7 @@ export default function DashboardPage() {
             </div>
 
             {/* Subscription Required Message */}
-            {(!customUser?.subscriptionTier || customUser?.subscriptionStatus !== 'active') && (
+            {(!subscriptionData.subscriptionTier || subscriptionData.subscriptionStatus !== 'active') && (
               <div className="mb-8 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border border-blue-200 dark:border-blue-700 rounded-xl p-6">
                 <div className="flex items-start gap-4">
                   <div className="h-12 w-12 bg-blue-100 dark:bg-blue-800 rounded-lg flex items-center justify-center flex-shrink-0">
@@ -292,15 +309,15 @@ export default function DashboardPage() {
                   <div>
                     <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Subscription</p>
                     <p className="text-2xl font-bold text-gray-900 dark:text-white capitalize">
-                      {customUser?.subscriptionTier ? customUser.subscriptionTier : 'No Subscription'}
+                      {subscriptionData.subscriptionTier || 'No Subscription'}
                     </p>
                   </div>
                   <div className="h-12 w-12 bg-purple-100 dark:bg-purple-900/20 rounded-lg flex items-center justify-center">
-                    {customUser?.subscriptionTier === 'premium' ? (
+                    {subscriptionData.subscriptionTier === 'premium' ? (
                       <Crown className="h-6 w-6 text-purple-600 dark:text-purple-400" />
-                    ) : customUser?.subscriptionTier === 'standard' ? (
+                    ) : subscriptionData.subscriptionTier === 'standard' ? (
                       <Star className="h-6 w-6 text-purple-600 dark:text-purple-400" />
-                    ) : customUser?.subscriptionTier === 'basic' ? (
+                    ) : subscriptionData.subscriptionTier === 'basic' ? (
                       <Zap className="h-6 w-6 text-purple-600 dark:text-purple-400" />
                     ) : (
                       <Shield className="h-6 w-6 text-gray-500 dark:text-gray-400" />

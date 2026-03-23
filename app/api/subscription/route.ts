@@ -55,7 +55,7 @@ export async function GET(request: NextRequest) {
       'Ads shown'
     ]
 
-    if (user.email === 'galaselfabian@gmail.com') {
+    if (user.subscriptionTier === 'premium') {
       tier = 'Premium'
       hoursTotal = 100
       features = [
@@ -68,7 +68,7 @@ export async function GET(request: NextRequest) {
         'Priority phone support',
         'No ads'
       ]
-    } else if (user.subscriptionTier === 'standard' || user.hoursLimit > 30) {
+    } else if (user.subscriptionTier === 'standard') {
       tier = 'Standard'
       hoursTotal = 60
       features = [

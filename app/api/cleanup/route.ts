@@ -4,6 +4,8 @@ import connectDB from '@/lib/mongodb'
 import { Transcription, ProcessedVideos, UsageTracking, User } from '@/models'
 import { authOptions } from '../auth/[...nextauth]/route'
 
+const PROTECTED_EMAIL = 'galaselfabian@gmail.com'
+
 export async function POST(request: NextRequest) {
   try {
     // Get authenticated user from session
@@ -13,7 +15,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Only allow admin user to run cleanup
-    if (session.user.email !== 'galaselfabian@gmail.com') {
+    if (session.user.email !== PROTECTED_EMAIL) {
       return NextResponse.json({ error: 'Admin access required' }, { status: 403 })
     }
 
@@ -21,23 +23,29 @@ export async function POST(request: NextRequest) {
 
     console.log('🧹 Starting database cleanup...')
 
-    // Delete all transcriptions
-    const transcriptionsDeleted = await Transcription.deleteMany({})
-    console.log(`🗑️ Deleted ${transcriptionsDeleted.deletedCount} transcriptions`)
+    // Find the protected dev account so we can exclude their data
+    const protectedUser = await User.findOne({ email: PROTECTED_EMAIL }).lean() as any
+    const protectedUserId = protectedUser?._id
 
-    // Delete all ProcessedVideos records
-    const processedVideosDeleted = await ProcessedVideos.deleteMany({})
+    // Delete all transcriptions EXCEPT those belonging to the protected account
+    const transcriptionFilter = protectedUserId ? { userId: { $ne: protectedUserId } } : {}
+    const transcriptionsDeleted = await Transcription.deleteMany(transcriptionFilter)
+    console.log(`🗑️ Deleted ${transcriptionsDeleted.deletedCount} transcriptions (protected account preserved)`)
+
+    // Delete all ProcessedVideos records EXCEPT those belonging to the protected account
+    const processedVideosFilter = protectedUserId ? { userId: { $ne: protectedUserId } } : {}
+    const processedVideosDeleted = await ProcessedVideos.deleteMany(processedVideosFilter)
     console.log(`🗑️ Deleted ${processedVideosDeleted.deletedCount} ProcessedVideos records`)
 
-    // Delete all UsageTracking records
-    const usageTrackingDeleted = await UsageTracking.deleteMany({})
+    // Delete all UsageTracking records EXCEPT those belonging to the protected account
+    const usageTrackingFilter = protectedUserId ? { userId: { $ne: protectedUserId } } : {}
+    const usageTrackingDeleted = await UsageTracking.deleteMany(usageTrackingFilter)
     console.log(`🗑️ Deleted ${usageTrackingDeleted.deletedCount} UsageTracking records`)
 
-
-
-    // Reset user hours used to 0
+    // Reset hoursUsed to 0 for all users EXCEPT the protected account
+    const usersFilter = protectedUserId ? { _id: { $ne: protectedUserId } } : {}
     const usersUpdated = await User.updateMany(
-      {},
+      usersFilter,
       { 
         $set: { 
           hoursUsed: 0,
@@ -45,13 +53,13 @@ export async function POST(request: NextRequest) {
         }
       }
     )
-    console.log(`🔄 Reset hours used for ${usersUpdated.modifiedCount} users`)
+    console.log(`🔄 Reset hours used for ${usersUpdated.modifiedCount} users (protected account preserved)`)
 
     console.log('✅ Database cleanup completed successfully!')
 
     return NextResponse.json({
       success: true,
-      message: 'Database cleanup completed',
+      message: 'Database cleanup completed (your account data was preserved)',
       deleted: {
         transcriptions: transcriptionsDeleted.deletedCount,
         processedVideos: processedVideosDeleted.deletedCount,

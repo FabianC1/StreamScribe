@@ -7,7 +7,7 @@ import Header from '../../components/Header'
 import Footer from '../../components/Footer'
 import TranscriptionForm from '../../components/TranscriptionForm'
 import { Youtube } from 'lucide-react'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 export default function TranscribePage() {
   const { data: session, status } = useSession()
@@ -15,12 +15,28 @@ export default function TranscribePage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [isTranscribing, setIsTranscribing] = useState(false)
+  const [subscriptionData, setSubscriptionData] = useState<{ subscriptionTier: string | null; subscriptionStatus: string | null } | null>(null)
+  const [subscriptionLoading, setSubscriptionLoading] = useState(true)
   
   // Check for retry URL parameter
   const retryUrl = searchParams.get('retry')
   
   const isAuthenticated = status === 'authenticated' || !!customUser
   const isLoading = status === 'loading'
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetch('/api/subscription')
+        .then(r => r.ok ? r.json() : null)
+        .then(data => {
+          setSubscriptionData(data ? { subscriptionTier: data.subscriptionTier, subscriptionStatus: data.subscriptionStatus } : null)
+        })
+        .catch(() => setSubscriptionData(null))
+        .finally(() => setSubscriptionLoading(false))
+    } else if (!isLoading) {
+      setSubscriptionLoading(false)
+    }
+  }, [isAuthenticated, isLoading])
 
   const handleTranscribe = async (youtubeUrl: string) => {
     if (!isAuthenticated || isTranscribing) {
@@ -45,7 +61,7 @@ export default function TranscribePage() {
     return null
   }
 
-  if (isLoading) {
+  if (isLoading || subscriptionLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-700">
         <Header />
@@ -60,8 +76,8 @@ export default function TranscribePage() {
     return null
   }
 
-  // Check if user has active subscription
-  const hasActiveSubscription = customUser?.subscriptionTier && customUser?.subscriptionStatus === 'active'
+  // Check if user has active subscription from the API (not customUser which never has these fields)
+  const hasActiveSubscription = subscriptionData?.subscriptionTier && subscriptionData?.subscriptionStatus === 'active'
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-700">

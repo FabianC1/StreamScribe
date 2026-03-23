@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Menu, X, User, Shield } from 'lucide-react'
+import { Menu, X, User, Shield, Wrench } from 'lucide-react'
 import ThemeToggle from './ThemeToggle'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
@@ -141,7 +141,11 @@ export default function Header() {
 
                   <div className="pl-4 border-l border-gray-200 dark:border-gray-700 flex items-center gap-4">
                     <Link href="/settings" className="flex items-center gap-2 hover:opacity-85 transition-opacity duration-200">
-                      {session?.user?.image ? (
+                      {session?.user?.email === 'galaselfabian@gmail.com' ? (
+                        <div className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center" title="Dev Account">
+                          <Wrench className="w-4 h-4 text-white" />
+                        </div>
+                      ) : session?.user?.image ? (
                         <img 
                           src={session.user.image} 
                           alt={session.user.name || 'User'} 
@@ -258,7 +262,11 @@ export default function Header() {
                   <>
                     <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700 mb-3">
                       <div className="flex items-center gap-3">
-                        {session?.user?.image ? (
+                        {session?.user?.email === 'galaselfabian@gmail.com' ? (
+                          <div className="w-10 h-10 bg-orange-500 rounded-full flex items-center justify-center" title="Dev Account">
+                            <Wrench className="w-5 h-5 text-white" />
+                          </div>
+                        ) : session?.user?.image ? (
                           <img 
                             src={session.user.image} 
                             alt={session.user.name || 'User'} 

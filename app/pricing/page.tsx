@@ -25,6 +25,7 @@ import {
 import Link from 'next/link'
 
 export default function PricingPage() {
+  const isDevMode = process.env.NODE_ENV !== 'production'
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null)
   const { data: session, status } = useSession()
   const { user: customUser } = useAuth()
@@ -95,8 +96,8 @@ export default function PricingPage() {
   const [showPromoPopup, setShowPromoPopup] = useState(false)
 
   const handlePromoCodeApply = () => {
-    // Promo codes are validated by Stripe during checkout
-    setPromoCodeApplied(true)
+    const isValidDevPromo = isDevMode && promoCode.trim().toUpperCase() === 'DEVFREE'
+    setPromoCodeApplied(isValidDevPromo)
     setShowPromoPopup(true)
     setTimeout(() => setShowPromoPopup(false), 3000)
   }
@@ -131,13 +132,18 @@ export default function PricingPage() {
         throw new Error('Failed to create checkout session')
       }
 
-      const { sessionId } = await response.json()
+      const data = await response.json()
+
+      if (data.directActivation && data.redirectUrl) {
+        window.location.assign(data.redirectUrl)
+        return
+      }
       
       // Redirect to Stripe checkout
       const stripe = await loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!)
       
       if (stripe) {
-        const { error } = await stripe.redirectToCheckout({ sessionId })
+        const { error } = await stripe.redirectToCheckout({ sessionId: data.sessionId })
         if (error) {
           console.error('Stripe checkout error:', error)
           alert('Failed to redirect to checkout. Please try again.')
@@ -173,7 +179,7 @@ export default function PricingPage() {
                <div className="flex-1">
                  <p className="font-medium">
                    {promoCodeApplied 
-                     ? 'Promo code applied! You can now test any plan for free!' 
+                     ? 'Promo code applied! Your development test checkout will be free.' 
                      : 'Invalid promo code. Please check and try again.'
                    }
                  </p>
@@ -233,7 +239,9 @@ export default function PricingPage() {
                  Have a Promo Code?
                </h3>
                <p className="text-gray-600 dark:text-gray-300 mb-4 text-sm">
-                 Have a promo code? Enter it below to apply a discount.
+                 {isDevMode
+                   ? 'Use DEVFREE in development to activate a plan without going through Stripe.'
+                   : 'Have a promo code? Enter it below to apply a discount.'}
                </p>
                <div className="flex gap-2 max-w-md mx-auto">
                  <input
@@ -252,7 +260,7 @@ export default function PricingPage() {
                </div>
                {promoCodeApplied && (
                  <div className="mt-3 text-green-600 dark:text-green-400 text-sm font-medium">
-                   ✅ Promo code applied! All plans are now free for testing.
+                   ✅ DEVFREE applied. Choosing a plan will activate it directly in development.
                  </div>
                )}
              </div>

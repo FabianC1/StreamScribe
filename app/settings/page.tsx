@@ -57,28 +57,12 @@ export default function SettingsPage() {
 
   // Subscription data - will be fetched from database
   const [subscription, setSubscription] = useState({
-    tier: currentUser?.email === 'galaselfabian@gmail.com' ? 'Premium' : 'Standard',
+    tier: 'Basic',
     status: 'Active',
-    nextBilling: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days from now
+    nextBilling: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
     hoursUsed: 0,
-    hoursTotal: currentUser?.email === 'galaselfabian@gmail.com' ? 100 : 60,
-    features: currentUser?.email === 'galaselfabian@gmail.com' ? [
-      '100 hours transcription per month',
-      'All export formats (TXT, DOCX, SRT, VTT, MP3, MP4)',
-      'AI-powered highlights & summaries',
-      'Full theme customization',
-      'Team collaboration features',
-      'Advanced organization tools',
-      'Priority phone support',
-      'No ads'
-    ] : [
-      '60 hours transcription per month',
-      'TXT, DOCX, and SRT export formats',
-      'Advanced analytics with insights',
-      'Enhanced video history',
-      'Priority email support',
-      'No ads'
-    ]
+    hoursTotal: 30,
+    features: [] as string[]
   })
 
   const [isEditingProfile, setIsEditingProfile] = useState(false)
@@ -133,7 +117,20 @@ export default function SettingsPage() {
         const response = await fetch('/api/subscription')
         if (response.ok) {
           const data = await response.json()
-          setSubscription(prev => ({ ...prev, ...data }))
+          setSubscription(prev => ({
+            ...prev,
+            ...data,
+            // API returns subscriptionTier (lowercase); local state uses tier (capitalised)
+            tier: data.subscriptionTier
+              ? data.subscriptionTier.charAt(0).toUpperCase() + data.subscriptionTier.slice(1)
+              : prev.tier,
+            // API returns hoursLimit; local state uses hoursTotal
+            hoursTotal: data.hoursLimit ?? prev.hoursTotal,
+            // Capitalise status string
+            status: data.subscriptionStatus
+              ? data.subscriptionStatus.charAt(0).toUpperCase() + data.subscriptionStatus.slice(1)
+              : prev.status,
+          }))
         }
       } catch (error) {
         console.error('Failed to fetch subscription:', error)

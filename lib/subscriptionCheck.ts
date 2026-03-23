@@ -3,6 +3,8 @@ import { authOptions } from '@/app/api/auth/[...nextauth]/route'
 import connectDB from '@/lib/mongodb'
 import User from '@/models/User'
 
+const DEV_ACCOUNT_EMAIL = 'galaselfabian@gmail.com'
+
 export async function checkSubscriptionStatus() {
   try {
     const session = await getServerSession(authOptions) as any
@@ -12,6 +14,23 @@ export async function checkSubscriptionStatus() {
     }
 
     await connectDB()
+
+    // Dev account bypass: skip expiry/status check but read real tier from DB
+    // This allows freely switching tiers via DEVFREE to test gating behaviour
+    if (process.env.NODE_ENV !== 'production' && session.user.email === DEV_ACCOUNT_EMAIL) {
+      const devUser = await User.findOne({ email: DEV_ACCOUNT_EMAIL })
+      return {
+        hasSubscription: true,
+        user: {
+          id: devUser?._id ?? session.user.id,
+          email: session.user.email,
+          subscriptionTier: devUser?.subscriptionTier || 'premium',
+          subscriptionStatus: 'active',
+          hoursUsed: devUser?.hoursUsed || 0,
+          hoursLimit: devUser?.hoursLimit || 100
+        }
+      }
+    }
     
     const user = await User.findOne({ email: session.user.email })
     
