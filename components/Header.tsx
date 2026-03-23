@@ -1,11 +1,11 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Menu, X, User, LogOut, Shield } from 'lucide-react'
+import { Menu, X, User, Shield } from 'lucide-react'
 import ThemeToggle from './ThemeToggle'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useSession, signOut } from 'next-auth/react'
+import { useSession } from 'next-auth/react'
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
@@ -48,19 +48,6 @@ export default function Header() {
     if (!isAuthenticated) {
       e.preventDefault()
       setShowAuthModal(true)
-    }
-  }
-
-  const handleLogout = async () => {
-    // Clear legacy local auth token so custom auth state cannot remain stale
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('authToken')
-    }
-
-    // Avoid port/origin mismatches by handling redirect on the current origin.
-    await signOut({ redirect: false })
-    if (typeof window !== 'undefined') {
-      window.location.assign('/')
     }
   }
 
@@ -129,13 +116,13 @@ export default function Header() {
                       )}
                     </Link>
                     <Link 
-                      href="/subscriptions" 
+                      href="/benefits" 
                       className={`nav-link text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-500 transition-all duration-200 relative ${
                         isScrolled ? 'scale-95 opacity-90' : 'scale-100 opacity-100'
                       }`}
                     >
-                      Subscriptions
-                      {pathname === '/subscriptions' && (
+                      Benefits
+                      {pathname === '/benefits' && (
                         <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary-400 via-secondary-500 to-primary-600 animate-gradient-border"></div>
                       )}
                     </Link>
@@ -153,7 +140,7 @@ export default function Header() {
                   </nav>
 
                   <div className="pl-4 border-l border-gray-200 dark:border-gray-700 flex items-center gap-4">
-                    <div className="flex items-center gap-2">
+                    <Link href="/settings" className="flex items-center gap-2 hover:opacity-85 transition-opacity duration-200">
                       {session?.user?.image ? (
                         <img 
                           src={session.user.image} 
@@ -168,16 +155,7 @@ export default function Header() {
                       <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
                         {session?.user?.name || 'User'}
                       </span>
-                    </div>
-                    <button
-                      onClick={handleLogout}
-                      className={`nav-link text-gray-600 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400 transition-all duration-200 flex items-center gap-2 ${
-                        isScrolled ? 'scale-95 opacity-90' : 'scale-100 opacity-100'
-                      }`}
-                    >
-                      <LogOut className="w-4 h-4" />
-                      Sign Out
-                    </button>
+                    </Link>
                     <div className={`transition-all duration-200 ${
                       isScrolled ? 'scale-95' : 'scale-100'
                     }`}>
@@ -338,14 +316,14 @@ export default function Header() {
                       )}
                     </Link>
                     <Link 
-                      href="/subscriptions" 
+                      href="/benefits" 
                       onClick={() => setIsMenuOpen(false)}
                       className={`block w-full text-left py-3 px-4 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-200 text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-500 relative ${
-                        pathname === '/subscriptions' ? 'text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-900/20' : ''
+                        pathname === '/benefits' ? 'text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-900/20' : ''
                       }`}
                     >
-                      Subscriptions
-                      {pathname === '/subscriptions' && (
+                      Benefits
+                      {pathname === '/benefits' && (
                         <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary-400 via-secondary-500 to-primary-600 animate-gradient-border"></div>
                       )}
                     </Link>
@@ -361,16 +339,6 @@ export default function Header() {
                         <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary-400 via-secondary-500 to-primary-600 animate-gradient-border"></div>
                       )}
                     </Link>
-                    <button
-                      onClick={() => {
-                        handleLogout()
-                        setIsMenuOpen(false)
-                      }}
-                      className="w-full text-left py-3 px-4 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-200 flex items-center gap-2 text-gray-600 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400"
-                    >
-                      <LogOut className="w-4 h-4" />
-                      Sign Out
-                    </button>
                   </>
                 ) : (
                   <>
