@@ -93,7 +93,7 @@ export default function Header() {
               {isAuthenticated ? (
                 <>
                   <nav className={`absolute left-1/2 -translate-x-1/2 flex items-center transition-all duration-200 ${
-                    isScrolled ? 'gap-9 lg:gap-10' : 'gap-11 lg:gap-14'
+                    isScrolled ? 'gap-9 lg:gap-10 scale-[0.96] opacity-85' : 'gap-11 lg:gap-14 scale-100 opacity-100'
                   }`}>
                     <Link 
                       href="/dashboard" 
@@ -188,7 +188,7 @@ export default function Header() {
               ) : (
                 <>
                   <nav className={`absolute left-1/2 -translate-x-1/2 flex items-center transition-all duration-200 ${
-                    isScrolled ? 'gap-9 lg:gap-10' : 'gap-11 lg:gap-14'
+                    isScrolled ? 'gap-9 lg:gap-10 scale-[0.96] opacity-85' : 'gap-11 lg:gap-14 scale-100 opacity-100'
                   }`}>
                     <Link 
                       href="/" 
@@ -235,7 +235,9 @@ export default function Header() {
                   <div className="pl-4 border-l border-gray-200 dark:border-gray-700 flex items-center gap-3">
                     <Link
                       href="/login"
-                      className="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors duration-200"
+                      className={`px-4 py-2 rounded-lg border border-blue-200 dark:border-blue-700/60 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/35 transition-all duration-200 ${
+                        isScrolled ? 'scale-95 shadow-md' : 'scale-100'
+                      }`}
                     >
                       Log In
                     </Link>
