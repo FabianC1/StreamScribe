@@ -71,7 +71,7 @@ export default function Header() {
           ? 'bg-white/85 dark:bg-gray-900/85 backdrop-blur-md shadow-lg rounded-b-2xl' 
           : 'bg-white dark:bg-gray-900 shadow-sm rounded-b-2xl'
       } border-b border-gray-100 dark:border-gray-800`}>
-        <div className="container mx-auto px-4">
+        <div className="w-full px-4 sm:px-5 lg:px-6 xl:px-8">
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
             <div className={`flex items-center gap-2 transition-all duration-200 ${
