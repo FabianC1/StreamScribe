@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { Youtube, Clock, FileText, Search, Filter, ArrowLeft } from 'lucide-react'
 import Header from '../../../components/Header'
+import Footer from '../../../components/Footer'
 
 interface Transcription {
   _id: string
@@ -138,7 +139,7 @@ export default function HistoryPage() {
       <Header />
       
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pt-28">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 pb-20">
         {/* Page Header */}
         <div className="mb-8">
           <div className="flex items-center gap-4 mb-4">
@@ -340,6 +341,8 @@ export default function HistoryPage() {
            </div>
          </div>
        )}
+
+      <Footer />
      </div>
    )
  }
