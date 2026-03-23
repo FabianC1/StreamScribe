@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { Chrome, Mail, Lock, Eye, EyeOff, AlertCircle, CheckCircle } from 'lucide-react'
+import Header from '../../components/Header'
 
 
 export default function LoginPage() {
@@ -133,8 +134,11 @@ export default function LoginPage() {
 
   if (status === 'loading') {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-700 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-700">
+        <Header />
+        <div className="pt-28 flex items-center justify-center px-4">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        </div>
       </div>
     )
   }
@@ -144,7 +148,9 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-700 flex items-center justify-center px-4">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-700">
+      <Header />
+      <main className="pt-28 pb-10 px-4 flex items-start justify-center min-h-[calc(100vh+140px)]">
       <div className="w-full max-w-md">
         {/* Logo and Header */}
         <div className="text-center mb-8">
@@ -329,6 +335,7 @@ export default function LoginPage() {
           </Link>
         </div>
       </div>
+      </main>
     </div>
   )
 }

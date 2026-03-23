@@ -68,9 +68,9 @@ export default function Header() {
     <>
       <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-200 ${
         isScrolled 
-          ? 'bg-white/85 dark:bg-gray-900/85 backdrop-blur-md shadow-lg rounded-b-2xl' 
-          : 'bg-white dark:bg-gray-900 shadow-sm rounded-b-2xl'
-      } border-b border-gray-100 dark:border-gray-800`}>
+          ? 'bg-slate-50/90 backdrop-blur-xl shadow-[0_10px_30px_-18px_rgba(15,23,42,0.45)] dark:bg-gray-900/85 dark:backdrop-blur-md dark:shadow-lg rounded-b-2xl' 
+          : 'bg-gradient-to-r from-slate-50 via-white to-slate-50 shadow-sm dark:bg-gray-900 dark:bg-none dark:shadow-sm rounded-b-2xl'
+      } border-b border-slate-200/80 dark:border-gray-800`}>
         <div className="w-full px-4 sm:px-5 lg:px-6 xl:px-8">
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
