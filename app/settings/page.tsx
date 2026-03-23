@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useSession } from 'next-auth/react'
+import { useSession, signOut } from 'next-auth/react'
 import { useAuth } from '../contexts/AuthContext'
 import { useRouter } from 'next/navigation'
 import { useTheme } from '@/lib/theme'
@@ -9,6 +9,7 @@ import Header from '../../components/Header'
 import Footer from '../../components/Footer'
 import { 
   User,
+  LogOut,
   CreditCard,
   Shield,
   Bell,
@@ -314,6 +315,33 @@ export default function SettingsPage() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
             {/* Left Column - Profile & Account */}
             <div className="lg:col-span-2 space-y-8">
+              {/* Account Quick Actions */}
+              <div className="card">
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-12 h-12 bg-primary-100 dark:bg-primary-900/20 rounded-full flex items-center justify-center">
+                      <User className="w-6 h-6 text-primary-600 dark:text-primary-400" />
+                    </div>
+                    <div className="min-w-0">
+                      <h3 className="font-semibold text-gray-900 dark:text-white truncate">
+                        {profileData.name || 'User'}
+                      </h3>
+                      <p className="text-sm text-gray-600 dark:text-gray-400 truncate">
+                        {profileData.email || session?.user?.email || ''}
+                      </p>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => signOut({ callbackUrl: '/' })}
+                    className="btn-secondary flex items-center gap-2"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    Sign Out
+                  </button>
+                </div>
+              </div>
+
               {/* Profile Section */}
               <div className="card">
                 <div className="flex items-center justify-between mb-6">

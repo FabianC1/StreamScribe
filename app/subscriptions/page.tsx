@@ -1,10 +1,10 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useSession, signOut } from 'next-auth/react'
+import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import Header from '../../components/Header'
-import { CreditCard, Calendar, Clock, AlertTriangle, Settings, User, LogOut, Shield, Loader2 } from 'lucide-react'
+import { CreditCard, Calendar, Clock, AlertTriangle, Settings, Shield, Loader2, User } from 'lucide-react'
 import Link from 'next/link'
 
 interface UserData {
@@ -155,34 +155,6 @@ export default function SubscriptionsPage() {
             <p className="text-lg text-gray-600 dark:text-gray-300">
               Manage your StreamScribe subscription and usage
             </p>
-          </div>
-
-          {/* User Info */}
-          <div className="max-w-4xl mx-auto mb-6">
-            <div className="card">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-primary-100 dark:bg-primary-900/20 rounded-full flex items-center justify-center">
-                    <User className="w-6 h-6 text-primary-600 dark:text-primary-400" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-gray-900 dark:text-white">
-                      {userData ? `${userData.firstName} ${userData.lastName}` : 'Loading...'}
-                    </h3>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                      {userData?.email || 'Loading...'}
-                    </p>
-                  </div>
-                </div>
-                <button 
-                  onClick={() => signOut({ callbackUrl: '/' })}
-                  className="btn-secondary flex items-center gap-2"
-                >
-                  <LogOut className="w-4 h-4" />
-                  Sign Out
-                </button>
-              </div>
-            </div>
           </div>
 
           {/* Subscription Status Card */}

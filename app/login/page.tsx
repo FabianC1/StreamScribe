@@ -13,6 +13,7 @@ export default function LoginPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [showPassword, setShowPassword] = useState(false)
+  const [rememberMe, setRememberMe] = useState(false)
   const [formData, setFormData] = useState({
     email: '',
     password: ''
@@ -38,6 +39,16 @@ export default function LoginPage() {
       setSuccessMessage(message)
     }
   }, [searchParams])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+
+    const savedEmail = localStorage.getItem('rememberMeEmail')
+    if (savedEmail) {
+      setFormData(prev => ({ ...prev, email: savedEmail }))
+      setRememberMe(true)
+    }
+  }, [])
 
   const validateField = (name: string, value: string) => {
     let error = ''
@@ -112,6 +123,14 @@ export default function LoginPage() {
     }
     
     try {
+      if (typeof window !== 'undefined') {
+        if (rememberMe && formData.email.trim()) {
+          localStorage.setItem('rememberMeEmail', formData.email.trim())
+        } else {
+          localStorage.removeItem('rememberMeEmail')
+        }
+      }
+
       // Use NextAuth signIn instead of custom login
       const result = await signIn('credentials', {
         email: formData.email,
@@ -261,8 +280,18 @@ export default function LoginPage() {
               )}
             </div>
 
-            {/* Forgot Password Link */}
-            <div className="flex items-center justify-end">
+            {/* Remember Me + Forgot Password */}
+            <div className="flex items-center justify-between">
+              <label className="inline-flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  className="h-4 w-4 rounded border-gray-300 dark:border-gray-600 accent-primary-600 dark:accent-primary-500 text-primary-600 focus:ring-primary-500 bg-white dark:bg-gray-700"
+                />
+                Remember me
+              </label>
+
               <Link
                 href="/forgot-password"
                 className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors duration-200"
