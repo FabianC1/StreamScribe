@@ -89,68 +89,70 @@ export default function Header() {
             </div>
 
             {/* Desktop Navigation */}
-            <nav className={`hidden md:flex items-center gap-8 transition-all duration-200 ${
-              isScrolled ? 'gap-7' : 'gap-8 lg:gap-10'
-            }`}>
+            <div className="hidden md:flex flex-1 items-center justify-end ml-6">
               {isAuthenticated ? (
                 <>
-                  <Link 
-                    href="/dashboard" 
-                    className={`nav-link text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-500 transition-all duration-200 relative ${
-                      isScrolled ? 'scale-95 opacity-90' : 'scale-100 opacity-100'
-                    }`}
-                  >
-                    Dashboard
-                    {(pathname === '/dashboard' || pathname === '/dashboard/settings') && (
-                      <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary-400 via-secondary-500 to-primary-600 animate-gradient-border"></div>
-                    )}
-                  </Link>
-                  <Link 
-                    href="/transcribe" 
-                    className={`nav-link text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-500 transition-all duration-200 relative ${
-                      isScrolled ? 'scale-95 opacity-90' : 'scale-100 opacity-100'
-                    }`}
-                  >
-                    Transcribe
-                    {pathname === '/transcribe' && (
-                      <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary-400 via-secondary-500 to-primary-600 animate-gradient-border"></div>
-                    )}
-                  </Link>
-                  <Link 
-                    href="/dashboard/history" 
-                    className={`nav-link text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-500 transition-all duration-200 relative ${
-                      isScrolled ? 'scale-95 opacity-90' : 'scale-100 opacity-100'
-                    }`}
-                  >
-                    History
-                    {pathname === '/dashboard/history' && (
-                      <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary-400 via-secondary-500 to-primary-600 animate-gradient-border"></div>
-                    )}
-                  </Link>
-                  <Link 
-                    href="/subscriptions" 
-                    className={`nav-link text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-500 transition-all duration-200 relative ${
-                      isScrolled ? 'scale-95 opacity-90' : 'scale-100 opacity-100'
-                    }`}
-                  >
-                    Subscriptions
-                    {pathname === '/subscriptions' && (
-                      <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary-400 via-secondary-500 to-primary-600 animate-gradient-border"></div>
-                    )}
-                  </Link>
-                  <Link 
-                    href="/settings" 
-                    className={`nav-link text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-500 transition-all duration-200 relative ${
-                      isScrolled ? 'scale-95 opacity-90' : 'scale-100 opacity-100'
-                    }`}
-                  >
-                    Settings
-                    {pathname === '/settings' && (
-                      <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary-400 via-secondary-500 to-primary-600 animate-gradient-border"></div>
-                    )}
-                  </Link>
+                  <nav className={`absolute left-1/2 -translate-x-1/2 flex items-center transition-all duration-200 ${
+                    isScrolled ? 'gap-7' : 'gap-8 lg:gap-10'
+                  }`}>
+                    <Link 
+                      href="/dashboard" 
+                      className={`nav-link text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-500 transition-all duration-200 relative ${
+                        isScrolled ? 'scale-95 opacity-90' : 'scale-100 opacity-100'
+                      }`}
+                    >
+                      Dashboard
+                      {(pathname === '/dashboard' || pathname === '/dashboard/settings') && (
+                        <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary-400 via-secondary-500 to-primary-600 animate-gradient-border"></div>
+                      )}
+                    </Link>
+                    <Link 
+                      href="/transcribe" 
+                      className={`nav-link text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-500 transition-all duration-200 relative ${
+                        isScrolled ? 'scale-95 opacity-90' : 'scale-100 opacity-100'
+                      }`}
+                    >
+                      Transcribe
+                      {pathname === '/transcribe' && (
+                        <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary-400 via-secondary-500 to-primary-600 animate-gradient-border"></div>
+                      )}
+                    </Link>
+                    <Link 
+                      href="/dashboard/history" 
+                      className={`nav-link text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-500 transition-all duration-200 relative ${
+                        isScrolled ? 'scale-95 opacity-90' : 'scale-100 opacity-100'
+                      }`}
+                    >
+                      History
+                      {pathname === '/dashboard/history' && (
+                        <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary-400 via-secondary-500 to-primary-600 animate-gradient-border"></div>
+                      )}
+                    </Link>
+                    <Link 
+                      href="/subscriptions" 
+                      className={`nav-link text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-500 transition-all duration-200 relative ${
+                        isScrolled ? 'scale-95 opacity-90' : 'scale-100 opacity-100'
+                      }`}
+                    >
+                      Subscriptions
+                      {pathname === '/subscriptions' && (
+                        <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary-400 via-secondary-500 to-primary-600 animate-gradient-border"></div>
+                      )}
+                    </Link>
+                    <Link 
+                      href="/settings" 
+                      className={`nav-link text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-500 transition-all duration-200 relative ${
+                        isScrolled ? 'scale-95 opacity-90' : 'scale-100 opacity-100'
+                      }`}
+                    >
+                      Settings
+                      {pathname === '/settings' && (
+                        <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary-400 via-secondary-500 to-primary-600 animate-gradient-border"></div>
+                      )}
+                    </Link>
+                  </nav>
 
-                  <div className="ml-4 pl-4 border-l border-gray-200 dark:border-gray-700 flex items-center gap-4">
+                  <div className="pl-4 border-l border-gray-200 dark:border-gray-700 flex items-center gap-4">
                     <div className="flex items-center gap-2">
                       {session?.user?.image ? (
                         <img 
@@ -176,67 +178,84 @@ export default function Header() {
                       <LogOut className="w-4 h-4" />
                       Sign Out
                     </button>
+                    <div className={`transition-all duration-200 ${
+                      isScrolled ? 'scale-95' : 'scale-100'
+                    }`}>
+                      <ThemeToggle />
+                    </div>
                   </div>
                 </>
               ) : (
                 <>
-                  <Link 
-                    href="/" 
-                    className={`nav-link text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-500 transition-all duration-200 relative ${
-                      isScrolled ? 'scale-95 opacity-90' : 'scale-100 opacity-100'
-                    }`}
-                  >
-                    About
-                    {pathname === '/' && (
-                      <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary-400 via-secondary-500 to-primary-600 animate-gradient-border"></div>
-                    )}
-                  </Link>
-                  <Link 
-                    href="/pricing"
-                    className={`nav-link text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-500 transition-all duration-200 relative ${
-                      isScrolled ? 'scale-95 opacity-90' : 'scale-100 opacity-100'
-                    }`}
-                  >
-                    Pricing
-                    {pathname === '/pricing' && (
-                      <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary-400 via-secondary-500 to-primary-600 animate-gradient-border"></div>
-                    )}
-                  </Link>
-                  <button
-                    onClick={handleSubscriptionsClick}
-                    className={`nav-link text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-500 transition-all duration-200 flex items-center gap-2 ${
-                      isScrolled ? 'scale-95 opacity-90' : 'scale-100 opacity-100'
-                    }`}
-                  >
-                    <Shield className="w-4 h-4" />
-                    Dashboard
-                  </button>
-                  <button
-                    onClick={handleSubscriptionsClick}
-                    className={`nav-link text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-500 transition-all duration-200 flex items-center gap-2 ${
-                      isScrolled ? 'scale-95 opacity-90' : 'scale-100 opacity-100'
-                    }`}
-                  >
-                    <Shield className="w-4 h-4" />
-                    Settings
-                  </button>
-                  <Link 
-                    href="/register" 
-                    className={`btn-primary transition-all duration-200 ${
-                      isScrolled ? 'scale-95 shadow-md' : 'scale-100'
-                    }`}
-                  >
-                    Sign Up
-                  </Link>
+                  <nav className={`absolute left-1/2 -translate-x-1/2 flex items-center transition-all duration-200 ${
+                    isScrolled ? 'gap-7' : 'gap-8 lg:gap-10'
+                  }`}>
+                    <Link 
+                      href="/" 
+                      className={`nav-link text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-500 transition-all duration-200 relative ${
+                        isScrolled ? 'scale-95 opacity-90' : 'scale-100 opacity-100'
+                      }`}
+                    >
+                      About
+                      {pathname === '/' && (
+                        <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary-400 via-secondary-500 to-primary-600 animate-gradient-border"></div>
+                      )}
+                    </Link>
+                    <Link 
+                      href="/pricing"
+                      className={`nav-link text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-500 transition-all duration-200 relative ${
+                        isScrolled ? 'scale-95 opacity-90' : 'scale-100 opacity-100'
+                      }`}
+                    >
+                      Pricing
+                      {pathname === '/pricing' && (
+                        <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary-400 via-secondary-500 to-primary-600 animate-gradient-border"></div>
+                      )}
+                    </Link>
+                    <button
+                      onClick={handleSubscriptionsClick}
+                      className={`nav-link text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-500 transition-all duration-200 flex items-center gap-2 ${
+                        isScrolled ? 'scale-95 opacity-90' : 'scale-100 opacity-100'
+                      }`}
+                    >
+                      <Shield className="w-4 h-4" />
+                      Dashboard
+                    </button>
+                    <button
+                      onClick={handleSubscriptionsClick}
+                      className={`nav-link text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-500 transition-all duration-200 flex items-center gap-2 ${
+                        isScrolled ? 'scale-95 opacity-90' : 'scale-100 opacity-100'
+                      }`}
+                    >
+                      <Shield className="w-4 h-4" />
+                      Settings
+                    </button>
+                  </nav>
+
+                  <div className="pl-4 border-l border-gray-200 dark:border-gray-700 flex items-center gap-3">
+                    <Link
+                      href="/login"
+                      className="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors duration-200"
+                    >
+                      Log In
+                    </Link>
+                    <Link 
+                      href="/register" 
+                      className={`btn-primary transition-all duration-200 ${
+                        isScrolled ? 'scale-95 shadow-md' : 'scale-100'
+                      }`}
+                    >
+                      Sign Up
+                    </Link>
+                    <div className={`transition-all duration-200 ${
+                      isScrolled ? 'scale-95' : 'scale-100'
+                    }`}>
+                      <ThemeToggle />
+                    </div>
+                  </div>
                 </>
               )}
-
-              <div className={`transition-all duration-200 ${
-                isScrolled ? 'scale-95' : 'scale-100'
-              }`}>
-                <ThemeToggle />
-              </div>
-            </nav>
+            </div>
 
             {/* Mobile Menu Button and Theme Toggle */}
             <div className="md:hidden flex items-center gap-3">
