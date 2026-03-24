@@ -12,6 +12,12 @@ export default function LoadingPage() {
   const [isCompleted, setIsCompleted] = useState(false)
   const [isProcessing, setIsProcessing] = useState(false)
 
+  const redirectToVideoOnlyResults = (url: string, reason?: string) => {
+    const encodedUrl = encodeURIComponent(url)
+    const reasonParam = reason ? `&reason=${encodeURIComponent(reason)}` : ''
+    router.push(`/transcription-results?url=${encodedUrl}&videoOnly=true${reasonParam}`)
+  }
+
   useEffect(() => {
     const url = searchParams.get('url')
     if (url) {
@@ -128,11 +134,14 @@ export default function LoadingPage() {
       
       // Clear processing flag on error
       localStorage.removeItem(`processing_${url}`)
-      
-      // Redirect back to transcribe page after error
+
+      // Redirect to the video/results page even when transcription fails
       setTimeout(() => {
-        router.push('/transcribe')
-      }, 3000)
+        redirectToVideoOnlyResults(
+          url,
+          error instanceof Error ? error.message : 'Transcription failed'
+        )
+      }, 1500)
     }
   }
 

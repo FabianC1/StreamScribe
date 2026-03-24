@@ -96,6 +96,22 @@ interface Note {
   timestamp: string
 }
 
+function createEmptyTranscriptionData(youtubeUrl: string): TranscriptionData {
+  return {
+    transcript: '',
+    confidence: 0,
+    audio_duration: 0,
+    words: [],
+    highlights: [],
+    sentiment: [],
+    chapters: [],
+    entities: [],
+    speaker_labels: [],
+    language_code: 'en',
+    youtube_url: youtubeUrl,
+  }
+}
+
 export default function TranscriptionResultsPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -113,6 +129,10 @@ export default function TranscriptionResultsPage() {
   const [showNotes, setShowNotes] = useState(true)
   const [exportingFormat, setExportingFormat] = useState<string | null>(null)
   const [currentTier] = useState<SubscriptionTier>(getCurrentUserTier())
+  const failureReason = searchParams.get('reason')
+  const forceVideoOnly = searchParams.get('videoOnly') === 'true'
+  const displayData = transcriptionData ?? createEmptyTranscriptionData(youtubeUrl)
+  const isVideoOnlyMode = forceVideoOnly || (Boolean(youtubeUrl) && !transcriptionData)
 
   useEffect(() => {
     // Get YouTube URL from query parameters
@@ -1001,7 +1021,7 @@ export default function TranscriptionResultsPage() {
     )
   }
 
-  if (error || !transcriptionData) {
+  if (error && !youtubeUrl) {
     return (
       <>
         <Header />
@@ -1063,7 +1083,7 @@ export default function TranscriptionResultsPage() {
                           From History
                         </span>
                       )}
-                      {transcriptionData.isCached && (
+                      {displayData.isCached && (
                         <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900/20 text-blue-800 dark:text-blue-200 text-xs rounded-full">
                           From Cache
                         </span>
@@ -1078,14 +1098,25 @@ export default function TranscriptionResultsPage() {
                     <div className="flex items-center gap-4 flex-shrink-0 ml-2">
                       <div className="flex items-center gap-2">
                         <Clock className="w-3 h-3 sm:h-4 flex-shrink-0" />
-                        <span>Duration: {formatDuration(transcriptionData.audio_duration)}</span>
+                        <span>Duration: {formatDuration(displayData.audio_duration)}</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span>Language: {transcriptionData.language_code.toUpperCase()}</span>
+                        <span>Language: {displayData.language_code.toUpperCase()}</span>
                       </div>
                     </div>
                   </div>
                 </div>
+
+                {isVideoOnlyMode && (
+                  <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-200">
+                    Video loaded successfully. Transcript, notes, and insights are not available yet.
+                    {failureReason && (
+                      <div className="mt-1 text-xs opacity-90">
+                        Reason: {failureReason}
+                      </div>
+                    )}
+                  </div>
+                )}
                 
                                  {/* Notes Section */}
                  {showNotes && (
@@ -1213,7 +1244,7 @@ export default function TranscriptionResultsPage() {
 
                 {/* Transcript Content */}
                 <div className="flex-1 space-y-3 sm:space-y-4 overflow-y-auto custom-scrollbar">
-                  {groupWordsIntoSentences(transcriptionData.words).map((sentence, index) => (
+                  {groupWordsIntoSentences(displayData.words).map((sentence, index) => (
                     <div key={index} className="p-2 sm:p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
                       <div className="flex items-start justify-between gap-2 sm:gap-3 mb-2">
                         <button
@@ -1397,8 +1428,8 @@ export default function TranscriptionResultsPage() {
                       Key Highlights
                     </h4>
                     <div className="space-y-1">
-                      {transcriptionData.highlights && transcriptionData.highlights.length > 0 ? (
-                        transcriptionData.highlights.map((highlight, index) => (
+                      {displayData.highlights && displayData.highlights.length > 0 ? (
+                        displayData.highlights.map((highlight, index) => (
                           <div key={index} className="p-2 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
                             <p className="text-xs sm:text-sm text-green-800 dark:text-green-200">{highlight.text}</p>
                           </div>
@@ -1418,8 +1449,8 @@ export default function TranscriptionResultsPage() {
                       Key Quotes
                     </h4>
                     <div className="space-y-2">
-                      {transcriptionData.sentiment && transcriptionData.sentiment.length > 0 ? (
-                        transcriptionData.sentiment.slice(0, 3).map((sentiment, index) => (
+                      {displayData.sentiment && displayData.sentiment.length > 0 ? (
+                        displayData.sentiment.slice(0, 3).map((sentiment, index) => (
                           <div key={index} className="p-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
                             <p className="text-xs sm:text-sm text-blue-800 dark:text-blue-200 italic">"{sentiment.text}"</p>
                           </div>
@@ -1439,8 +1470,8 @@ export default function TranscriptionResultsPage() {
                       Action Items
                     </h4>
                     <div className="space-y-1">
-                      {transcriptionData.chapters && transcriptionData.chapters.length > 0 ? (
-                        transcriptionData.chapters.map((chapter, index) => (
+                      {displayData.chapters && displayData.chapters.length > 0 ? (
+                        displayData.chapters.map((chapter, index) => (
                           <div key={index} className="p-2 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg">
                             <p className="text-xs sm:text-sm text-purple-800 dark:text-purple-200">{chapter.headline}</p>
                           </div>
