@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Header from '../../components/Header'
 import { 
@@ -124,6 +124,26 @@ function buildYouTubeEmbedUrl(videoId: string) {
   return `https://www.youtube.com/embed/${videoId}?${params.toString()}`
 }
 
+function normalizeTimestampToSeconds(value: number) {
+  return value > 1000 ? value / 1000 : value
+}
+
+declare global {
+  interface Window {
+    YT?: {
+      Player: new (elementId: string, config: Record<string, unknown>) => {
+        getCurrentTime: () => number
+        seekTo: (seconds: number, allowSeekAhead: boolean) => void
+        destroy?: () => void
+      }
+      PlayerState?: {
+        PLAYING: number
+      }
+    }
+    onYouTubeIframeAPIReady?: () => void
+  }
+}
+
 export default function TranscriptionResultsPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -141,6 +161,11 @@ export default function TranscriptionResultsPage() {
   const [showNotes, setShowNotes] = useState(true)
   const [exportingFormat, setExportingFormat] = useState<string | null>(null)
   const [currentTier] = useState<SubscriptionTier>(getCurrentUserTier())
+  const playerRef = useRef<{
+    getCurrentTime: () => number
+    seekTo: (seconds: number, allowSeekAhead: boolean) => void
+    destroy?: () => void
+  } | null>(null)
   const failureReason = searchParams.get('reason')
   const forceVideoOnly = searchParams.get('videoOnly') === 'true'
   const displayData = transcriptionData ?? createEmptyTranscriptionData(youtubeUrl)
@@ -335,6 +360,80 @@ export default function TranscriptionResultsPage() {
     
     return sentences
   }
+
+  const transcriptSentences = groupWordsIntoSentences(displayData.words)
+  const activeSentenceIndex = transcriptSentences.findIndex((sentence) => {
+    const start = normalizeTimestampToSeconds(sentence.start)
+    const end = normalizeTimestampToSeconds(sentence.end)
+    return currentVideoTime >= start && currentVideoTime <= end
+  })
+
+  useEffect(() => {
+    const videoId = getYouTubeVideoId(youtubeUrl)
+    if (!videoId) {
+      return
+    }
+
+    let isCancelled = false
+    let pollInterval: number | null = null
+
+    const startPolling = () => {
+      if (pollInterval) {
+        window.clearInterval(pollInterval)
+      }
+
+      pollInterval = window.setInterval(() => {
+        const currentTime = playerRef.current?.getCurrentTime?.()
+        if (typeof currentTime === 'number' && !Number.isNaN(currentTime)) {
+          setCurrentVideoTime(currentTime)
+        }
+      }, 300)
+    }
+
+    const initializePlayer = () => {
+      if (isCancelled || !window.YT?.Player) {
+        return
+      }
+
+      playerRef.current?.destroy?.()
+      playerRef.current = new window.YT.Player('youtube-player-iframe', {
+        events: {
+          onReady: () => {
+            startPolling()
+          },
+          onStateChange: () => {
+            startPolling()
+          },
+        },
+      })
+    }
+
+    if (window.YT?.Player) {
+      initializePlayer()
+    } else {
+      const existingScript = document.querySelector('script[src="https://www.youtube.com/iframe_api"]')
+      const previousReady = window.onYouTubeIframeAPIReady
+      window.onYouTubeIframeAPIReady = () => {
+        previousReady?.()
+        initializePlayer()
+      }
+
+      if (!existingScript) {
+        const script = document.createElement('script')
+        script.src = 'https://www.youtube.com/iframe_api'
+        document.body.appendChild(script)
+      }
+    }
+
+    return () => {
+      isCancelled = true
+      if (pollInterval) {
+        window.clearInterval(pollInterval)
+      }
+      playerRef.current?.destroy?.()
+      playerRef.current = null
+    }
+  }, [youtubeUrl])
 
   const handleCopyToClipboard = async (text: string, sectionId: string) => {
     try {
@@ -837,10 +936,14 @@ export default function TranscriptionResultsPage() {
   }
 
   const jumpToTime = (startTime: number) => {
-    // Convert milliseconds to seconds if needed
-    const timeInSeconds = startTime > 1000 ? startTime / 1000 : startTime
+    const timeInSeconds = normalizeTimestampToSeconds(startTime)
     
     setCurrentVideoTime(timeInSeconds)
+
+    if (playerRef.current) {
+      playerRef.current.seekTo(timeInSeconds, true)
+      return
+    }
     
     // Send message to YouTube iframe to seek to specific time
     const iframe = document.querySelector('iframe[src*="youtube.com"]') as HTMLIFrameElement
@@ -1081,6 +1184,7 @@ export default function TranscriptionResultsPage() {
                 <div className="aspect-video bg-gray-900 rounded-lg flex items-center justify-center relative group mb-4 overflow-hidden">
                   {videoId ? (
                     <iframe
+                      id="youtube-player-iframe"
                       src={buildYouTubeEmbedUrl(videoId)}
                       title="YouTube video player"
                       className="w-full h-full rounded-lg"
@@ -1313,8 +1417,15 @@ export default function TranscriptionResultsPage() {
                 ) : (
                   <>
                     <div className="flex-1 space-y-3 sm:space-y-4 overflow-y-auto custom-scrollbar">
-                      {groupWordsIntoSentences(displayData.words).map((sentence, index) => (
-                        <div key={index} className="p-2 sm:p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                      {transcriptSentences.map((sentence, index) => (
+                        <div
+                          key={index}
+                          className={`p-2 sm:p-3 rounded-lg border transition-all duration-200 ${
+                            activeSentenceIndex === index
+                              ? 'border-primary-300 bg-primary-50 shadow-sm dark:border-primary-700 dark:bg-primary-900/20'
+                              : 'border-transparent bg-gray-50 dark:bg-gray-700'
+                          }`}
+                        >
                           <div className="flex items-start justify-between gap-2 sm:gap-3 mb-2">
                             <button
                               onClick={() => jumpToTime(sentence.start)}

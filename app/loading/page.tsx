@@ -55,10 +55,10 @@ export default function LoadingPage() {
       
       if (isTestUrl) {
         // Test mode - simulate transcription
-        setTimeout(() => setLoadingText('🎵 Extracting audio from video...'), 1000)
-        setTimeout(() => setLoadingText('☁️ Uploading audio for processing...'), 3000)
+        setTimeout(() => setLoadingText('🔗 Sending YouTube URL to AssemblyAI...'), 1000)
+        setTimeout(() => setLoadingText('🎯 Starting AI transcription...'), 3000)
         setTimeout(() => setLoadingText('🎯 Starting AI transcription...'), 5000)
-        setTimeout(() => setLoadingText('⏳ Processing with AI...'), 7000)
+        setTimeout(() => setLoadingText('📝 Generating transcript with timestamps...'), 7000)
         setTimeout(() => {
           setLoadingText('✅ Transcription completed!')
           setIsCompleted(true)
@@ -76,10 +76,10 @@ export default function LoadingPage() {
       }
       
       // Simulate some progress updates for better UX
-      setTimeout(() => setLoadingText('🎵 Extracting audio from video...'), 1000)
-      setTimeout(() => setLoadingText('☁️ Uploading audio for processing...'), 3000)
+      setTimeout(() => setLoadingText('🔗 Sending YouTube URL to AssemblyAI...'), 1000)
+      setTimeout(() => setLoadingText('🎯 Starting AI transcription...'), 3000)
       setTimeout(() => setLoadingText('🎯 Starting AI transcription...'), 5000)
-      setTimeout(() => setLoadingText('⏳ Processing with AI...'), 7000)
+      setTimeout(() => setLoadingText('📝 Generating transcript with timestamps...'), 7000)
       
       // Start the transcription process
       const response = await fetch('/api/transcribe', {

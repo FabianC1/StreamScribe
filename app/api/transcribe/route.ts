@@ -51,6 +51,20 @@ function getErrorText(error: unknown): string {
   return [anyError.message, anyError.stderr, anyError.stdout].filter(Boolean).join('\n') || String(error)
 }
 
+function buildDirectAssemblyAiErrorMessage(errorText: string): string {
+  const normalized = errorText.toLowerCase()
+
+  if (
+    normalized.includes('file does not appear to contain audio') ||
+    normalized.includes('file type is text/html') ||
+    normalized.includes('transcoding failed')
+  ) {
+    return 'AssemblyAI fetched the YouTube page successfully, but it received HTML instead of an audio stream. A standard YouTube watch URL is not being treated as a direct audio source for this request.'
+  }
+
+  return `AssemblyAI could not transcribe audio directly from this YouTube URL. ${errorText}`
+}
+
 function buildYtDlpCommand(youtubeUrl: string, audioFile: string, playerClient: string): string {
   return [
     `"${YTDLP_BINARY}"`,
@@ -478,238 +492,41 @@ async function processTranscription(youtubeUrl: string, userId: string) {
     console.warn('⚠️ Could not fetch video title, using fallback:', titleError.message)
   }
 
-  const audioDir = path.join(process.cwd(), 'user-audio', userId)
-  await fs.ensureDir(audioDir)
-
-  const audioFile = path.join(audioDir, `${videoId}.mp3`)
-  let captionFallbackItems: CaptionItem[] | null = null
   let transcriptionResult: any | null = null
 
   try {
-    updateProgress('🎯 Sending YouTube URL to AssemblyAI...')
+    updateProgress('🔗 Sending YouTube URL to AssemblyAI...')
     transcriptionResult = await requestAssemblyAiTranscript(youtubeUrl)
     console.log('✅ AssemblyAI completed transcription directly from YouTube URL')
   } catch (directSourceError) {
-    console.warn('⚠️ Direct AssemblyAI source fetch failed, falling back to local extraction:', getErrorText(directSourceError))
+    const errorText = getErrorText(directSourceError)
+    console.error('❌ Direct AssemblyAI transcription failed:', errorText)
+    const userFacingError = buildDirectAssemblyAiErrorMessage(errorText)
 
-    if (await fs.pathExists(audioFile)) {
-      console.log('♻️ Audio file already exists for user/video, reusing:', audioFile)
-    } else {
-      let audioReady = false
-
-      try {
-        updateProgress('🎵 Extracting audio from YouTube...')
-        const ytDlpAttempts = [
-          { label: 'primary', playerClient: 'android,web' },
-          { label: 'fallback', playerClient: 'tv,ios,web_safari' },
-        ]
-
-        let lastYtDlpError = 'No yt-dlp attempt executed'
-        for (const attempt of ytDlpAttempts) {
-          try {
-            const command = buildYtDlpCommand(youtubeUrl, audioFile, attempt.playerClient)
-            console.log(`🎯 yt-dlp attempt (${attempt.label}) with player_client=${attempt.playerClient}`)
-            await execAsync(command)
-            audioReady = true
-            break
-          } catch (error) {
-            lastYtDlpError = getErrorText(error)
-            console.warn(`⚠️ yt-dlp attempt (${attempt.label}) failed:`, lastYtDlpError)
-          }
-        }
-
-        if (!audioReady) {
-          throw new Error(lastYtDlpError)
-        }
-      } catch (ytDlpError) {
-        console.warn('⚠️ yt-dlp extraction failed, trying provider fallback:', getErrorText(ytDlpError))
-
-        try {
-          updateProgress('🎵 Fetching audio stream info...')
-          const streamApiSources = buildStreamApiSources()
-
-          if (streamApiSources.length === 0) {
-            throw new Error('No stream providers configured. Set PIPED_API_URLS and/or INVIDIOUS_API_URLS on the server.')
-          }
-
-          let bestAudio: AudioStreamInfo | null = null
-          let lastSourceError = 'No stream source attempted'
-
-          for (const source of streamApiSources) {
-            try {
-              const endpoint = getStreamApiEndpoint(source, videoId)
-              console.log(`🌐 Fetching ${source.label} API for video:`, videoId)
-              const response = await axios.get(endpoint, { timeout: 15000 })
-              const audioStreams = normalizeAudioStreams(response.data, source.format)
-
-              if (!audioStreams.length) {
-                throw new Error(`No audio streams returned by ${source.label}`)
-              }
-
-              bestAudio = audioStreams.sort((a: AudioStreamInfo, b: AudioStreamInfo) => b.bitrate - a.bitrate)[0]
-
-              if (!bestAudio?.url) {
-                throw new Error(`No audio stream URL returned by ${source.label}`)
-              }
-
-              console.log(`✅ Using ${source.label} audio stream with bitrate:`, bestAudio.bitrate)
-              break
-            } catch (sourceError: any) {
-              lastSourceError = sourceError.message || String(sourceError)
-              console.warn(`⚠️ ${source.label} stream lookup failed:`, lastSourceError)
-            }
-          }
-
-          if (!bestAudio?.url) {
-            throw new Error(lastSourceError)
-          }
-
-          updateProgress('⬇️ Downloading audio stream...')
-          const audioResp = await axios.get(bestAudio.url, { responseType: 'arraybuffer' })
-          await fs.writeFile(audioFile, audioResp.data)
-          console.log('✅ Audio downloaded and saved:', audioFile)
-          audioReady = true
-        } catch (providerError: any) {
-          console.warn('⚠️ Provider extraction failed, trying caption fallback:', providerError.message)
-
-          try {
-            updateProgress('📝 Fetching YouTube captions...')
-            captionFallbackItems = await fetchCaptionTrack(videoId, youtubeUrl)
-            console.log(`✅ Caption fallback succeeded with ${captionFallbackItems.length} items`)
-          } catch (captionError) {
-            const combinedError = [
-              getErrorText(directSourceError),
-              getErrorText(ytDlpError),
-              providerError.message,
-              getErrorText(captionError),
-            ].filter(Boolean).join('\n\n')
-
-            console.error('❌ All extraction paths failed:', combinedError)
-
-            const transcription = new Transcription({
-              userId: userId,
-              youtubeUrl: youtubeUrl,
-              videoTitle: videoTitle,
-              videoId: videoId,
-              transcript: '',
-              confidence: 0,
-              audioDuration: 0,
-              status: 'failed',
-              errorMessage: combinedError.slice(0, 2000)
-            })
-            await transcription.save()
-            return NextResponse.json({
-              success: false,
-              error: 'Failed to transcribe this YouTube video. AssemblyAI direct fetch, local extraction, provider fallback, and caption fallback all failed.',
-              status: 'failed'
-            }, { status: 502 })
-          }
-        }
-      }
-    }
-  }
-
-  if (captionFallbackItems && !await fs.pathExists(audioFile)) {
-    const transcriptText = captionFallbackItems.map((item) => item.text).join(' ')
-    const captionDurationMs = captionFallbackItems.length > 0
-      ? captionFallbackItems[captionFallbackItems.length - 1].offset + captionFallbackItems[captionFallbackItems.length - 1].duration
-      : 0
-
-    let transcriptionId = null
     try {
       await connectDB()
-
-      const transcriptionDoc = new Transcription({
+      const transcription = new Transcription({
         userId: userId,
         youtubeUrl: youtubeUrl,
         videoTitle: videoTitle,
         videoId: videoId,
-        transcript: transcriptText,
-        confidence: 0.85,
-        audioDuration: captionDurationMs / 1000,
-        languageCode: captionFallbackItems[0]?.lang || 'en',
-        words: captionFallbackItems.map((item) => ({
-          text: item.text,
-          start: item.offset / 1000,
-          end: (item.offset + item.duration) / 1000,
-          confidence: 0.85,
-          speaker: 'A',
-        })),
-        highlights: [],
-        sentiment: [],
-        chapters: [],
-        entities: [],
-        speakerLabels: [],
-        isCached: false,
-        cachedAt: new Date(),
-        createdAt: new Date(),
-        status: 'completed'
+        transcript: '',
+        confidence: 0,
+        audioDuration: 0,
+        status: 'failed',
+        errorMessage: `${userFacingError}\n\nRaw error: ${errorText}`.slice(0, 2000)
       })
-      await transcriptionDoc.save()
-      transcriptionId = transcriptionDoc._id
-
-      try {
-        const processedVideo = new ProcessedVideos({
-          userId: userId,
-          videoId: videoId,
-          youtubeUrl: youtubeUrl,
-          processedAt: new Date(),
-          transcriptionId: transcriptionId
-        })
-        await processedVideo.save()
-      } catch (processedVideoError) {
-        console.warn('⚠️ Failed to create ProcessedVideos record for caption fallback:', processedVideoError)
-      }
-    } catch (dbError) {
-      console.warn('⚠️ Failed to save caption fallback transcript:', dbError)
+      await transcription.save()
+    } catch (saveError) {
+      console.warn('⚠️ Failed to save failed direct AssemblyAI transcription:', saveError)
     }
 
-    const resultData = {
-      id: transcriptionId,
-      transcriptionId,
-      transcript: transcriptText,
-      confidence: 0.85,
-      audio_duration: captionDurationMs / 1000,
-      words: captionFallbackItems.map((item) => ({
-        text: item.text,
-        start: item.offset / 1000,
-        end: (item.offset + item.duration) / 1000,
-        confidence: 0.85,
-        speaker: 'A',
-      })),
-      highlights: [],
-      sentiment: [],
-      chapters: [],
-      entities: [],
-      speaker_labels: [],
-      language_code: captionFallbackItems[0]?.lang || 'en',
-      youtube_url: youtubeUrl,
-      videoTitle,
-      videoId,
-      status: 'completed'
-    }
-
-    return NextResponse.json({ success: true, ...resultData, captionFallback: true })
-  }
-
-  if (!transcriptionResult) {
-    const audioData = await fs.readFile(audioFile)
-    console.log('📊 Audio file size:', audioData.length, 'bytes')
-
-    console.log('☁️ Uploading to AssemblyAI...')
-    updateProgress('☁️ Uploading audio for processing...')
-
-    let uploadResponse
-    try {
-      uploadResponse = await axios.post(`${baseUrl}/v2/upload`, audioData, { headers })
-      console.log('✅ Upload successful, audio URL:', uploadResponse.data.upload_url)
-    } catch (uploadError: any) {
-      console.error('❌ AssemblyAI upload error:', uploadError.response?.data || uploadError.message)
-      throw new Error(`Failed to upload to AssemblyAI: ${uploadError.message}`)
-    }
-
-    const audioUrl = uploadResponse.data.upload_url
-    transcriptionResult = await requestAssemblyAiTranscript(audioUrl)
+    return NextResponse.json({
+      success: false,
+      error: userFacingError,
+      details: errorText,
+      status: 'failed'
+    }, { status: 502 })
   }
 
   console.log('📊 Full transcription result:', JSON.stringify(transcriptionResult, null, 2))
