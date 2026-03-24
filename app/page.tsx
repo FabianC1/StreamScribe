@@ -119,11 +119,11 @@ export default function HomePage() {
                 AI-Powered Transcription
               </div>
               <h1 className="text-5xl md:text-6xl font-bold text-gray-900 dark:text-white mb-6 leading-tight">
-                Transform YouTube Videos
+                Transform Downloaded Media
                 <span className="block text-primary-600 dark:text-primary-400">Into Perfect Transcripts</span>
               </h1>
               <p className="text-xl md:text-2xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto mb-8 leading-relaxed">
-                Get accurate, timestamped transcripts in seconds. Perfect for content creators, researchers, and professionals who need reliable video-to-text conversion.
+                Upload saved video or audio files and get accurate, timestamped transcripts in seconds. Built for creators, researchers, and teams who need reliable media-to-text conversion without brittle URL extraction.
               </p>
               
               {/* Hero Stats */}
@@ -161,7 +161,7 @@ export default function HomePage() {
                 Start Transcribing Now
               </h2>
               <p className="text-xl md:text-2xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto leading-relaxed">
-                Transform any YouTube video into a perfect transcript in seconds
+                Upload a local video or audio file and get a transcript in one pass
               </p>
             </div>
             
@@ -179,10 +179,10 @@ export default function HomePage() {
                         <Lock className="h-8 w-8 text-blue-600 dark:text-blue-400" />
                       </div>
                       <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
-                        Sign Up to Transcribe
+                        Sign Up to Upload and Transcribe
                       </h3>
                       <p className="text-gray-600 dark:text-gray-300 mb-6">
-                        Create your account to start transcribing YouTube videos with our AI technology.
+                        Create your account to upload media files and transcribe them with our AI workflow.
                       </p>
                       <div className="flex flex-col gap-3">
                         <Link

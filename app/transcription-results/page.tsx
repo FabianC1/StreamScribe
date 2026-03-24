@@ -84,6 +84,11 @@ interface TranscriptionData {
   }>
   language_code: string
   youtube_url: string
+  media_url?: string
+  media_type?: string
+  source_type?: string
+  videoTitle?: string
+  videoId?: string
   isCached?: boolean
   cachedAt?: number
   // Database fields for notes functionality
@@ -111,6 +116,7 @@ function createEmptyTranscriptionData(youtubeUrl: string): TranscriptionData {
     speaker_labels: [],
     language_code: 'en',
     youtube_url: youtubeUrl,
+    videoId: '',
   }
 }
 
@@ -126,6 +132,15 @@ function buildYouTubeEmbedUrl(videoId: string) {
 
 function normalizeTimestampToSeconds(value: number) {
   return value > 1000 ? value / 1000 : value
+}
+
+function getYouTubeVideoId(url: string) {
+  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/
+  const match = url.match(regExp)
+  if (match && match[2].length === 11) {
+    return match[2]
+  }
+  return null
 }
 
 declare global {
@@ -161,6 +176,7 @@ export default function TranscriptionResultsPage() {
   const [showNotes, setShowNotes] = useState(true)
   const [exportingFormat, setExportingFormat] = useState<string | null>(null)
   const [currentTier] = useState<SubscriptionTier>(getCurrentUserTier())
+  const uploadedMediaRef = useRef<HTMLVideoElement | HTMLAudioElement | null>(null)
   const playerRef = useRef<{
     getCurrentTime: () => number
     seekTo: (seconds: number, allowSeekAhead: boolean) => void
@@ -170,6 +186,9 @@ export default function TranscriptionResultsPage() {
   const forceVideoOnly = searchParams.get('videoOnly') === 'true'
   const displayData = transcriptionData ?? createEmptyTranscriptionData(youtubeUrl)
   const isVideoOnlyMode = forceVideoOnly || (Boolean(youtubeUrl) && !transcriptionData)
+  const mediaUrl = displayData.media_url
+  const isUploadedMedia = Boolean(mediaUrl)
+  const sourceIdentifier = displayData.videoId || getYouTubeVideoId(youtubeUrl) || youtubeUrl
 
   useEffect(() => {
     // Get YouTube URL from query parameters
@@ -181,7 +200,7 @@ export default function TranscriptionResultsPage() {
       setYoutubeUrl(decodedUrl)
       fetchTranscriptionData(decodedUrl)
     } else {
-      setError('No YouTube URL provided')
+      setError('No media source provided')
       setIsLoading(false)
     }
     
@@ -369,6 +388,10 @@ export default function TranscriptionResultsPage() {
   })
 
   useEffect(() => {
+    if (isUploadedMedia) {
+      return
+    }
+
     const videoId = getYouTubeVideoId(youtubeUrl)
     if (!videoId) {
       return
@@ -466,8 +489,7 @@ export default function TranscriptionResultsPage() {
       
       // Save notes to database
       try {
-        const videoId = getYouTubeVideoId(youtubeUrl)
-        if (!videoId) return
+        if (!sourceIdentifier) return
         
         // Get transcription ID from the current transcription data (this works for ALL transcriptions)
         let transcriptionId = null
@@ -514,7 +536,7 @@ export default function TranscriptionResultsPage() {
           const notesData = {
             transcriptionId,
             youtubeUrl,
-            videoId,
+            videoId: sourceIdentifier,
             videoNotes: editingNoteId === 'video' ? [newNote] : [],
             sentenceNotes: editingNoteId.startsWith('sentence-') ? [newNote] : [],
             highlightNotes: editingNoteId.startsWith('highlight-') ? [newNote] : [],
@@ -623,7 +645,7 @@ export default function TranscriptionResultsPage() {
             noteId,
             sectionId: noteToDelete.sectionId,
             youtubeUrl,
-            videoId: getYouTubeVideoId(youtubeUrl)
+            videoId: sourceIdentifier
           })
         })
         
@@ -711,7 +733,7 @@ export default function TranscriptionResultsPage() {
             sectionId: editingSectionId,
             newText: editingText.trim(),
             youtubeUrl,
-            videoId: getYouTubeVideoId(youtubeUrl)
+            videoId: sourceIdentifier
           })
         })
 
@@ -940,6 +962,11 @@ export default function TranscriptionResultsPage() {
     
     setCurrentVideoTime(timeInSeconds)
 
+    if (uploadedMediaRef.current) {
+      uploadedMediaRef.current.currentTime = timeInSeconds
+      return
+    }
+
     if (playerRef.current) {
       playerRef.current.seekTo(timeInSeconds, true)
       return
@@ -970,8 +997,8 @@ export default function TranscriptionResultsPage() {
     
     try {
       // Get video title for filename
-      const videoId = getYouTubeVideoId(data.youtube_url)
-      const videoTitle = videoId ? `transcript_${videoId}` : 'transcript'
+      const exportBaseName = data.videoTitle?.replace(/\.[^.]+$/, '') || data.videoId || getYouTubeVideoId(data.youtube_url) || 'transcript'
+      const videoTitle = `transcript_${exportBaseName}`
       
       let content: string | Blob
       let filename: string
@@ -1023,8 +1050,8 @@ export default function TranscriptionResultsPage() {
       
       // Track export in database
       try {
-        const videoId = getYouTubeVideoId(data.youtube_url)
-        if (videoId) {
+        const trackedSourceId = data.videoId || getYouTubeVideoId(data.youtube_url) || data.youtube_url
+        if (trackedSourceId) {
           const storedResult = localStorage.getItem('transcriptionResult')
           let transcriptionId = null
           if (storedResult) {
@@ -1045,7 +1072,7 @@ export default function TranscriptionResultsPage() {
               body: JSON.stringify({
                 transcriptionId,
                 youtubeUrl: data.youtube_url,
-                videoId,
+                videoId: trackedSourceId,
                 exportFormat: format
               })
             })
@@ -1064,15 +1091,6 @@ export default function TranscriptionResultsPage() {
       setExportingFormat(null)
     }
   }
-
-  const getYouTubeVideoId = (url: string) => {
-    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
-    const match = url.match(regExp);
-    if (match && match[2].length === 11) {
-      return match[2];
-    }
-    return null;
-  };
 
   const getAllCachedTranscriptions = () => {
     try {
@@ -1105,6 +1123,7 @@ export default function TranscriptionResultsPage() {
 
   const videoId = getYouTubeVideoId(youtubeUrl)
   const hasDuration = displayData.audio_duration > 0
+  const isAudioOnly = Boolean(mediaUrl && displayData.media_type?.startsWith('audio/'))
 
   const clearCache = () => {
     try {
@@ -1131,7 +1150,7 @@ export default function TranscriptionResultsPage() {
             <div className="text-center">
               <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-primary-600 mx-auto mb-4"></div>
               <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Loading Transcription...</h2>
-              <p className="text-gray-600 dark:text-gray-300">Processing your video, please wait</p>
+              <p className="text-gray-600 dark:text-gray-300">Processing your media, please wait</p>
             </div>
           </div>
         </main>
@@ -1177,16 +1196,37 @@ export default function TranscriptionResultsPage() {
               <div className="p-4 flex-1 flex flex-col">
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
                   <Play className="w-5 h-5 text-primary-600" />
-                  Video Player
+                  {isUploadedMedia ? 'Media Player' : 'Video Player'}
                 </h3>
                 
-                {/* Mock Video Player */}
                 <div className="aspect-video bg-gray-900 rounded-lg flex items-center justify-center relative group mb-4 overflow-hidden">
-                  {videoId ? (
+                  {isUploadedMedia ? (
+                    isAudioOnly ? (
+                      <div className="flex h-full w-full flex-col items-center justify-center gap-4 px-6 text-center text-white">
+                        <Play className="w-10 h-10 text-primary-400" />
+                        <p className="text-sm font-medium">Uploaded audio playback</p>
+                        <audio
+                          ref={uploadedMediaRef as React.MutableRefObject<HTMLAudioElement | null>}
+                          src={mediaUrl}
+                          controls
+                          className="w-full max-w-md"
+                          onTimeUpdate={(event) => setCurrentVideoTime(event.currentTarget.currentTime)}
+                        />
+                      </div>
+                    ) : (
+                      <video
+                        ref={uploadedMediaRef as React.MutableRefObject<HTMLVideoElement | null>}
+                        src={mediaUrl}
+                        controls
+                        className="w-full h-full rounded-lg object-contain bg-black"
+                        onTimeUpdate={(event) => setCurrentVideoTime(event.currentTarget.currentTime)}
+                      />
+                    )
+                  ) : videoId ? (
                     <iframe
                       id="youtube-player-iframe"
                       src={buildYouTubeEmbedUrl(videoId)}
-                      title="YouTube video player"
+                      title="Embedded video player"
                       className="w-full h-full rounded-lg"
                       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                       referrerPolicy="strict-origin-when-cross-origin"
@@ -1197,7 +1237,7 @@ export default function TranscriptionResultsPage() {
                       <Youtube className="w-10 h-10 text-red-500" />
                       <div>
                         <p className="text-sm font-medium">Unable to load YouTube player</p>
-                        <p className="mt-1 text-xs text-gray-300">The video URL could not be parsed into a valid YouTube video ID.</p>
+                        <p className="mt-1 text-xs text-gray-300">The media source could not be loaded into a supported player.</p>
                       </div>
                     </div>
                   )}
@@ -1223,7 +1263,7 @@ export default function TranscriptionResultsPage() {
                   <div className="flex items-center justify-between text-xs sm:text-sm text-gray-600 dark:text-gray-400">
                     <div className="flex items-center gap-2 flex-1 min-w-0">
                       <Youtube className="w-3 h-3 sm:h-4 flex-shrink-0" />
-                      <span className="break-all truncate">{youtubeUrl || 'YouTube Video Title'}</span>
+                      <span className="break-all truncate">{displayData.videoTitle || youtubeUrl || 'Uploaded Media'}</span>
                     </div>
                     <div className="flex items-center gap-4 flex-shrink-0 ml-2">
                       <div className="flex items-center gap-2">
@@ -1249,15 +1289,17 @@ export default function TranscriptionResultsPage() {
                       </div>
                     )}
                     <div className="flex flex-wrap gap-2">
-                      <a
-                        href={youtubeUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex items-center gap-2 rounded-lg bg-red-600 px-3 py-2 text-xs font-medium text-white transition-colors hover:bg-red-700"
-                      >
-                        <ExternalLink className="w-3 h-3" />
-                        Open on YouTube
-                      </a>
+                      {!isUploadedMedia && (
+                        <a
+                          href={youtubeUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-2 rounded-lg bg-red-600 px-3 py-2 text-xs font-medium text-white transition-colors hover:bg-red-700"
+                        >
+                          <ExternalLink className="w-3 h-3" />
+                          Open on YouTube
+                        </a>
+                      )}
                       <button
                         onClick={() => router.push(`/loading?url=${encodeURIComponent(youtubeUrl)}`)}
                         className="inline-flex items-center gap-2 rounded-lg bg-white px-3 py-2 text-xs font-medium text-amber-900 transition-colors hover:bg-amber-100 dark:bg-gray-900 dark:text-amber-100 dark:hover:bg-gray-800"

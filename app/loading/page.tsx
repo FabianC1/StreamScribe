@@ -55,8 +55,8 @@ export default function LoadingPage() {
       
       if (isTestUrl) {
         // Test mode - simulate transcription
-        setTimeout(() => setLoadingText('🔗 Sending YouTube URL to AssemblyAI...'), 1000)
-        setTimeout(() => setLoadingText('🎯 Starting AI transcription...'), 3000)
+        setTimeout(() => setLoadingText('🎵 Extracting audio from video...'), 1000)
+        setTimeout(() => setLoadingText('☁️ Uploading extracted audio to AssemblyAI...'), 3000)
         setTimeout(() => setLoadingText('🎯 Starting AI transcription...'), 5000)
         setTimeout(() => setLoadingText('📝 Generating transcript with timestamps...'), 7000)
         setTimeout(() => {
@@ -76,8 +76,8 @@ export default function LoadingPage() {
       }
       
       // Simulate some progress updates for better UX
-      setTimeout(() => setLoadingText('🔗 Sending YouTube URL to AssemblyAI...'), 1000)
-      setTimeout(() => setLoadingText('🎯 Starting AI transcription...'), 3000)
+      setTimeout(() => setLoadingText('🎵 Extracting audio from video...'), 1000)
+      setTimeout(() => setLoadingText('☁️ Uploading extracted audio to AssemblyAI...'), 3000)
       setTimeout(() => setLoadingText('🎯 Starting AI transcription...'), 5000)
       setTimeout(() => setLoadingText('📝 Generating transcript with timestamps...'), 7000)
       

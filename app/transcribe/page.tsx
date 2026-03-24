@@ -96,7 +96,7 @@ export default function TranscribePage() {
                   Subscription Required
                 </h1>
                 <p className="text-xl text-gray-600 dark:text-gray-300 mb-8 max-w-2xl mx-auto">
-                  You need an active subscription to access transcription services. Choose a plan that fits your needs and start transcribing videos instantly.
+                  You need an active subscription to access transcription services. Choose a plan that fits your needs and start uploading media for transcription instantly.
                 </p>
                 <button
                   onClick={() => router.push('/pricing')}
