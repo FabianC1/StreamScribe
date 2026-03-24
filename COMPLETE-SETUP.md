@@ -6,7 +6,7 @@
 - Dependencies installed
 - `.env.local` configured for development
 - Build successful
-- Dev server running on `localhost:3000`
+- Dev server running on your forwarded app URL
 
 ---
 
@@ -38,7 +38,7 @@ ASSEMBLYAI_API_KEY=your_key_here
 2. Create a new project
 3. Enable Google+ API
 4. Create OAuth 2.0 credentials (Web application)
-5. Set redirect URI: `http://localhost:3000/api/auth/callback/google`
+5. Set redirect URI: `<your app origin>/api/auth/callback/google`
 6. Add to `.env.local`:
 ```env
 GOOGLE_CLIENT_ID=your_client_id

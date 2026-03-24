@@ -48,12 +48,6 @@ const nextConfig = {
     domains: ['lh3.googleusercontent.com'], // Google profile images
     formats: ['image/webp', 'image/avif'],
   },
-  
-  // Experimental features for better performance
-  experimental: {
-    optimizeCss: true,
-    scrollRestoration: true,
-  },
 }
 
 export default nextConfig

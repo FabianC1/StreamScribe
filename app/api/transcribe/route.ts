@@ -10,14 +10,23 @@ import connectDB from '@/lib/mongodb'
 import { Transcription, User, UsageTracking, ProcessedVideos } from '@/models'
 import { authOptions } from '@/lib/auth-options'
 import { requireSubscription } from '@/lib/subscriptionCheck'
+import { AudioStreamInfo, buildStreamApiSources, getStreamApiEndpoint, normalizeAudioStreams } from '@/lib/streamProviders'
 
 const execAsync = promisify(exec)
-
-// Use the bundled yt-dlp binary from yt-dlp-exec package (not relying on system PATH)
 const YTDLP_BINARY = path.join(process.cwd(), 'node_modules', 'yt-dlp-exec', 'bin', 'yt-dlp')
 const YTDLP_JS_RUNTIMES = process.env.YTDLP_JS_RUNTIMES || process.env.runtimes || 'node'
-const YTDLP_COOKIES_FILE = process.env.YTDLP_COOKIES_FILE
-const YTDLP_EXTRA_ARGS = process.env.YTDLP_EXTRA_ARGS?.trim()
+
+type CaptionTrack = {
+  baseUrl: string
+  languageCode: string
+}
+
+type CaptionItem = {
+  text: string
+  duration: number
+  offset: number
+  lang: string
+}
 
 if (!process.env.ASSEMBLYAI_API_KEY) {
   throw new Error('ASSEMBLYAI_API_KEY environment variable is not set')
@@ -39,36 +48,200 @@ function getErrorText(error: unknown): string {
   }
 
   const anyError = error as any
-  const stderr = typeof anyError.stderr === 'string' ? anyError.stderr : ''
-  const stdout = typeof anyError.stdout === 'string' ? anyError.stdout : ''
-  const message = typeof anyError.message === 'string' ? anyError.message : String(error)
-  return [message, stderr, stdout].filter(Boolean).join('\n')
+  return [anyError.message, anyError.stderr, anyError.stdout].filter(Boolean).join('\n') || String(error)
 }
 
-function buildYtDlpCommand(youtubeUrl: string, audioFile: string, playerClient: string, useCookiesFile: string | null): string {
-  const commandParts = [
+function buildYtDlpCommand(youtubeUrl: string, audioFile: string, playerClient: string): string {
+  return [
     `"${YTDLP_BINARY}"`,
     '--no-playlist',
     '--no-warnings',
-    '--retries 3',
-    '--fragment-retries 3',
+    '--retries 2',
+    '--fragment-retries 2',
     '--socket-timeout 30',
     `--js-runtimes ${YTDLP_JS_RUNTIMES}`,
     `--extractor-args "youtube:player_client=${playerClient}"`,
     '-f "bestaudio[ext=m4a]/bestaudio[ext=mp3]/bestaudio"',
     `-o "${audioFile}"`,
-  ]
+    `"${youtubeUrl}"`,
+  ].join(' ')
+}
 
-  if (useCookiesFile) {
-    commandParts.push(`--cookies "${useCookiesFile}"`)
+function decodeEntities(value: string): string {
+  return value
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&apos;/g, "'")
+}
+
+function parseTranscriptXml(xml: string, lang: string): CaptionItem[] {
+  const items: CaptionItem[] = []
+  const srv3Pattern = /<p\s+t="(\d+)"\s+d="(\d+)"[^>]*>([\s\S]*?)<\/p>/g
+  let match: RegExpExecArray | null = null
+
+  while ((match = srv3Pattern.exec(xml)) !== null) {
+    const offset = parseInt(match[1], 10)
+    const duration = parseInt(match[2], 10)
+    const inner = match[3]
+    const text = decodeEntities(inner.replace(/<[^>]+>/g, '').trim())
+
+    if (text) {
+      items.push({ text, duration, offset, lang })
+    }
   }
 
-  if (YTDLP_EXTRA_ARGS) {
-    commandParts.push(YTDLP_EXTRA_ARGS)
+  if (items.length > 0) {
+    return items
   }
 
-  commandParts.push(`"${youtubeUrl}"`)
-  return commandParts.join(' ')
+  const classicPattern = /<text start="([^"]*)" dur="([^"]*)">([^<]*)<\/text>/g
+  while ((match = classicPattern.exec(xml)) !== null) {
+    items.push({
+      text: decodeEntities(match[3]),
+      duration: Math.round(parseFloat(match[2]) * 1000),
+      offset: Math.round(parseFloat(match[1]) * 1000),
+      lang,
+    })
+  }
+
+  return items
+}
+
+function parseInlineJson(html: string, variableName: string) {
+  const marker = `var ${variableName} = `
+  const startIndex = html.indexOf(marker)
+  if (startIndex === -1) {
+    return null
+  }
+
+  const jsonStart = startIndex + marker.length
+  let depth = 0
+
+  for (let index = jsonStart; index < html.length; index++) {
+    if (html[index] === '{') {
+      depth += 1
+    } else if (html[index] === '}') {
+      depth -= 1
+      if (depth === 0) {
+        try {
+          return JSON.parse(html.slice(jsonStart, index + 1))
+        } catch {
+          return null
+        }
+      }
+    }
+  }
+
+  return null
+}
+
+async function fetchCaptionTrack(videoId: string, youtubeUrl: string): Promise<CaptionItem[]> {
+  const playerUrl = 'https://www.youtube.com/youtubei/v1/player?prettyPrint=false'
+  const androidUserAgent = 'com.google.android.youtube/20.10.38 (Linux; U; Android 14)'
+
+  try {
+    const playerResponse = await fetch(playerUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'User-Agent': androidUserAgent,
+      },
+      body: JSON.stringify({
+        context: { client: { clientName: 'ANDROID', clientVersion: '20.10.38' } },
+        videoId,
+      }),
+    })
+
+    const playerJson = await playerResponse.json()
+    const innerTubeTracks = playerJson?.captions?.playerCaptionsTracklistRenderer?.captionTracks as CaptionTrack[] | undefined
+    if (Array.isArray(innerTubeTracks) && innerTubeTracks.length > 0) {
+      const captionResponse = await fetch(innerTubeTracks[0].baseUrl, { headers: { 'User-Agent': androidUserAgent } })
+      if (captionResponse.ok) {
+        const xml = await captionResponse.text()
+        const items = parseTranscriptXml(xml, innerTubeTracks[0].languageCode || 'en')
+        if (items.length > 0) {
+          return items
+        }
+      }
+    }
+  } catch (error) {
+    console.warn('⚠️ InnerTube caption lookup failed:', getErrorText(error))
+  }
+
+  const webUserAgent = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.83 Safari/537.36'
+  const pageResponse = await fetch(`https://www.youtube.com/watch?v=${videoId}`, {
+    headers: { 'User-Agent': webUserAgent },
+  })
+  const html = await pageResponse.text()
+
+  if (!html.includes('"playabilityStatus":')) {
+    throw new Error(`Video page unavailable for caption fallback: ${youtubeUrl}`)
+  }
+
+  const playerData = parseInlineJson(html, 'ytInitialPlayerResponse')
+  const pageTracks = playerData?.captions?.playerCaptionsTracklistRenderer?.captionTracks as CaptionTrack[] | undefined
+  if (!Array.isArray(pageTracks) || pageTracks.length === 0) {
+    throw new Error('No captions available for this video')
+  }
+
+  const captionResponse = await fetch(pageTracks[0].baseUrl, { headers: { 'User-Agent': webUserAgent } })
+  if (!captionResponse.ok) {
+    throw new Error(`Caption track request failed with status ${captionResponse.status}`)
+  }
+
+  const xml = await captionResponse.text()
+  return parseTranscriptXml(xml, pageTracks[0].languageCode || 'en')
+}
+
+async function requestAssemblyAiTranscript(audioUrl: string) {
+  console.log('🎯 Requesting transcription...')
+  updateProgress('🎯 Starting AI transcription...')
+
+  const transcriptData = {
+    audio_url: audioUrl,
+    speech_model: 'universal',
+    language_code: 'en',
+    punctuate: true,
+    format_text: true,
+    speaker_labels: true,
+    auto_highlights: true,
+    sentiment_analysis: true,
+    auto_chapters: true,
+    entity_detection: true,
+  }
+
+  const transcriptResponse = await axios.post(`${baseUrl}/v2/transcript`, transcriptData, { headers })
+  const transcriptId = transcriptResponse.data.id
+
+  console.log('⏳ Polling for completion...')
+  updateProgress('⏳ Processing with AI...')
+
+  let maxAttempts = 60
+  let attempts = 0
+
+  while (attempts < maxAttempts) {
+    const pollingResponse = await axios.get(`${baseUrl}/v2/transcript/${transcriptId}`, { headers })
+    const transcriptionResult = pollingResponse.data
+
+    if (transcriptionResult.status === 'completed') {
+      console.log('✅ Transcription completed!')
+      updateProgress('✨ Transcription completed!')
+      setCompleted()
+      return transcriptionResult
+    }
+
+    if (transcriptionResult.status === 'error') {
+      throw new Error(`Transcription failed: ${transcriptionResult.error}`)
+    }
+
+    await new Promise(resolve => setTimeout(resolve, 5000))
+    attempts++
+  }
+
+  throw new Error('Transcription timeout - video may be too long')
 }
 
 // Mock data for testing without using AssemblyAI credits
@@ -286,16 +459,13 @@ export async function POST(request: NextRequest) {
 // Separate function to handle the actual transcription processing
 async function processTranscription(youtubeUrl: string, userId: string) {
   const startTime = Date.now() // Track processing time for credit usage
-  
-  // Real AssemblyAI processing for actual YouTube URLs
+
   console.log('🚀 Starting transcription for:', youtubeUrl)
   updateProgress('🚀 Starting transcription...')
 
-  // Extract video ID from YouTube URL
   const videoIdMatch = youtubeUrl.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\n?#]+)/)
   const videoId = videoIdMatch ? videoIdMatch[1] : 'unknown'
-  
-  // Get actual video title from YouTube
+
   let videoTitle = `Video ${videoId}` // Fallback title
   try {
     console.log('📺 Fetching video title for:', videoId)
@@ -308,115 +478,227 @@ async function processTranscription(youtubeUrl: string, userId: string) {
     console.warn('⚠️ Could not fetch video title, using fallback:', titleError.message)
   }
 
-  // Create temp directory
-  const tempDir = path.join(process.cwd(), 'temp')
-  await fs.ensureDir(tempDir)
-  
-  let audioFile = ''
-  
+  const audioDir = path.join(process.cwd(), 'user-audio', userId)
+  await fs.ensureDir(audioDir)
+
+  const audioFile = path.join(audioDir, `${videoId}.mp3`)
+  let captionFallbackItems: CaptionItem[] | null = null
+  let transcriptionResult: any | null = null
+
   try {
-    audioFile = path.join(tempDir, `audio_${Date.now()}.mp3`)
-    
-         // Extract audio using yt-dlp
-     console.log('📥 Extracting audio...')
-     updateProgress('🎵 Extracting audio from video...')
-     
-     const ytDlpAttempts = [
-       { label: 'primary', playerClient: 'android,web' },
-       { label: 'fallback', playerClient: 'tv,android,web' },
-     ]
+    updateProgress('🎯 Sending YouTube URL to AssemblyAI...')
+    transcriptionResult = await requestAssemblyAiTranscript(youtubeUrl)
+    console.log('✅ AssemblyAI completed transcription directly from YouTube URL')
+  } catch (directSourceError) {
+    console.warn('⚠️ Direct AssemblyAI source fetch failed, falling back to local extraction:', getErrorText(directSourceError))
 
-     let lastYtDlpError: unknown = null
-     let extractionSucceeded = false
+    if (await fs.pathExists(audioFile)) {
+      console.log('♻️ Audio file already exists for user/video, reusing:', audioFile)
+    } else {
+      let audioReady = false
 
-     const cookiesFile = YTDLP_COOKIES_FILE && await fs.pathExists(YTDLP_COOKIES_FILE)
-       ? YTDLP_COOKIES_FILE
-       : null
+      try {
+        updateProgress('🎵 Extracting audio from YouTube...')
+        const ytDlpAttempts = [
+          { label: 'primary', playerClient: 'android,web' },
+          { label: 'fallback', playerClient: 'tv,ios,web_safari' },
+        ]
 
-     if (YTDLP_COOKIES_FILE && !cookiesFile) {
-       console.warn(`⚠️ YTDLP_COOKIES_FILE is set but file was not found: ${YTDLP_COOKIES_FILE}`)
-     }
+        let lastYtDlpError = 'No yt-dlp attempt executed'
+        for (const attempt of ytDlpAttempts) {
+          try {
+            const command = buildYtDlpCommand(youtubeUrl, audioFile, attempt.playerClient)
+            console.log(`🎯 yt-dlp attempt (${attempt.label}) with player_client=${attempt.playerClient}`)
+            await execAsync(command)
+            audioReady = true
+            break
+          } catch (error) {
+            lastYtDlpError = getErrorText(error)
+            console.warn(`⚠️ yt-dlp attempt (${attempt.label}) failed:`, lastYtDlpError)
+          }
+        }
 
-     for (const attempt of ytDlpAttempts) {
-       const command = buildYtDlpCommand(youtubeUrl, audioFile, attempt.playerClient, cookiesFile)
+        if (!audioReady) {
+          throw new Error(lastYtDlpError)
+        }
+      } catch (ytDlpError) {
+        console.warn('⚠️ yt-dlp extraction failed, trying provider fallback:', getErrorText(ytDlpError))
 
-       try {
-         console.log(`🎯 yt-dlp attempt (${attempt.label}) with player_client=${attempt.playerClient}`)
-         await execAsync(command)
-         extractionSucceeded = true
-         break
-       } catch (ytdlpError) {
-         lastYtDlpError = ytdlpError
-         const attemptErrorText = getErrorText(ytdlpError)
-         console.warn(`⚠️ yt-dlp attempt (${attempt.label}) failed:`, attemptErrorText)
-       }
-     }
+        try {
+          updateProgress('🎵 Fetching audio stream info...')
+          const streamApiSources = buildStreamApiSources()
 
-     if (!extractionSucceeded) {
-       const fullYtDlpError = getErrorText(lastYtDlpError)
-       const blockedByYouTube = /sign in to confirm|not a bot|http error 403|forbidden/i.test(fullYtDlpError)
+          if (streamApiSources.length === 0) {
+            throw new Error('No stream providers configured. Set PIPED_API_URLS and/or INVIDIOUS_API_URLS on the server.')
+          }
 
-       const userFacingError = blockedByYouTube
-         ? 'YouTube blocked automated extraction for this video. Try another public video, or configure YTDLP_COOKIES_FILE on the server to allow restricted extraction.'
-         : 'Failed to extract audio from YouTube. Please try again with another URL.'
+          let bestAudio: AudioStreamInfo | null = null
+          let lastSourceError = 'No stream source attempted'
 
-       console.error('❌ yt-dlp extraction failed after retries:', fullYtDlpError)
+          for (const source of streamApiSources) {
+            try {
+              const endpoint = getStreamApiEndpoint(source, videoId)
+              console.log(`🌐 Fetching ${source.label} API for video:`, videoId)
+              const response = await axios.get(endpoint, { timeout: 15000 })
+              const audioStreams = normalizeAudioStreams(response.data, source.format)
 
-       // Mark as failed without using AssemblyAI credits
-       const transcription = new Transcription({
-         userId: userId,
-         youtubeUrl: youtubeUrl,
-         videoTitle: videoTitle,
-         videoId: videoId,
-         transcript: '',
-         confidence: 0,
-         audioDuration: 0,
-         status: 'failed',
-         errorMessage: fullYtDlpError.slice(0, 2000)
-       })
-       await transcription.save()
+              if (!audioStreams.length) {
+                throw new Error(`No audio streams returned by ${source.label}`)
+              }
 
-       return NextResponse.json({
-         success: false,
-         error: userFacingError,
-         code: blockedByYouTube ? 'YOUTUBE_BOT_CHALLENGE' : 'AUDIO_EXTRACTION_FAILED',
-         status: 'failed'
-       }, { status: blockedByYouTube ? 429 : 502 })
-     }
-     
-     // Check if audio file was created
-     if (!await fs.pathExists(audioFile)) {
-       // Mark as failed without using AssemblyAI credits
-       const transcription = new Transcription({
-         userId: userId,
-         youtubeUrl: youtubeUrl,
-         videoTitle: videoTitle,
-         videoId: videoId,
-         transcript: '',
-         confidence: 0,
-         audioDuration: 0,
-         status: 'failed',
-         errorMessage: 'Audio file was not created by yt-dlp'
-       })
-       await transcription.save()
-       
-       return NextResponse.json({ 
-         success: false, 
-         error: 'Audio file was not created by yt-dlp',
-         status: 'failed'
-       })
-     }
-    
-    console.log('✅ Audio extracted successfully:', audioFile)
-    
-    // Read the audio file
+              bestAudio = audioStreams.sort((a: AudioStreamInfo, b: AudioStreamInfo) => b.bitrate - a.bitrate)[0]
+
+              if (!bestAudio?.url) {
+                throw new Error(`No audio stream URL returned by ${source.label}`)
+              }
+
+              console.log(`✅ Using ${source.label} audio stream with bitrate:`, bestAudio.bitrate)
+              break
+            } catch (sourceError: any) {
+              lastSourceError = sourceError.message || String(sourceError)
+              console.warn(`⚠️ ${source.label} stream lookup failed:`, lastSourceError)
+            }
+          }
+
+          if (!bestAudio?.url) {
+            throw new Error(lastSourceError)
+          }
+
+          updateProgress('⬇️ Downloading audio stream...')
+          const audioResp = await axios.get(bestAudio.url, { responseType: 'arraybuffer' })
+          await fs.writeFile(audioFile, audioResp.data)
+          console.log('✅ Audio downloaded and saved:', audioFile)
+          audioReady = true
+        } catch (providerError: any) {
+          console.warn('⚠️ Provider extraction failed, trying caption fallback:', providerError.message)
+
+          try {
+            updateProgress('📝 Fetching YouTube captions...')
+            captionFallbackItems = await fetchCaptionTrack(videoId, youtubeUrl)
+            console.log(`✅ Caption fallback succeeded with ${captionFallbackItems.length} items`)
+          } catch (captionError) {
+            const combinedError = [
+              getErrorText(directSourceError),
+              getErrorText(ytDlpError),
+              providerError.message,
+              getErrorText(captionError),
+            ].filter(Boolean).join('\n\n')
+
+            console.error('❌ All extraction paths failed:', combinedError)
+
+            const transcription = new Transcription({
+              userId: userId,
+              youtubeUrl: youtubeUrl,
+              videoTitle: videoTitle,
+              videoId: videoId,
+              transcript: '',
+              confidence: 0,
+              audioDuration: 0,
+              status: 'failed',
+              errorMessage: combinedError.slice(0, 2000)
+            })
+            await transcription.save()
+            return NextResponse.json({
+              success: false,
+              error: 'Failed to transcribe this YouTube video. AssemblyAI direct fetch, local extraction, provider fallback, and caption fallback all failed.',
+              status: 'failed'
+            }, { status: 502 })
+          }
+        }
+      }
+    }
+  }
+
+  if (captionFallbackItems && !await fs.pathExists(audioFile)) {
+    const transcriptText = captionFallbackItems.map((item) => item.text).join(' ')
+    const captionDurationMs = captionFallbackItems.length > 0
+      ? captionFallbackItems[captionFallbackItems.length - 1].offset + captionFallbackItems[captionFallbackItems.length - 1].duration
+      : 0
+
+    let transcriptionId = null
+    try {
+      await connectDB()
+
+      const transcriptionDoc = new Transcription({
+        userId: userId,
+        youtubeUrl: youtubeUrl,
+        videoTitle: videoTitle,
+        videoId: videoId,
+        transcript: transcriptText,
+        confidence: 0.85,
+        audioDuration: captionDurationMs / 1000,
+        languageCode: captionFallbackItems[0]?.lang || 'en',
+        words: captionFallbackItems.map((item) => ({
+          text: item.text,
+          start: item.offset / 1000,
+          end: (item.offset + item.duration) / 1000,
+          confidence: 0.85,
+          speaker: 'A',
+        })),
+        highlights: [],
+        sentiment: [],
+        chapters: [],
+        entities: [],
+        speakerLabels: [],
+        isCached: false,
+        cachedAt: new Date(),
+        createdAt: new Date(),
+        status: 'completed'
+      })
+      await transcriptionDoc.save()
+      transcriptionId = transcriptionDoc._id
+
+      try {
+        const processedVideo = new ProcessedVideos({
+          userId: userId,
+          videoId: videoId,
+          youtubeUrl: youtubeUrl,
+          processedAt: new Date(),
+          transcriptionId: transcriptionId
+        })
+        await processedVideo.save()
+      } catch (processedVideoError) {
+        console.warn('⚠️ Failed to create ProcessedVideos record for caption fallback:', processedVideoError)
+      }
+    } catch (dbError) {
+      console.warn('⚠️ Failed to save caption fallback transcript:', dbError)
+    }
+
+    const resultData = {
+      id: transcriptionId,
+      transcriptionId,
+      transcript: transcriptText,
+      confidence: 0.85,
+      audio_duration: captionDurationMs / 1000,
+      words: captionFallbackItems.map((item) => ({
+        text: item.text,
+        start: item.offset / 1000,
+        end: (item.offset + item.duration) / 1000,
+        confidence: 0.85,
+        speaker: 'A',
+      })),
+      highlights: [],
+      sentiment: [],
+      chapters: [],
+      entities: [],
+      speaker_labels: [],
+      language_code: captionFallbackItems[0]?.lang || 'en',
+      youtube_url: youtubeUrl,
+      videoTitle,
+      videoId,
+      status: 'completed'
+    }
+
+    return NextResponse.json({ success: true, ...resultData, captionFallback: true })
+  }
+
+  if (!transcriptionResult) {
     const audioData = await fs.readFile(audioFile)
     console.log('📊 Audio file size:', audioData.length, 'bytes')
-    
-    // Upload to AssemblyAI
+
     console.log('☁️ Uploading to AssemblyAI...')
     updateProgress('☁️ Uploading audio for processing...')
-    
+
     let uploadResponse
     try {
       uploadResponse = await axios.post(`${baseUrl}/v2/upload`, audioData, { headers })
@@ -425,351 +707,280 @@ async function processTranscription(youtubeUrl: string, userId: string) {
       console.error('❌ AssemblyAI upload error:', uploadError.response?.data || uploadError.message)
       throw new Error(`Failed to upload to AssemblyAI: ${uploadError.message}`)
     }
-    
+
     const audioUrl = uploadResponse.data.upload_url
-    
-    // Request transcription
-    console.log('🎯 Requesting transcription...')
-    updateProgress('🎯 Starting AI transcription...')
-    const transcriptData = {
-      audio_url: audioUrl,
-      speech_model: 'universal',
-      language_code: 'en',
-      punctuate: true,
-      format_text: true,
-      speaker_labels: true,
-      auto_highlights: true,
-      sentiment_analysis: true,
-      auto_chapters: true,
-      entity_detection: true,
-    }
-    
-    const transcriptResponse = await axios.post(`${baseUrl}/v2/transcript`, transcriptData, { headers })
-    const transcriptId = transcriptResponse.data.id
-    
-    // Poll for completion
-    console.log('⏳ Polling for completion...')
-    updateProgress('⏳ Processing with AI...')
-    let maxAttempts = 60 // 5 minutes max
-    let attempts = 0
-    
-    while (attempts < maxAttempts) {
-      const pollingResponse = await axios.get(`${baseUrl}/v2/transcript/${transcriptId}`, { headers })
-      const transcriptionResult = pollingResponse.data
-      
-      if (transcriptionResult.status === 'completed') {
-        console.log('✅ Transcription completed!')
-        updateProgress('✨ Transcription completed!')
-        setCompleted()
-        
-        // Debug the response structure
-        console.log('📊 Full transcription result:', JSON.stringify(transcriptionResult, null, 2))
-        console.log('🔍 Highlights result:', transcriptionResult.auto_highlights_result)
-        console.log('🔍 Sentiment result:', transcriptionResult.sentiment_analysis)
-        console.log('🔍 Chapters result:', transcriptionResult.auto_chapters_result)
-        
-        // Clean up temp file
-        await fs.remove(audioFile)
-        
-        // Generate intelligent fallback data with meaningful insights
-        const generateFallbackData = (text: string) => {
-          const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 15)
-          const paragraphs = text.split(/\n\s*\n/).filter(p => p.trim().length > 50)
-          
-          // Generate meaningful highlights from key sentences and concepts
-          const generateHighlights = () => {
-            const highlights: Array<{
-              count: number
-              rank: number
-              text: string
-              timestamps: Array<{ start: number; end: number }>
-            }> = []
-            
-            // Find sentences with key phrases (questions, important statements, numbers)
-            const questionSentences = sentences.filter(s => 
-              s.includes('?') || 
-              s.toLowerCase().includes('how') || 
-              s.toLowerCase().includes('what') || 
-              s.toLowerCase().includes('why') ||
-              s.toLowerCase().includes('when') ||
-              s.toLowerCase().includes('where')
-            )
-            
-            const numberSentences = sentences.filter(s => 
-              /\d+/.test(s) && s.length > 20
-            )
-            
-            const actionSentences = sentences.filter(s => 
-              s.toLowerCase().includes('should') || 
-              s.toLowerCase().includes('must') || 
-              s.toLowerCase().includes('need to') ||
-              s.toLowerCase().includes('important') ||
-              s.toLowerCase().includes('key') ||
-              s.toLowerCase().includes('essential')
-            )
-            
-            // Add question highlights
-            questionSentences.slice(0, 2).forEach((sentence, i) => {
-              highlights.push({
-                count: 1,
-                rank: i + 1,
-                text: sentence.trim().substring(0, 100) + (sentence.length > 100 ? '...' : ''),
-                timestamps: [{ start: i * 30, end: (i + 1) * 30 }]
-              })
-            })
-            
-            // Add number/statistic highlights
-            numberSentences.slice(0, 2).forEach((sentence, i) => {
-              highlights.push({
-                count: 1,
-                rank: highlights.length + 1,
-                text: sentence.trim().substring(0, 100) + (sentence.length > 100 ? '...' : ''),
-                timestamps: [{ start: (highlights.length + i) * 30, end: (highlights.length + i + 1) * 30 }]
-              })
-            })
-            
-            // Add action item highlights
-            actionSentences.slice(0, 2).forEach((sentence, i) => {
-              highlights.push({
-                count: 1,
-                rank: highlights.length + 1,
-                text: sentence.trim().substring(0, 100) + (sentence.length > 100 ? '...' : ''),
-                timestamps: [{ start: (highlights.length + i) * 30, end: (highlights.length + i + 1) * 30 }]
-              })
-            })
-            
-            // If we don't have enough highlights, add key concept sentences
-            if (highlights.length < 5) {
-              const remainingSentences = sentences
-                .filter(s => !highlights.some(h => h.text.includes(s.substring(0, 20))))
-                .slice(0, 5 - highlights.length)
-              
-              remainingSentences.forEach((sentence, i) => {
-                highlights.push({
-                  count: 1,
-                  rank: highlights.length + 1,
-                  text: sentence.trim().substring(0, 100) + (sentence.length > 100 ? '...' : ''),
-                  timestamps: [{ start: (highlights.length + i) * 30, end: (highlights.length + i + 1) * 30 }]
-                })
-              })
-            }
-            
-            return highlights.slice(0, 5)
-          }
-          
-          return {
-            highlights: generateHighlights(),
-            sentiment: sentences.slice(0, 3).map((sentence, i) => ({
-              text: sentence.trim(),
-              start: i * 30,
-              end: (i + 1) * 30,
-              sentiment: 'neutral',
-              confidence: 0.8
-            })),
-            chapters: paragraphs.slice(0, 3).map((paragraph, i) => ({
-              summary: paragraph.trim().substring(0, 150) + (paragraph.length > 150 ? '...' : ''),
-              headline: `Key Point ${i + 1}`,
-              start: i * 60,
-              end: (i + 1) * 60
-            }))
-          }
-        }
-        
-        const fallbackData = generateFallbackData(transcriptionResult.text || '')
-        
-        // Save to database
-        let transcriptionId = null
-        
-        try {
-          await connectDB()
-          
-                     // Create transcription document with proper field mapping
-           const transcriptionDoc = new Transcription({
-             userId: userId,
-             youtubeUrl: youtubeUrl,
-             videoTitle: videoTitle, // Use fetched video title
-             videoId: videoId,
-             transcript: transcriptionResult.text || '',
-             confidence: transcriptionResult.confidence || 0.95,
-             audioDuration: transcriptionResult.audio_duration || 0,
-             languageCode: transcriptionResult.language_code || 'en',
-             words: transcriptionResult.words || [],
-             highlights: (transcriptionResult.auto_highlights_result?.results || []).map((h: any) => ({
-               count: h.count || 1,
-               rank: h.rank && !isNaN(h.rank) ? Math.max(1, Math.round(h.rank * 10)) : 1, // Convert decimal rank to integer 1-10, fallback to 1 if NaN
-               text: h.text || '',
-               timestamps: h.timestamps || []
-             })),
-             sentiment: transcriptionResult.sentiment_analysis?.results || [],
-             chapters: transcriptionResult.auto_chapters_result?.results || [],
-             entities: (transcriptionResult.entities || []).map((e: any) => ({
-               text: e.text || '',
-               entityType: e.entity_type || 'unknown', // Map entity_type to entityType
-               start: e.start || 0,
-               end: e.end || 0
-             })),
-             speakerLabels: Array.isArray(transcriptionResult.speaker_labels) ? transcriptionResult.speaker_labels : [],
-             isCached: false,
-             cachedAt: new Date(),
-             createdAt: new Date(), // Add this field for dashboard compatibility
-             status: 'completed' // Explicitly set status to completed
-           })
-          
-          console.log('💾 Attempting to save transcription document:', {
-            userId: transcriptionDoc.userId,
-            youtubeUrl: transcriptionDoc.youtubeUrl,
-            videoTitle: transcriptionDoc.videoTitle,
-            highlightsCount: transcriptionDoc.highlights?.length || 0,
-            speakerLabelsCount: transcriptionDoc.speakerLabels?.length || 0
-          })
-          
-          await transcriptionDoc.save()
-          transcriptionId = transcriptionDoc._id
-          console.log('✅ Transcription saved to database with ID:', transcriptionId)
-          
-          // Create ProcessedVideos record to prevent future duplicates
-          try {
-            console.log('📝 Creating ProcessedVideos record for video:', videoId, 'userId:', userId)
-            const processedVideo = new ProcessedVideos({
-              userId: userId,
-              videoId: videoId,
-              youtubeUrl: youtubeUrl,
-              processedAt: new Date(),
-              transcriptionId: transcriptionId
-            })
-            await processedVideo.save()
-            console.log('✅ ProcessedVideos record created for video:', videoId, 'with ID:', processedVideo._id)
-            
-            // Verify it was created
-            const verifyRecord = await ProcessedVideos.findOne({ videoId: videoId, userId: userId })
-            console.log('🔍 Verification - ProcessedVideos record exists after creation:', verifyRecord ? 'Yes' : 'No')
-          } catch (processedVideoError) {
-            console.warn('⚠️ Failed to create ProcessedVideos record:', processedVideoError)
-            console.error('❌ Full error details:', processedVideoError)
-            // Don't fail the transcription if this fails
-          }
-          
-          // Update usage tracking
-          const today = new Date()
-          today.setHours(0, 0, 0, 0)
-          
-          const hoursUsed = (transcriptionResult.audio_duration || 0) / 3600 // Convert seconds to hours
-          
-          let usageDoc = await UsageTracking.findOne({
-            userId: userId,
-            date: today
-          })
-          
-          if (!usageDoc) {
-            usageDoc = new UsageTracking({
-              userId: userId,
-              date: today,
-              hoursUsed: hoursUsed,
-              transcriptionsCount: 1,
-              exportsCount: 0,
-              tier: 'basic' // TODO: Get from user subscription
-            })
-          } else {
-            usageDoc.hoursUsed += hoursUsed
-            usageDoc.transcriptionsCount += 1
-          }
-          
-          await usageDoc.save()
-          console.log('📊 Usage tracking updated:', {
-            hoursUsed: usageDoc.hoursUsed,
-            transcriptionsCount: usageDoc.transcriptionsCount
-          })
-          
-        } catch (dbError: any) {
-          console.error('❌ Database error during save:', dbError)
-          console.error('❌ Error details:', {
-            name: dbError.name,
-            message: dbError.message,
-            stack: dbError.stack
-          })
-          // Don't fail the transcription if database save fails, but log it
-        }
-        
-        // Create result data with transcription ID (outside try block to ensure it's always defined)
-        const resultData = {
-          id: transcriptionId,
-          transcriptionId: transcriptionId,
-          transcript: transcriptionResult.text,
-          confidence: transcriptionResult.confidence || 0.95,
-          audio_duration: transcriptionResult.audio_duration || 0,
-          words: transcriptionResult.words || [],
-          highlights: (transcriptionResult.auto_highlights_result?.results || []).map((h: any) => ({
-            ...h,
-            rank: h.rank && !isNaN(h.rank) ? Math.max(1, Math.round(h.rank * 10)) : 1
-          })).length > 0 
-            ? (transcriptionResult.auto_highlights_result?.results || []).map((h: any) => ({
-                ...h,
-                rank: h.rank && !isNaN(h.rank) ? Math.max(1, Math.round(h.rank * 10)) : 1
-              }))
-            : fallbackData.highlights,
-          sentiment: transcriptionResult.sentiment_analysis?.results || [],
-          chapters: transcriptionResult.auto_chapters_result?.results || [],
-          entities: transcriptionResult.entities || [],
-          speaker_labels: transcriptionResult.speaker_labels || [],
-          language_code: transcriptionResult.language_code || 'en',
-          youtube_url: youtubeUrl,
-          // Add these fields that the frontend expects
-          videoTitle: videoTitle,
-          videoId: videoId,
-          status: 'completed'
-        }
-        
-        // Cache the result
-        const cacheKey = `transcription_${youtubeUrl}`
-        transcriptionCache.set(cacheKey, { data: resultData, timestamp: Date.now() })
-        
-        // Track credit usage for business intelligence (optional - don't block transcription if it fails)
-        try {
-          const axios = require('axios')
-          await axios.post(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/credits/track`, {
-            transcriptionId: transcriptionId,
-            youtubeUrl: youtubeUrl,
-            videoId: videoId,
-            audioDuration: transcriptionResult.audio_duration || 0,
-            processingTime: Date.now() - startTime, // Calculate processing time
-            fileSize: 0, // Could be calculated from audio file size
-            quality: 'best',
-            language: transcriptionResult.language_code || 'en',
-            speakerCount: transcriptionResult.speaker_labels?.length || 1,
-            wordCount: transcriptionResult.words?.length || 0
-          }, {
-            headers: {
-              'Content-Type': 'application/json',
-              // Note: This will need proper authentication when we have real sessions
-            }
-          })
-          console.log('💰 Credit usage tracked successfully')
-        } catch (creditError) {
-          console.error('❌ Failed to track credit usage:', creditError)
-          console.log('⚠️ Credit tracking failed, but transcription completed successfully')
-          // Don't fail the transcription if credit tracking fails - this is optional
-        }
-        
-        return NextResponse.json({
-          success: true,
-          ...resultData,
-          transcriptionId: transcriptionId // Add the database ID
+    transcriptionResult = await requestAssemblyAiTranscript(audioUrl)
+  }
+
+  console.log('📊 Full transcription result:', JSON.stringify(transcriptionResult, null, 2))
+  console.log('🔍 Highlights result:', transcriptionResult.auto_highlights_result)
+  console.log('🔍 Sentiment result:', transcriptionResult.sentiment_analysis)
+  console.log('🔍 Chapters result:', transcriptionResult.auto_chapters_result)
+
+  const generateFallbackData = (text: string) => {
+    const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 15)
+    const paragraphs = text.split(/\n\s*\n/).filter(p => p.trim().length > 50)
+
+    const generateHighlights = () => {
+      const highlights: Array<{
+        count: number
+        rank: number
+        text: string
+        timestamps: Array<{ start: number; end: number }>
+      }> = []
+
+      const questionSentences = sentences.filter(s =>
+        s.includes('?') ||
+        s.toLowerCase().includes('how') ||
+        s.toLowerCase().includes('what') ||
+        s.toLowerCase().includes('why') ||
+        s.toLowerCase().includes('when') ||
+        s.toLowerCase().includes('where')
+      )
+
+      const numberSentences = sentences.filter(s => /\d+/.test(s) && s.length > 20)
+
+      const actionSentences = sentences.filter(s =>
+        s.toLowerCase().includes('should') ||
+        s.toLowerCase().includes('must') ||
+        s.toLowerCase().includes('need to') ||
+        s.toLowerCase().includes('important') ||
+        s.toLowerCase().includes('key') ||
+        s.toLowerCase().includes('essential')
+      )
+
+      questionSentences.slice(0, 2).forEach((sentence, i) => {
+        highlights.push({
+          count: 1,
+          rank: i + 1,
+          text: sentence.trim().substring(0, 100) + (sentence.length > 100 ? '...' : ''),
+          timestamps: [{ start: i * 30, end: (i + 1) * 30 }]
         })
-      } else if (transcriptionResult.status === 'error') {
-        throw new Error(`Transcription failed: ${transcriptionResult.error}`)
+      })
+
+      numberSentences.slice(0, 2).forEach((sentence, i) => {
+        highlights.push({
+          count: 1,
+          rank: highlights.length + 1,
+          text: sentence.trim().substring(0, 100) + (sentence.length > 100 ? '...' : ''),
+          timestamps: [{ start: (highlights.length + i) * 30, end: (highlights.length + i + 1) * 30 }]
+        })
+      })
+
+      actionSentences.slice(0, 2).forEach((sentence, i) => {
+        highlights.push({
+          count: 1,
+          rank: highlights.length + 1,
+          text: sentence.trim().substring(0, 100) + (sentence.length > 100 ? '...' : ''),
+          timestamps: [{ start: (highlights.length + i) * 30, end: (highlights.length + i + 1) * 30 }]
+        })
+      })
+
+      if (highlights.length < 5) {
+        const remainingSentences = sentences
+          .filter(s => !highlights.some(h => h.text.includes(s.substring(0, 20))))
+          .slice(0, 5 - highlights.length)
+
+        remainingSentences.forEach((sentence, i) => {
+          highlights.push({
+            count: 1,
+            rank: highlights.length + 1,
+            text: sentence.trim().substring(0, 100) + (sentence.length > 100 ? '...' : ''),
+            timestamps: [{ start: (highlights.length + i) * 30, end: (highlights.length + i + 1) * 30 }]
+          })
+        })
       }
-      
-      // Wait 5 seconds before next poll
-      await new Promise(resolve => setTimeout(resolve, 5000))
-      attempts++
+
+      return highlights.slice(0, 5)
     }
-    
-    throw new Error('Transcription timeout - video may be too long')
-    
-  } finally {
-    // Clean up temp file
-    if (await fs.pathExists(audioFile)) {
-      await fs.remove(audioFile)
+
+    return {
+      highlights: generateHighlights(),
+      sentiment: sentences.slice(0, 3).map((sentence, i) => ({
+        text: sentence.trim(),
+        start: i * 30,
+        end: (i + 1) * 30,
+        sentiment: 'neutral',
+        confidence: 0.8
+      })),
+      chapters: paragraphs.slice(0, 3).map((paragraph, i) => ({
+        summary: paragraph.trim().substring(0, 150) + (paragraph.length > 150 ? '...' : ''),
+        headline: `Key Point ${i + 1}`,
+        start: i * 60,
+        end: (i + 1) * 60
+      }))
     }
   }
+
+  const fallbackData = generateFallbackData(transcriptionResult.text || '')
+
+  let transcriptionId = null
+
+  try {
+    await connectDB()
+
+    const transcriptionDoc = new Transcription({
+      userId: userId,
+      youtubeUrl: youtubeUrl,
+      videoTitle: videoTitle,
+      videoId: videoId,
+      transcript: transcriptionResult.text || '',
+      confidence: transcriptionResult.confidence || 0.95,
+      audioDuration: transcriptionResult.audio_duration || 0,
+      languageCode: transcriptionResult.language_code || 'en',
+      words: transcriptionResult.words || [],
+      highlights: (transcriptionResult.auto_highlights_result?.results || []).map((h: any) => ({
+        count: h.count || 1,
+        rank: h.rank && !isNaN(h.rank) ? Math.max(1, Math.round(h.rank * 10)) : 1,
+        text: h.text || '',
+        timestamps: h.timestamps || []
+      })),
+      sentiment: transcriptionResult.sentiment_analysis?.results || [],
+      chapters: transcriptionResult.auto_chapters_result?.results || [],
+      entities: (transcriptionResult.entities || []).map((e: any) => ({
+        text: e.text || '',
+        entityType: e.entity_type || 'unknown',
+        start: e.start || 0,
+        end: e.end || 0
+      })),
+      speakerLabels: Array.isArray(transcriptionResult.speaker_labels) ? transcriptionResult.speaker_labels : [],
+      isCached: false,
+      cachedAt: new Date(),
+      createdAt: new Date(),
+      status: 'completed'
+    })
+
+    console.log('💾 Attempting to save transcription document:', {
+      userId: transcriptionDoc.userId,
+      youtubeUrl: transcriptionDoc.youtubeUrl,
+      videoTitle: transcriptionDoc.videoTitle,
+      highlightsCount: transcriptionDoc.highlights?.length || 0,
+      speakerLabelsCount: transcriptionDoc.speakerLabels?.length || 0
+    })
+
+    await transcriptionDoc.save()
+    transcriptionId = transcriptionDoc._id
+    console.log('✅ Transcription saved to database with ID:', transcriptionId)
+
+    try {
+      console.log('📝 Creating ProcessedVideos record for video:', videoId, 'userId:', userId)
+      const processedVideo = new ProcessedVideos({
+        userId: userId,
+        videoId: videoId,
+        youtubeUrl: youtubeUrl,
+        processedAt: new Date(),
+        transcriptionId: transcriptionId
+      })
+      await processedVideo.save()
+      console.log('✅ ProcessedVideos record created for video:', videoId, 'with ID:', processedVideo._id)
+
+      const verifyRecord = await ProcessedVideos.findOne({ videoId: videoId, userId: userId })
+      console.log('🔍 Verification - ProcessedVideos record exists after creation:', verifyRecord ? 'Yes' : 'No')
+    } catch (processedVideoError) {
+      console.warn('⚠️ Failed to create ProcessedVideos record:', processedVideoError)
+      console.error('❌ Full error details:', processedVideoError)
+    }
+
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+
+    const hoursUsed = (transcriptionResult.audio_duration || 0) / 3600
+
+    let usageDoc = await UsageTracking.findOne({
+      userId: userId,
+      date: today
+    })
+
+    if (!usageDoc) {
+      usageDoc = new UsageTracking({
+        userId: userId,
+        date: today,
+        hoursUsed: hoursUsed,
+        transcriptionsCount: 1,
+        exportsCount: 0,
+        tier: 'basic'
+      })
+    } else {
+      usageDoc.hoursUsed += hoursUsed
+      usageDoc.transcriptionsCount += 1
+    }
+
+    await usageDoc.save()
+    console.log('📊 Usage tracking updated:', {
+      hoursUsed: usageDoc.hoursUsed,
+      transcriptionsCount: usageDoc.transcriptionsCount
+    })
+  } catch (dbError: any) {
+    console.error('❌ Database error during save:', dbError)
+    console.error('❌ Error details:', {
+      name: dbError.name,
+      message: dbError.message,
+      stack: dbError.stack
+    })
+  }
+
+  const resultData = {
+    id: transcriptionId,
+    transcriptionId: transcriptionId,
+    transcript: transcriptionResult.text,
+    confidence: transcriptionResult.confidence || 0.95,
+    audio_duration: transcriptionResult.audio_duration || 0,
+    words: transcriptionResult.words || [],
+    highlights: (transcriptionResult.auto_highlights_result?.results || []).map((h: any) => ({
+      ...h,
+      rank: h.rank && !isNaN(h.rank) ? Math.max(1, Math.round(h.rank * 10)) : 1
+    })).length > 0
+      ? (transcriptionResult.auto_highlights_result?.results || []).map((h: any) => ({
+          ...h,
+          rank: h.rank && !isNaN(h.rank) ? Math.max(1, Math.round(h.rank * 10)) : 1
+        }))
+      : fallbackData.highlights,
+    sentiment: transcriptionResult.sentiment_analysis?.results || [],
+    chapters: transcriptionResult.auto_chapters_result?.results || [],
+    entities: transcriptionResult.entities || [],
+    speaker_labels: transcriptionResult.speaker_labels || [],
+    language_code: transcriptionResult.language_code || 'en',
+    youtube_url: youtubeUrl,
+    videoTitle: videoTitle,
+    videoId: videoId,
+    status: 'completed'
+  }
+
+  const cacheKey = `transcription_${youtubeUrl}`
+  transcriptionCache.set(cacheKey, { data: resultData, timestamp: Date.now() })
+
+  try {
+    const appOrigin = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL
+    if (appOrigin) {
+      const axios = require('axios')
+      await axios.post(`${appOrigin}/api/credits/track`, {
+        transcriptionId: transcriptionId,
+        youtubeUrl: youtubeUrl,
+        videoId: videoId,
+        audioDuration: transcriptionResult.audio_duration || 0,
+        processingTime: Date.now() - startTime,
+        fileSize: 0,
+        quality: 'best',
+        language: transcriptionResult.language_code || 'en',
+        speakerCount: transcriptionResult.speaker_labels?.length || 1,
+        wordCount: transcriptionResult.words?.length || 0
+      }, {
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      })
+      console.log('💰 Credit usage tracked successfully')
+    } else {
+      console.log('⚠️ Skipping credit tracking because no app origin is configured')
+    }
+  } catch (creditError) {
+    console.error('❌ Failed to track credit usage:', creditError)
+    console.log('⚠️ Credit tracking failed, but transcription completed successfully')
+  }
+
+  return NextResponse.json({
+    success: true,
+    ...resultData,
+    transcriptionId: transcriptionId
+  })
 }

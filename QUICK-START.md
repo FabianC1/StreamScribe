@@ -26,7 +26,7 @@
 2. Create new project → Search "Google+ API" → Enable
 3. Go to "Credentials" → Create OAuth 2.0 credentials
 4. Type: Web Application
-5. Add authorized redirect: http://localhost:3000/api/auth/callback/google
+5. Add authorized redirect: <your app origin>/api/auth/callback/google
 6. Copy Client ID and Secret
 7. Add to .env.local:
    GOOGLE_CLIENT_ID=your_client_id
@@ -74,7 +74,7 @@
 # Start dev server (should already be running)
 npm run dev
 
-# Open http://localhost:3000 in browser
+# Open your forwarded app URL in the browser
 
 # Test these flows:
 ✓ Create account with email

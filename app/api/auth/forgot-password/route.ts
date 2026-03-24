@@ -68,7 +68,8 @@ export async function POST(request: NextRequest) {
     })
 
     // Create reset URL
-    const resetUrl = `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/reset-password/${resetToken}`
+    const appOrigin = process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || request.nextUrl.origin
+    const resetUrl = `${appOrigin}/reset-password/${resetToken}`
 
     // Send real password reset email
     try {

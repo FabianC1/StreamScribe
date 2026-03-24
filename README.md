@@ -80,9 +80,26 @@ NEXTAUTH_SECRET=
 GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
 ASSEMBLYAI_API_KEY=
+PIPED_API_URLS=
+INVIDIOUS_API_URLS=
+ALLOW_PUBLIC_STREAM_FALLBACK=false
 STRIPE_PUBLISHABLE_KEY=
 STRIPE_SECRET_KEY=
 STRIPE_WEBHOOK_SECRET=
+
+Self-Hosted Stream Provider Setup
+For production, configure at least one self-hosted provider instead of relying on public Piped/Invidious instances.
+
+Recommended env configuration:
+- `PIPED_API_URLS=https://piped.yourdomain.com`
+- `INVIDIOUS_API_URLS=https://inv.yourdomain.com`
+- `ALLOW_PUBLIC_STREAM_FALLBACK=false`
+
+Operational notes:
+- The transcription route will try configured providers in order until one returns audio streams.
+- Downloaded audio is stored per user and per video so repeated transcriptions do not redownload the source media.
+- Admin health probe: `/api/admin/stream-provider-health?videoId=dQw4w9WgXcQ`
+- If no provider is configured, transcription fails fast with a configuration error instead of silently falling back to unstable public instances.
 
 Running Locally
 Clone repository:

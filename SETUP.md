@@ -22,7 +22,7 @@ STRIPE_SECRET_KEY=sk_test_your_stripe_secret_key_here
 NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_your_stripe_publishable_key_here
 
 # Application Configuration
-NEXT_PUBLIC_BASE_URL=http://localhost:3000
+NEXT_PUBLIC_BASE_URL=<your app origin>
 
 # Lemonfix AI API (for transcription service)
 LEMONFIX_API_KEY=your_lemonfix_api_key_here
@@ -34,7 +34,7 @@ LEMONFIX_API_URL=https://api.lemonfix.com
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) in your browser.
+Open your forwarded app URL in the browser.
 
 ## 🔧 Required Services Setup
 
