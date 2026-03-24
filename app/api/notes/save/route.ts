@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
     console.log('✅ Notes API - Connected to database')
     
     // Get session
-    const session = await getServerSession(authOptions)
+    const session = await getServerSession(authOptions) as any
     console.log('🔐 Notes API - Session:', session)
     
     if (!session?.user?.email) {
@@ -315,7 +315,7 @@ export async function PUT(request: NextRequest) {
     console.log('✅ Notes API - Connected to database for PUT')
     
     // Get session
-    const session = await getServerSession(authOptions)
+    const session = await getServerSession(authOptions) as any
     if (!session?.user?.email) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
@@ -427,7 +427,7 @@ export async function GET(request: NextRequest) {
     console.log('✅ Notes API - Connected to database for GET')
     
     // Get session
-    const session = await getServerSession(authOptions)
+    const session = await getServerSession(authOptions) as any
     if (!session?.user?.email) {
       console.log('❌ Notes API - No session or email found in GET')
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })

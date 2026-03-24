@@ -35,7 +35,7 @@ const authOptions = {
 export async function GET(request: NextRequest) {
   try {
     console.log('🔍 Profile API called')
-    const session = await getServerSession(authOptions)
+    const session = await getServerSession(authOptions) as any
     console.log('📋 Session data:', session)
     
     if (!session?.user?.id) {
@@ -97,7 +97,7 @@ export async function GET(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
+    const session = await getServerSession(authOptions) as any
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }

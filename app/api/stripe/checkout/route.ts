@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth'
 import { createCheckoutSession } from '@/lib/stripe'
 import connectDB from '@/lib/mongodb'
 import User from '@/models/User'
-import { authOptions } from '@/app/api/auth/[...nextauth]/route'
+import { authOptions } from '@/lib/auth-options'
 
 const DEV_FREE_PROMO_CODE = 'DEVFREE'
 
@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
       promoCode.trim().toUpperCase() === DEV_FREE_PROMO_CODE
 
     if (isDevFreeRequest) {
-      const session = await getServerSession(authOptions)
+      const session = await getServerSession(authOptions) as any
 
       if (!session?.user?.email) {
         return NextResponse.json(

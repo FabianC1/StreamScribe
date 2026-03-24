@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import connectDB from '@/lib/mongodb'
 import { Transcription, ProcessedVideos } from '@/models'
-import { authOptions } from '../../auth/[...nextauth]/route'
+import { authOptions } from '@/lib/auth-options'
 import { requireSubscription } from '@/lib/subscriptionCheck'
 
 export async function DELETE(

@@ -49,6 +49,8 @@ export interface ITranscription extends Document {
   // Cloud storage references (not actual files)
   audioFileUrl?: string
   videoFileUrl?: string
+  status?: 'pending' | 'processing' | 'completed' | 'failed'
+  errorMessage?: string
   isCached: boolean
   cachedAt: Date
   createdAt: Date
@@ -78,23 +80,26 @@ const TranscriptionSchema = new Schema<ITranscription>({
   },
   transcript: {
     type: String,
-    required: true,
+    required: false,
+    default: '',
     trim: true,
   },
   confidence: {
     type: Number,
-    required: true,
+    required: false,
+    default: 0,
     min: 0,
     max: 1,
   },
   audioDuration: {
     type: Number,
-    required: true,
+    required: false,
+    default: 0,
     min: 0,
   },
   languageCode: {
     type: String,
-    required: true,
+    required: false,
     default: 'en',
     trim: true,
   },
@@ -244,6 +249,18 @@ const TranscriptionSchema = new Schema<ITranscription>({
       min: 0,
     },
   }],
+  // Status tracking
+  status: {
+    type: String,
+    enum: ['pending', 'processing', 'completed', 'failed'],
+    default: 'pending',
+    required: false,
+  },
+  errorMessage: {
+    type: String,
+    required: false,
+    trim: true,
+  },
   // Cloud storage references (not actual files)
   audioFileUrl: {
     type: String,

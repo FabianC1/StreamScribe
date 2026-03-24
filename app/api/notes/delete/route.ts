@@ -18,7 +18,7 @@ export async function DELETE(request: NextRequest) {
     console.log('✅ Notes Delete API - Connected to database')
     
     // Get session
-    const session = await getServerSession(authOptions)
+    const session = await getServerSession(authOptions) as any
     console.log('🔐 Notes Delete API - Session:', session)
     
     if (!session?.user?.email) {

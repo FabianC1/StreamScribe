@@ -3,7 +3,7 @@ import connectDB from '@/lib/mongodb'
 import { getServerSession } from 'next-auth'
 import { ObjectId } from 'mongodb'
 import mongoose from 'mongoose'
-import { authOptions } from '../auth/[...nextauth]/route'
+import { authOptions } from '@/lib/auth-options'
 
 export async function GET(request: NextRequest) {
   try {

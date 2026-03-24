@@ -8,13 +8,16 @@ import { promisify } from 'util'
 import { updateProgress, setCompleted } from '../../../lib/progress'
 import connectDB from '@/lib/mongodb'
 import { Transcription, User, UsageTracking, ProcessedVideos } from '@/models'
-import { authOptions } from '../auth/[...nextauth]/route'
+import { authOptions } from '@/lib/auth-options'
 import { requireSubscription } from '@/lib/subscriptionCheck'
 
 const execAsync = promisify(exec)
 
 // Use the bundled yt-dlp binary from yt-dlp-exec package (not relying on system PATH)
 const YTDLP_BINARY = path.join(process.cwd(), 'node_modules', 'yt-dlp-exec', 'bin', 'yt-dlp')
+const YTDLP_JS_RUNTIMES = process.env.YTDLP_JS_RUNTIMES || process.env.runtimes || 'node'
+const YTDLP_COOKIES_FILE = process.env.YTDLP_COOKIES_FILE
+const YTDLP_EXTRA_ARGS = process.env.YTDLP_EXTRA_ARGS?.trim()
 
 if (!process.env.ASSEMBLYAI_API_KEY) {
   throw new Error('ASSEMBLYAI_API_KEY environment variable is not set')
@@ -24,6 +27,48 @@ const baseUrl = 'https://api.assemblyai.com'
 
 const headers = {
   authorization: ASSEMBLYAI_API_KEY,
+}
+
+function getErrorText(error: unknown): string {
+  if (!error) {
+    return 'Unknown error'
+  }
+
+  if (typeof error === 'string') {
+    return error
+  }
+
+  const anyError = error as any
+  const stderr = typeof anyError.stderr === 'string' ? anyError.stderr : ''
+  const stdout = typeof anyError.stdout === 'string' ? anyError.stdout : ''
+  const message = typeof anyError.message === 'string' ? anyError.message : String(error)
+  return [message, stderr, stdout].filter(Boolean).join('\n')
+}
+
+function buildYtDlpCommand(youtubeUrl: string, audioFile: string, playerClient: string, useCookiesFile: string | null): string {
+  const commandParts = [
+    `"${YTDLP_BINARY}"`,
+    '--no-playlist',
+    '--no-warnings',
+    '--retries 3',
+    '--fragment-retries 3',
+    '--socket-timeout 30',
+    `--js-runtimes ${YTDLP_JS_RUNTIMES}`,
+    `--extractor-args "youtube:player_client=${playerClient}"`,
+    '-f "bestaudio[ext=m4a]/bestaudio[ext=mp3]/bestaudio"',
+    `-o "${audioFile}"`,
+  ]
+
+  if (useCookiesFile) {
+    commandParts.push(`--cookies "${useCookiesFile}"`)
+  }
+
+  if (YTDLP_EXTRA_ARGS) {
+    commandParts.push(YTDLP_EXTRA_ARGS)
+  }
+
+  commandParts.push(`"${youtubeUrl}"`)
+  return commandParts.join(' ')
 }
 
 // Mock data for testing without using AssemblyAI credits
@@ -276,11 +321,47 @@ async function processTranscription(youtubeUrl: string, userId: string) {
      console.log('📥 Extracting audio...')
      updateProgress('🎵 Extracting audio from video...')
      
-     try {
-       await execAsync(`"${YTDLP_BINARY}" -f bestaudio[ext=m4a]/bestaudio[ext=mp3]/bestaudio -o "${audioFile}" "${youtubeUrl}"`)
-     } catch (ytdlpError) {
-       console.error('❌ yt-dlp error:', ytdlpError)
-       
+     const ytDlpAttempts = [
+       { label: 'primary', playerClient: 'android,web' },
+       { label: 'fallback', playerClient: 'tv,android,web' },
+     ]
+
+     let lastYtDlpError: unknown = null
+     let extractionSucceeded = false
+
+     const cookiesFile = YTDLP_COOKIES_FILE && await fs.pathExists(YTDLP_COOKIES_FILE)
+       ? YTDLP_COOKIES_FILE
+       : null
+
+     if (YTDLP_COOKIES_FILE && !cookiesFile) {
+       console.warn(`⚠️ YTDLP_COOKIES_FILE is set but file was not found: ${YTDLP_COOKIES_FILE}`)
+     }
+
+     for (const attempt of ytDlpAttempts) {
+       const command = buildYtDlpCommand(youtubeUrl, audioFile, attempt.playerClient, cookiesFile)
+
+       try {
+         console.log(`🎯 yt-dlp attempt (${attempt.label}) with player_client=${attempt.playerClient}`)
+         await execAsync(command)
+         extractionSucceeded = true
+         break
+       } catch (ytdlpError) {
+         lastYtDlpError = ytdlpError
+         const attemptErrorText = getErrorText(ytdlpError)
+         console.warn(`⚠️ yt-dlp attempt (${attempt.label}) failed:`, attemptErrorText)
+       }
+     }
+
+     if (!extractionSucceeded) {
+       const fullYtDlpError = getErrorText(lastYtDlpError)
+       const blockedByYouTube = /sign in to confirm|not a bot|http error 403|forbidden/i.test(fullYtDlpError)
+
+       const userFacingError = blockedByYouTube
+         ? 'YouTube blocked automated extraction for this video. Try another public video, or configure YTDLP_COOKIES_FILE on the server to allow restricted extraction.'
+         : 'Failed to extract audio from YouTube. Please try again with another URL.'
+
+       console.error('❌ yt-dlp extraction failed after retries:', fullYtDlpError)
+
        // Mark as failed without using AssemblyAI credits
        const transcription = new Transcription({
          userId: userId,
@@ -291,15 +372,16 @@ async function processTranscription(youtubeUrl: string, userId: string) {
          confidence: 0,
          audioDuration: 0,
          status: 'failed',
-         errorMessage: `Failed to extract audio: ${ytdlpError}`
+         errorMessage: fullYtDlpError.slice(0, 2000)
        })
        await transcription.save()
-       
-       return NextResponse.json({ 
-         success: false, 
-         error: `Failed to extract audio: ${ytdlpError}`,
+
+       return NextResponse.json({
+         success: false,
+         error: userFacingError,
+         code: blockedByYouTube ? 'YOUTUBE_BOT_CHALLENGE' : 'AUDIO_EXTRACTION_FAILED',
          status: 'failed'
-       })
+       }, { status: blockedByYouTube ? 429 : 502 })
      }
      
      // Check if audio file was created

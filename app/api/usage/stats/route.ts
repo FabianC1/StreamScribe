@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth'
 import connectDB from '@/lib/mongodb'
 import { Transcription } from '@/models'
 import mongoose from 'mongoose'
-import { authOptions } from '../../auth/[...nextauth]/route'
+import { authOptions } from '@/lib/auth-options'
 import { requireSubscription } from '@/lib/subscriptionCheck'
 
 export async function GET(request: NextRequest) {
